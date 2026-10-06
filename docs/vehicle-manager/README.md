@@ -40,8 +40,21 @@ Auth0, otherwise you see an "Access denied" page. Changes to the list apply on t
 If you create a user in the Auth0 dashboard, make sure its email ends up verified (e.g. via the
 verification email).
 
+Each signed-in user has their own owners, vehicles and fill-ups, and can't see anyone else's.
+
+**Data from before per-user data was added** belongs to nobody until it's claimed. Name who
+should get it, then sign in as that person (sign out first if you're already signed in):
+
+```bash
+dotnet user-secrets set "ExistingDataOwner" "me@example.com"
+```
+
+On that user's next sign-in (with that email verified and on the allow-list) all unclaimed
+owners and vehicles, with their fill-ups, become theirs. After that the setting does nothing and
+can be removed.
+
 User secrets are only read in Development. Elsewhere, use environment variables
-(`Auth0__Domain`, `Auth0__ClientId`, `Auth0__ClientSecret`, `AllowedEmails`). The app won't start
+(`Auth0__Domain`, `Auth0__ClientId`, `Auth0__ClientSecret`, `AllowedEmails`, `ExistingDataOwner`). The app won't start
 without them.
 
 Auth0 posts the sign-in result back to the app, which needs `Secure` cookies. Chrome, Edge and
@@ -57,7 +70,7 @@ don't use) for the application in Auth0.
 can't be deleted while they still own vehicles.
 
 **Vehicles** – owner, type, make, model, registration number, registration date, purchased date.
-Registration numbers are normalised to upper case and must be unique. Vehicles that existed before
+Registration numbers are normalised to upper case and must be unique (per user). Vehicles that existed before
 owners were added are assigned to an "Unassigned" owner; rename it or reassign the vehicles.
 
 **Fuel log** (per vehicle) – date, fuel brand, station location, litres, cost per litre, optional

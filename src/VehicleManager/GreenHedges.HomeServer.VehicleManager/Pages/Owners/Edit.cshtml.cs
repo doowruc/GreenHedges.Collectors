@@ -21,7 +21,7 @@ public class EditModel(AppDbContext db) : PageModel
 
     public async Task<IActionResult> OnPostAsync(int id)
     {
-        var existing = await db.Owners.FindAsync(id);
+        var existing = await db.Owners.FirstOrDefaultAsync(o => o.Id == id);
         if (existing is null) return NotFound();
 
         await OwnerRules.ValidateAsync(db, id, Owner, ModelState);

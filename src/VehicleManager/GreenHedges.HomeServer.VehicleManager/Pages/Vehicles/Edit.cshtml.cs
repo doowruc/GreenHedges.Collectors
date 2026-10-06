@@ -22,7 +22,7 @@ public class EditModel(AppDbContext db) : PageModel
 
     public async Task<IActionResult> OnPostAsync(int id)
     {
-        var existing = await db.Vehicles.FindAsync(id);
+        var existing = await db.Vehicles.FirstOrDefaultAsync(v => v.Id == id);
         if (existing is null) return NotFound();
 
         await VehicleRules.ValidateAsync(db, id, Vehicle, ModelState);

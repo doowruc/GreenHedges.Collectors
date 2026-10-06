@@ -29,10 +29,11 @@ There is no test project yet. Verify changes by building and exercising the page
 
 ```
 VehicleManager/
-  Models/      EF Core entities: Owner, Vehicle, FuelEntry (storage only)
+  Models/      EF Core entities: Owner, Vehicle, FuelEntry (storage only), IUserOwned
   ViewModels/  What pages use: *View (output, with calculated figures) and *Input (form/import input)
-  Data/        AppDbContext, DatabaseMigrator, Migrations/
-  Services/    FuelStatsService (summaries), FuelImportService (ClosedXML .xlsx import), FuelCalculations
+  Data/        AppDbContext (per-user query filters), DatabaseMigrator, DesignTimeDbContextFactory, Migrations/
+  Services/    FuelStatsService (summaries), FuelImportService (ClosedXML .xlsx import), FuelCalculations,
+               CurrentUser, AllowedUsers, ExistingDataClaim
   Pages/       Index (dashboard), Owners/*, Vehicles/*, Fuel/*, Import/*, Account/* (Login, Logout, SignedOut), Shared/ (layout + partials)
   wwwroot/     css/site.css, js/color-mode.js, js/period-toggle.js
 ```
@@ -51,14 +52,23 @@ VehicleManager/
 - Entities keep only the attributes that shape the schema (`[Required]`, `[StringLength]`). Display names and validation ranges belong on the `*Input` classes.
 - When adding a field, update the entity, its `*View`/`*Input` projections and `ApplyTo`.
 
+**Per-user data**
+- Owners and vehicles implement `IUserOwned` (`UserId` = Auth0 `sub`, via `Services/CurrentUser.cs`). Fill-ups belong to the user who owns their vehicle.
+- `AppDbContext` query filters limit every query to the current user, including `ExecuteUpdate`/`ExecuteDelete`. `SaveChanges` stamps new owners/vehicles with the user's id and throws if nobody is signed in. Pages don't filter by user themselves.
+- With no signed-in user, queries return nothing (fail closed). Only use `IgnoreQueryFilters()` for deliberate cross-user work, as `ExistingDataClaim` does.
+- Use `FirstOrDefaultAsync(x => x.Id == id)` rather than `FindAsync`, so the filters always apply.
+- Rows with an empty `UserId` are pre-per-user data. On sign-in (`OnTokenValidated`), `ExistingDataClaim` gives them to the user whose verified email matches the `ExistingDataOwner` setting.
+- A new user-owned root entity needs `IUserOwned`, a query filter and per-user unique indexes. A child entity needs a filter through its parent.
+- `dotnet ef` uses `DesignTimeDbContextFactory`, so it doesn't need the Auth0 settings.
+
 **Data rules**
-- Registration numbers are normalised to upper case and must be unique (`Pages/Vehicles/VehicleRules.cs`).
-- Every vehicle has a required owner (`Owners` table, FK with `Restrict`, so owners with vehicles can't be deleted). Owner names are unique, case-insensitive (`Pages/Owners/OwnerRules.cs`).
+- Registration numbers are normalised to upper case and must be unique per user (`Pages/Vehicles/VehicleRules.cs`).
+- Every vehicle has a required owner (`Owners` table, FK with `Restrict`, so owners with vehicles can't be deleted). Owner names are unique per user, case-insensitive (`Pages/Owners/OwnerRules.cs`).
 - Calculated figures (total cost, real MPG, dash-vs-real, pence per mile) are computed from raw data, never stored. They are properties on `FuelEntryView`; the cost formulas are shared with `FuelEntryInput` via `Services/FuelCalculations.cs`. Average MPG is weighted: total miles ÷ total gallons, not an average of averages.
 - Fuel import de-duplicates on (vehicle, date, litres) so re-importing is safe. ClosedXML reads `CachedValue` so formula cells use Excel's saved results.
 
 **Authentication (Auth0)**
-- `Auth0:Domain`, `Auth0:ClientId`, `Auth0:ClientSecret` and `AllowedEmails` come from user secrets (env vars outside Development). Never put them in `appsettings*.json` or commit them. The app throws at startup if any are missing.
+- `Auth0:Domain`, `Auth0:ClientId`, `Auth0:ClientSecret`, `AllowedEmails` and optional `ExistingDataOwner` come from user secrets (env vars outside Development). Never put them in `appsettings*.json` or commit them. The app throws at startup if any are missing.
 - Authorization code flow, scopes `openid profile email`.
 - Allow-list: `AllowedEmails` (user secrets, `;`/`,` separated) via `Services/AllowedUsers.cs`. The `AllowedUser` policy (also the fallback policy, so it covers every endpoint) requires a signed-in user whose `email_verified` email is on the list. Signed-in users who fail it are forbidden → `Account/AccessDenied`. The app throws at startup if the list is missing (fail closed).
 - `[AllowAnonymous]` only on `Account/Login`, `Account/Logout`, `Account/SignedOut`, `Account/AccessDenied`, `Error` and static assets. New pages are protected automatically. The layout shows the nav only when the user passes the `AllowedUser` policy.

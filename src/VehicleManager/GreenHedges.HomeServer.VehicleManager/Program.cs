@@ -1,5 +1,6 @@
 using System.Globalization;
 using Auth0.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
@@ -24,11 +25,19 @@ builder.Services.AddAuth0WebAppAuthentication(options =>
     options.ClientSecret = RequiredSetting("Auth0:ClientSecret");
     options.ResponseType = OpenIdConnectResponseType.Code;
     options.Scope = "openid profile email";
+    options.OpenIdConnectEvents = new OpenIdConnectEvents
+    {
+        // On sign-in, hand any data from before per-user data to the ExistingDataOwner (see README).
+        OnTokenValidated = context => context.HttpContext.RequestServices
+            .GetRequiredService<ExistingDataClaim>()
+            .ClaimIfOwnerAsync(context.Principal!)
+    };
 });
 
 // Every page requires a signed-in user whose verified email is on the allow-list, unless it opts
 // out with [AllowAnonymous]. Signed-in users who aren't allowed are sent to Account/AccessDenied.
 var allowedUsers = AllowedUsers.FromSetting(RequiredSetting("AllowedEmails"));
+builder.Services.AddSingleton(allowedUsers);
 var allowedUserPolicy = new AuthorizationPolicyBuilder()
     .RequireAuthenticatedUser()
     .RequireAssertion(context => allowedUsers.IsAllowed(context.User))
@@ -38,6 +47,9 @@ builder.Services.AddAuthorizationBuilder()
     .SetFallbackPolicy(allowedUserPolicy);
 
 builder.Services.AddRazorPages();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<CurrentUser>();
+builder.Services.AddScoped<ExistingDataClaim>();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("VehicleManager")));
 builder.Services.AddScoped<FuelStatsService>();

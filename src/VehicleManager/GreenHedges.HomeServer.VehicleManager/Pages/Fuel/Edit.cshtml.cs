@@ -18,7 +18,7 @@ public class EditModel(AppDbContext db) : FuelFormPageModel(db)
 
     public async Task<IActionResult> OnPostAsync(int id)
     {
-        var existing = await Db.FuelEntries.FindAsync(id);
+        var existing = await Db.FuelEntries.FirstOrDefaultAsync(f => f.Id == id);
         if (existing is null) return NotFound();
 
         await ValidateAsync();

@@ -12,9 +12,12 @@ public enum VehicleType
 }
 
 /// <summary>A stored vehicle. Pages use <c>VehicleView</c> / <c>VehicleInput</c> rather than this entity.</summary>
-public class Vehicle
+public class Vehicle : IUserOwned
 {
     public int Id { get; set; }
+
+    [Required, StringLength(128)]
+    public string UserId { get; set; } = string.Empty;
 
     public int OwnerId { get; set; }
     public Owner? Owner { get; set; }
