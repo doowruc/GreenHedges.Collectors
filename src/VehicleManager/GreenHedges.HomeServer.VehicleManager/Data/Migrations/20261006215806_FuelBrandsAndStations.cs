@@ -146,12 +146,6 @@ namespace VehicleManager.Data.Migrations
                 GROUP BY FuelEntryId, UserId, Sequence
                 HAVING MAX(Name) <> '';
 
-                -- One-off clean-up of duplicate names found in the existing data.
-                UPDATE #Stops SET Brand = N'Sainsbury''s' WHERE Brand = N'Sainsburys';
-                UPDATE #Stops SET Station = N'Elmwood' WHERE Station = N'Elmwod';
-                UPDATE #Stops SET Station = N'Northgate' WHERE Station = N'Northgate Shell';
-                UPDATE #Stops SET Station = N'Riverside' WHERE Station = N'Morrisons Riverside';
-
                 -- One brand/station per name per user (names compare ignoring case, like the app).
                 DECLARE @now datetime2 = SYSUTCDATETIME();
 

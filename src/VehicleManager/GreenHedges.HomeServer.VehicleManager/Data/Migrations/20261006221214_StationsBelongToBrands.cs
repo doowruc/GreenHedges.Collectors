@@ -26,14 +26,6 @@ namespace VehicleManager.Data.Migrations
             migrationBuilder.Sql("""
                 DECLARE @now datetime2 = SYSUTCDATETIME();
 
-                -- One-off fix: the single Texaco fill-up at Hill Top (17/02/2016) was really Sainsbury's.
-                UPDATE s SET FuelBrandId = sb.Id
-                FROM FuelEntryStops s
-                JOIN FuelStations st ON st.Id = s.FuelStationId
-                JOIN FuelBrands b ON b.Id = s.FuelBrandId
-                JOIN FuelBrands sb ON sb.UserId = b.UserId AND sb.Name = N'Sainsbury''s'
-                WHERE st.Name = N'Hill Top' AND b.Name = N'Texaco';
-
                 -- Every stop now needs a station, and every station a brand. A stop recorded with a
                 -- station but no brand takes the brand that station is most often used with; anything
                 -- still missing gets an "Unknown" brand or station. (There were none when this was written.)
