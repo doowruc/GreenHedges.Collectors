@@ -27,7 +27,7 @@ else
                 <tr>
                     <td><span class="reg-plate">@v.Vehicle.RegistrationNumber</span></td>
                     <td><a asp-page="Details" asp-route-id="@v.Vehicle.Id">@v.Vehicle.DisplayName</a></td>
-                    <td>@v.Vehicle.Owner?.Name</td>
+                    <td>@v.Vehicle.OwnerName</td>
                     <td>@v.Vehicle.Type</td>
                     <td>@v.Vehicle.RegistrationDate?.ToString("dd/MM/yyyy")</td>
                     <td>@v.Vehicle.PurchasedDate?.ToString("dd/MM/yyyy")</td>

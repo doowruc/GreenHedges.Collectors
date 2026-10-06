@@ -1,15 +1,15 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.EntityFrameworkCore;
 using VehicleManager.Data;
 using VehicleManager.Models;
+using VehicleManager.ViewModels;
 
 namespace VehicleManager.Pages.Vehicles;
 
 public class CreateModel(AppDbContext db) : PageModel
 {
     [BindProperty]
-    public Vehicle Vehicle { get; set; } = new();
+    public VehicleInput Vehicle { get; set; } = new();
 
     public async Task OnGetAsync()
     {
@@ -21,21 +21,18 @@ public class CreateModel(AppDbContext db) : PageModel
 
     public async Task<IActionResult> OnPostAsync()
     {
-        Vehicle.RegistrationNumber = VehicleRules.NormaliseReg(Vehicle.RegistrationNumber);
-        if (await db.Vehicles.AnyAsync(v => v.RegistrationNumber == Vehicle.RegistrationNumber))
-            ModelState.AddModelError("Vehicle.RegistrationNumber", "A vehicle with this registration already exists.");
-        VehicleRules.ValidateDates(Vehicle, ModelState);
-        await VehicleRules.ValidateOwnerAsync(db, Vehicle, ModelState);
-
+        await VehicleRules.ValidateAsync(db, null, Vehicle, ModelState);
         if (!ModelState.IsValid)
         {
             ViewData["OwnerOptions"] = await VehicleRules.OwnerOptionsAsync(db);
             return Page();
         }
 
-        db.Vehicles.Add(Vehicle);
+        var vehicle = new Vehicle();
+        Vehicle.ApplyTo(vehicle);
+        db.Vehicles.Add(vehicle);
         await db.SaveChangesAsync();
         TempData["Message"] = $"Added {Vehicle.DisplayName} ({Vehicle.RegistrationNumber}).";
-        return RedirectToPage("Details", new { id = Vehicle.Id });
+        return RedirectToPage("Details", new { id = vehicle.Id });
     }
 }

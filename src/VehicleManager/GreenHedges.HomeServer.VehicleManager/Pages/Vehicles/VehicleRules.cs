@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using VehicleManager.Data;
-using VehicleManager.Models;
+using VehicleManager.ViewModels;
 
 namespace VehicleManager.Pages.Vehicles;
 
@@ -11,14 +11,18 @@ internal static class VehicleRules
     public static string NormaliseReg(string? reg) =>
         string.Join(' ', (reg ?? string.Empty).ToUpperInvariant().Split(' ', StringSplitOptions.RemoveEmptyEntries));
 
-    public static void ValidateDates(Vehicle v, ModelStateDictionary state)
+    /// <summary>Normalises the input and checks it against the other vehicles (<paramref name="id"/> is null for a new one).</summary>
+    public static async Task ValidateAsync(AppDbContext db, int? id, VehicleInput v, ModelStateDictionary state)
     {
+        v.RegistrationNumber = NormaliseReg(v.RegistrationNumber);
+        if (await db.Vehicles.AnyAsync(x => x.Id != id && x.RegistrationNumber == v.RegistrationNumber))
+            state.AddModelError("Vehicle.RegistrationNumber", id is null
+                ? "A vehicle with this registration already exists."
+                : "Another vehicle already has this registration.");
+
         if (v.RegistrationDate is { } reg && v.PurchasedDate is { } bought && bought < reg)
             state.AddModelError("Vehicle.PurchasedDate", "Purchased date can't be before the registration date.");
-    }
 
-    public static async Task ValidateOwnerAsync(AppDbContext db, Vehicle v, ModelStateDictionary state)
-    {
         if (!await db.Owners.AnyAsync(o => o.Id == v.OwnerId))
             state.AddModelError("Vehicle.OwnerId", "Choose an owner.");
     }

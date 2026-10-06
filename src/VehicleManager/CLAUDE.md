@@ -28,9 +28,10 @@ There is no test project yet. Verify changes by building and exercising the page
 
 ```
 VehicleManager/
-  Models/      Owner, Vehicle, FuelEntry (calculated figures are properties, not stored)
+  Models/      EF Core entities: Owner, Vehicle, FuelEntry (storage only)
+  ViewModels/  What pages use: *View (output, with calculated figures) and *Input (form/import input)
   Data/        AppDbContext, DatabaseMigrator, Migrations/
-  Services/    FuelStatsService (summaries), FuelImportService (ClosedXML .xlsx import)
+  Services/    FuelStatsService (summaries), FuelImportService (ClosedXML .xlsx import), FuelCalculations
   Pages/       Index (dashboard), Owners/*, Vehicles/*, Fuel/*, Import/*, Shared/ (layout + partials)
   wwwroot/     css/site.css, js/color-mode.js, js/period-toggle.js
 ```
@@ -42,10 +43,17 @@ VehicleManager/
 - `Data/DatabaseMigrator.cs` runs at startup (`db.MigrateDatabase(logger)` in `Program.cs`) and applies pending migrations. It also adopts old databases created by `EnsureCreated()` (tables present, no `__EFMigrationsHistory`) by recording `InitialCreate` as applied. Don't remove that while such databases might exist.
 - My real data lives in the local `vehiclemanager.db`: don't delete or recreate it. Test against a copy.
 
+**Pages never use entity classes** (to limit what's read from the database and prevent overposting)
+- Output: project queries straight to view models, e.g. `.Select(VehicleView.Projection)`, or to a small record or anonymous type when a page needs only a few columns. Don't `Include()` navigations or load entities for display.
+- Input: bind `[BindProperty]` to an `*Input` class, never an entity. Ids come from the route, not the form. Create a new entity, or load it with `FindAsync`, then copy the fields across with `input.ApplyTo(entity)`.
+- Deletes use `ExecuteDeleteAsync()`. Fill-ups go with their vehicle via the FK cascade.
+- Entities keep only the attributes that shape the schema (`[Required]`, `[StringLength]`). Display names and validation ranges belong on the `*Input` classes.
+- When adding a field, update the entity, its `*View`/`*Input` projections and `ApplyTo`.
+
 **Data rules**
 - Registration numbers are normalised to upper case and must be unique (`Pages/Vehicles/VehicleRules.cs`).
 - Every vehicle has a required owner (`Owners` table, FK with `Restrict`, so owners with vehicles can't be deleted). Owner names are unique, case-insensitive (`Pages/Owners/OwnerRules.cs`).
-- Calculated figures (total cost, real MPG, dash-vs-real, pence per mile) are computed from raw data, never stored. Average MPG is weighted: total miles ÷ total gallons, not an average of averages.
+- Calculated figures (total cost, real MPG, dash-vs-real, pence per mile) are computed from raw data, never stored. They are properties on `FuelEntryView`; the cost formulas are shared with `FuelEntryInput` via `Services/FuelCalculations.cs`. Average MPG is weighted: total miles ÷ total gallons, not an average of averages.
 - Fuel import de-duplicates on (vehicle, date, litres) so re-importing is safe. ClosedXML reads `CachedValue` so formula cells use Excel's saved results.
 
 **Routing**: path ids, e.g. `/Vehicles/Details/1`, `/Fuel/Edit/5`.

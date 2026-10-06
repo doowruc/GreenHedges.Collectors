@@ -1,4 +1,4 @@
-using VehicleManager.Models;
+using VehicleManager.ViewModels;
 
 namespace VehicleManager.Services;
 
@@ -24,7 +24,7 @@ public class FuelStatsService
     /// Summarises a set of fill-ups. MPG is weighted (total miles / total gallons)
     /// over entries that have trip miles recorded, rather than an average of averages.
     /// </summary>
-    public FuelSummary Summarise(IEnumerable<FuelEntry> source, DateOnly? from = null)
+    public FuelSummary Summarise(IEnumerable<FuelEntryView> source, DateOnly? from = null)
     {
         var entries = source.Where(e => from is null || e.Date >= from).ToList();
         if (entries.Count == 0) return FuelSummary.Empty;

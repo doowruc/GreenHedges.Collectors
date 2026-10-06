@@ -22,11 +22,11 @@ else
             @foreach (var o in Model.Owners)
             {
                 <tr>
-                    <td>@o.Owner.Name</td>
+                    <td>@o.Name</td>
                     <td class="text-end">@o.Vehicles</td>
                     <td class="text-end text-nowrap">
-                        <a asp-page="Edit" asp-route-id="@o.Owner.Id" class="btn btn-sm btn-outline-secondary" title="Edit"><i class="bi bi-pencil"></i></a>
-                        <a asp-page="Delete" asp-route-id="@o.Owner.Id" class="btn btn-sm btn-outline-danger" title="Delete"><i class="bi bi-trash"></i></a>
+                        <a asp-page="Edit" asp-route-id="@o.Id" class="btn btn-sm btn-outline-secondary" title="Edit"><i class="bi bi-pencil"></i></a>
+                        <a asp-page="Delete" asp-route-id="@o.Id" class="btn btn-sm btn-outline-danger" title="Delete"><i class="bi bi-trash"></i></a>
                     </td>
                 </tr>
             }

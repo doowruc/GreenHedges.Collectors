@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace VehicleManager.Models;
 
+/// <summary>A stored owner. Pages use <c>OwnerInput</c> or their own projections rather than this entity.</summary>
 public class Owner
 {
     public int Id { get; set; }

@@ -4,8 +4,8 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using VehicleManager.Data;
-using VehicleManager.Models;
 using VehicleManager.Services;
+using VehicleManager.ViewModels;
 
 namespace VehicleManager.Pages.Import;
 
@@ -22,7 +22,7 @@ public partial class IndexModel(AppDbContext db, FuelImportService importer, ILo
     [BindProperty] public List<int?> VehicleForSheet { get; set; } = [];
 
     public List<ParsedSheet> Sheets { get; private set; } = [];
-    public List<Vehicle> Vehicles { get; private set; } = [];
+    public List<VehicleView> Vehicles { get; private set; } = [];
 
     public async Task OnGetAsync() => Vehicles = await LoadVehiclesAsync();
 
@@ -101,8 +101,8 @@ public partial class IndexModel(AppDbContext db, FuelImportService importer, ILo
         }
     }
 
-    private Task<List<Vehicle>> LoadVehiclesAsync() =>
-        db.Vehicles.OrderBy(v => v.Make).ThenBy(v => v.Model).ToListAsync();
+    private Task<List<VehicleView>> LoadVehiclesAsync() =>
+        db.Vehicles.OrderBy(v => v.Make).ThenBy(v => v.Model).Select(VehicleView.Projection).ToListAsync();
 
     public List<SelectListItem> OptionsFor(int index)
     {
@@ -118,7 +118,7 @@ public partial class IndexModel(AppDbContext db, FuelImportService importer, ILo
         Path.Combine(Path.GetTempPath(), $"vehiclemanager-import-{token}.xlsx");
 
     /// <summary>Pick the vehicle whose make/model best matches the sheet name (e.g. "Yaris", "A Class").</summary>
-    private static int? GuessVehicle(string sheetName, List<Vehicle> vehicles)
+    private static int? GuessVehicle(string sheetName, List<VehicleView> vehicles)
     {
         var sheet = Normalise(sheetName);
         if (sheet.Length == 0) return null;

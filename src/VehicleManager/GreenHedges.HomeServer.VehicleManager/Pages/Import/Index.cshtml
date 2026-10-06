@@ -44,8 +44,8 @@ else
                         </td>
                         <td class="text-end">@s.Entries.Count</td>
                         <td>@s.From?.ToString("dd/MM/yyyy") – @s.To?.ToString("dd/MM/yyyy")</td>
-                        <td class="text-end">@s.Entries.Sum(e => e.Litres).ToString("N0")</td>
-                        <td class="text-end">@s.Entries.Sum(e => e.TotalCost).ToString("C0")</td>
+                        <td class="text-end">@s.TotalLitres.ToString("N0")</td>
+                        <td class="text-end">@s.TotalCost.ToString("C0")</td>
                         <td>
                             <select name="VehicleForSheet[@i]" asp-items="Model.OptionsFor(i)" class="form-select form-select-sm" disabled="@(s.Entries.Count == 0)"></select>
                         </td>

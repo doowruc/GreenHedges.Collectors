@@ -1,13 +1,12 @@
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using VehicleManager.Data;
-using VehicleManager.Models;
 
 namespace VehicleManager.Pages.Owners;
 
 public class IndexModel(AppDbContext db) : PageModel
 {
-    public record Row(Owner Owner, int Vehicles);
+    public record Row(int Id, string Name, int Vehicles);
 
     public List<Row> Owners { get; private set; } = [];
 
@@ -15,7 +14,7 @@ public class IndexModel(AppDbContext db) : PageModel
     {
         Owners = await db.Owners
             .OrderBy(o => o.Name)
-            .Select(o => new Row(o, o.Vehicles.Count))
+            .Select(o => new Row(o.Id, o.Name, o.Vehicles.Count))
             .ToListAsync();
     }
 }

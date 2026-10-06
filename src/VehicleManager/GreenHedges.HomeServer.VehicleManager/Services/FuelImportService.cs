@@ -3,13 +3,16 @@ using ClosedXML.Excel;
 using Microsoft.EntityFrameworkCore;
 using VehicleManager.Data;
 using VehicleManager.Models;
+using VehicleManager.ViewModels;
 
 namespace VehicleManager.Services;
 
-public sealed record ParsedSheet(string Name, List<FuelEntry> Entries, List<string> Warnings)
+public sealed record ParsedSheet(string Name, List<FuelEntryInput> Entries, List<string> Warnings)
 {
     public DateOnly? From => Entries.Count > 0 ? Entries.Min(e => e.Date) : null;
     public DateOnly? To => Entries.Count > 0 ? Entries.Max(e => e.Date) : null;
+    public decimal TotalLitres => Entries.Sum(e => e.Litres);
+    public decimal TotalCost => Entries.Sum(e => e.TotalCost);
 }
 
 public sealed record ImportResult(int Imported, int SkippedDuplicates);
@@ -32,7 +35,7 @@ public class FuelImportService(AppDbContext db)
     public static ParsedSheet ParseSheet(IXLWorksheet sheet)
     {
         var warnings = new List<string>();
-        var entries = new List<FuelEntry>();
+        var entries = new List<FuelEntryInput>();
 
         var lastRow = sheet.LastRowUsed()?.RowNumber() ?? 0;
 
@@ -81,7 +84,7 @@ public class FuelImportService(AppDbContext db)
             var range = Number(Cell(row, "Range"));
             var voucher = Number(Cell(row, "Voucher"));
 
-            entries.Add(new FuelEntry
+            entries.Add(new FuelEntryInput
             {
                 Date = date.Value,
                 Brand = Text(Cell(row, "Brand")),
@@ -142,7 +145,7 @@ public class FuelImportService(AppDbContext db)
     /// Adds entries to a vehicle, skipping any that already exist (same date and litres),
     /// so re-importing an updated spreadsheet only adds the new rows.
     /// </summary>
-    public async Task<ImportResult> ImportAsync(int vehicleId, IEnumerable<FuelEntry> entries)
+    public async Task<ImportResult> ImportAsync(int vehicleId, IEnumerable<FuelEntryInput> entries)
     {
         var existing = (await db.FuelEntries
                 .Where(f => f.VehicleId == vehicleId)
@@ -155,9 +158,10 @@ public class FuelImportService(AppDbContext db)
         foreach (var e in entries)
         {
             if (!existing.Add((e.Date, e.Litres))) { skipped++; continue; }
-            e.Id = 0;
-            e.VehicleId = vehicleId;
-            db.FuelEntries.Add(e);
+            var entry = new FuelEntry();
+            e.ApplyTo(entry);
+            entry.VehicleId = vehicleId;
+            db.FuelEntries.Add(entry);
             imported++;
         }
         await db.SaveChangesAsync();

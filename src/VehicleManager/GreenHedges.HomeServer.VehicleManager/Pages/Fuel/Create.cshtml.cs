@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using VehicleManager.Data;
+using VehicleManager.Models;
 
 namespace VehicleManager.Pages.Fuel;
 
@@ -34,8 +35,9 @@ public class CreateModel(AppDbContext db) : FuelFormPageModel(db)
             return Page();
         }
 
-        Entry.Id = 0;
-        Db.FuelEntries.Add(Entry);
+        var entry = new FuelEntry();
+        Entry.ApplyTo(entry);
+        Db.FuelEntries.Add(entry);
         await Db.SaveChangesAsync();
         TempData["Message"] = $"Fill-up on {Entry.Date:dd/MM/yyyy} saved ({Entry.TotalCost:C}).";
 

@@ -1,4 +1,4 @@
-@model IEnumerable<FuelEntry>
+@model IEnumerable<FuelEntryView>
 @{
     var showVehicle = ViewData["ShowVehicle"] as bool? ?? false;
 }
@@ -22,7 +22,7 @@
             <td>@f.Date.ToString("dd/MM/yyyy")</td>
             @if (showVehicle)
             {
-                <td><a asp-page="/Vehicles/Details" asp-route-id="@f.VehicleId">@f.Vehicle?.DisplayName</a></td>
+                <td><a asp-page="/Vehicles/Details" asp-route-id="@f.VehicleId">@f.VehicleName</a></td>
             }
             <td>@f.Brand</td>
             <td>@f.Location</td>

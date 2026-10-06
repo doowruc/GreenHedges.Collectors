@@ -11,16 +11,14 @@ public enum VehicleType
     Other
 }
 
+/// <summary>A stored vehicle. Pages use <c>VehicleView</c> / <c>VehicleInput</c> rather than this entity.</summary>
 public class Vehicle
 {
     public int Id { get; set; }
 
-    [Display(Name = "Owner")]
     public int OwnerId { get; set; }
-
     public Owner? Owner { get; set; }
 
-    [Required]
     public VehicleType Type { get; set; } = VehicleType.Car;
 
     [Required, StringLength(50)]
@@ -30,18 +28,10 @@ public class Vehicle
     public string Model { get; set; } = string.Empty;
 
     [Required, StringLength(15)]
-    [Display(Name = "Registration number")]
     public string RegistrationNumber { get; set; } = string.Empty;
 
-    [DataType(DataType.Date)]
-    [Display(Name = "Registration date")]
     public DateOnly? RegistrationDate { get; set; }
-
-    [DataType(DataType.Date)]
-    [Display(Name = "Purchased date")]
     public DateOnly? PurchasedDate { get; set; }
 
     public List<FuelEntry> FuelEntries { get; set; } = [];
-
-    public string DisplayName => $"{Make} {Model}".Trim();
 }

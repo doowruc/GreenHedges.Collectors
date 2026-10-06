@@ -2,36 +2,37 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using VehicleManager.Data;
-using VehicleManager.Models;
+using VehicleManager.ViewModels;
 
 namespace VehicleManager.Pages.Owners;
 
 public class DeleteModel(AppDbContext db) : PageModel
 {
-    public Owner Owner { get; private set; } = new();
+    public string OwnerName { get; private set; } = string.Empty;
 
     /// <summary>Vehicles still owned; the owner can't be deleted until they are reassigned.</summary>
-    public List<Vehicle> Vehicles { get; private set; } = [];
+    public List<VehicleView> Vehicles { get; private set; } = [];
 
     public async Task<IActionResult> OnGetAsync(int id)
     {
-        var owner = await db.Owners.FindAsync(id);
-        if (owner is null) return NotFound();
-        Owner = owner;
+        var name = await db.Owners.Where(o => o.Id == id).Select(o => o.Name).FirstOrDefaultAsync();
+        if (name is null) return NotFound();
+        OwnerName = name;
         Vehicles = await db.Vehicles.Where(v => v.OwnerId == id)
-            .OrderBy(v => v.Make).ThenBy(v => v.Model).ToListAsync();
+            .OrderBy(v => v.Make).ThenBy(v => v.Model)
+            .Select(VehicleView.Projection)
+            .ToListAsync();
         return Page();
     }
 
     public async Task<IActionResult> OnPostAsync(int id)
     {
-        var owner = await db.Owners.FindAsync(id);
-        if (owner is null) return RedirectToPage("Index");
+        var name = await db.Owners.Where(o => o.Id == id).Select(o => o.Name).FirstOrDefaultAsync();
+        if (name is null) return RedirectToPage("Index");
         if (await db.Vehicles.AnyAsync(v => v.OwnerId == id)) return RedirectToPage("Delete", new { id });
 
-        db.Owners.Remove(owner);
-        await db.SaveChangesAsync();
-        TempData["Message"] = $"Deleted {owner.Name}.";
+        await db.Owners.Where(o => o.Id == id).ExecuteDeleteAsync();
+        TempData["Message"] = $"Deleted {name}.";
         return RedirectToPage("Index");
     }
 }

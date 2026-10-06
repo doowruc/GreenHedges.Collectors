@@ -62,7 +62,8 @@ updated spreadsheet to pick up just the new rows.
 
 ```
 VehicleManager/
-  Models/        Owner, Vehicle, FuelEntry (with calculated properties)
+  Models/        EF Core entities: Owner, Vehicle, FuelEntry
+  ViewModels/    View (output) and input models used by the pages, with the calculated figures
   Data/          AppDbContext (EF Core + SQLite), DatabaseMigrator, Migrations/
   Services/      FuelStatsService, FuelImportService (reads .xlsx via ClosedXML)
   Pages/         Dashboard, Owners/*, Vehicles/*, Fuel/*, Import/*

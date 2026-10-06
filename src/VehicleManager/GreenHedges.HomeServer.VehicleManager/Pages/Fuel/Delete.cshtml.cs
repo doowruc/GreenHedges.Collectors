@@ -2,17 +2,17 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using VehicleManager.Data;
-using VehicleManager.Models;
+using VehicleManager.ViewModels;
 
 namespace VehicleManager.Pages.Fuel;
 
 public class DeleteModel(AppDbContext db) : PageModel
 {
-    public FuelEntry Entry { get; private set; } = new();
+    public FuelEntryView Entry { get; private set; } = new();
 
     public async Task<IActionResult> OnGetAsync(int id)
     {
-        var entry = await db.FuelEntries.Include(f => f.Vehicle).FirstOrDefaultAsync(f => f.Id == id);
+        var entry = await db.FuelEntries.Where(f => f.Id == id).Select(FuelEntryView.Projection).FirstOrDefaultAsync();
         if (entry is null) return NotFound();
         Entry = entry;
         return Page();
@@ -20,12 +20,11 @@ public class DeleteModel(AppDbContext db) : PageModel
 
     public async Task<IActionResult> OnPostAsync(int id)
     {
-        var entry = await db.FuelEntries.FindAsync(id);
-        if (entry is null) return RedirectToPage("Index");
+        var vehicleId = await db.FuelEntries.Where(f => f.Id == id).Select(f => (int?)f.VehicleId).FirstOrDefaultAsync();
+        if (vehicleId is null) return RedirectToPage("Index");
 
-        db.FuelEntries.Remove(entry);
-        await db.SaveChangesAsync();
+        await db.FuelEntries.Where(f => f.Id == id).ExecuteDeleteAsync();
         TempData["Message"] = "Fill-up deleted.";
-        return RedirectToPage("/Vehicles/Details", new { id = entry.VehicleId });
+        return RedirectToPage("/Vehicles/Details", new { id = vehicleId });
     }
 }

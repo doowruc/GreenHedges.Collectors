@@ -2,27 +2,27 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using VehicleManager.Data;
 using VehicleManager.Models;
+using VehicleManager.ViewModels;
 
 namespace VehicleManager.Pages.Owners;
 
 public class CreateModel(AppDbContext db) : PageModel
 {
     [BindProperty]
-    public Owner Owner { get; set; } = new();
+    public OwnerInput Owner { get; set; } = new();
 
     public void OnGet() { }
 
     public async Task<IActionResult> OnPostAsync()
     {
-        Owner.Id = 0;
-        Owner.Name = OwnerRules.NormaliseName(Owner.Name);
-        await OwnerRules.ValidateAsync(db, Owner, ModelState);
-
+        await OwnerRules.ValidateAsync(db, null, Owner, ModelState);
         if (!ModelState.IsValid) return Page();
 
-        db.Owners.Add(Owner);
+        var owner = new Owner();
+        Owner.ApplyTo(owner);
+        db.Owners.Add(owner);
         await db.SaveChangesAsync();
-        TempData["Message"] = $"Added {Owner.Name}.";
+        TempData["Message"] = $"Added {owner.Name}.";
         return RedirectToPage("Index");
     }
 }

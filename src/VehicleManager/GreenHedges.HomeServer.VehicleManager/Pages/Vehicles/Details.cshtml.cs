@@ -4,15 +4,15 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using VehicleManager.Data;
-using VehicleManager.Models;
+using VehicleManager.ViewModels;
 using VehicleManager.Services;
 
 namespace VehicleManager.Pages.Vehicles;
 
 public class DetailsModel(AppDbContext db, FuelStatsService stats) : PageModel
 {
-    public Vehicle Vehicle { get; private set; } = new();
-    public List<FuelEntry> Entries { get; private set; } = [];
+    public VehicleView Vehicle { get; private set; } = new();
+    public List<FuelEntryView> Entries { get; private set; } = [];
     public FuelSummary AllTime { get; private set; } = FuelSummary.Empty;
     public FuelSummary LastYear { get; private set; } = FuelSummary.Empty;
     public string ChartJson { get; private set; } = "[]";
@@ -22,18 +22,20 @@ public class DetailsModel(AppDbContext db, FuelStatsService stats) : PageModel
 
     public async Task<IActionResult> OnGetAsync(int id)
     {
-        var vehicle = await db.Vehicles.Include(v => v.Owner).FirstOrDefaultAsync(v => v.Id == id);
+        var vehicle = await db.Vehicles.Where(v => v.Id == id).Select(VehicleView.Projection).FirstOrDefaultAsync();
         if (vehicle is null) return NotFound();
         Vehicle = vehicle;
 
-        VehicleOptions = (await db.Vehicles.OrderBy(v => v.Make).ThenBy(v => v.Model).ToListAsync())
+        VehicleOptions = (await db.Vehicles.OrderBy(v => v.Make).ThenBy(v => v.Model)
+                .Select(v => new { v.Id, v.Make, v.Model, v.RegistrationNumber }).ToListAsync())
             .Select(v => new SelectListItem(
-                $"{v.DisplayName} ({v.RegistrationNumber})", Url.Page("Details", new { id = v.Id }), v.Id == id))
+                $"{v.Make} {v.Model} ({v.RegistrationNumber})", Url.Page("Details", new { id = v.Id }), v.Id == id))
             .ToList();
 
         Entries = await db.FuelEntries
             .Where(f => f.VehicleId == id)
             .OrderByDescending(f => f.Date).ThenByDescending(f => f.Id)
+            .Select(FuelEntryView.Projection)
             .ToListAsync();
 
         AllTime = stats.Summarise(Entries);

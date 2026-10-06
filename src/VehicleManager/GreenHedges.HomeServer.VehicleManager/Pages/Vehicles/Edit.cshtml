@@ -8,7 +8,7 @@
         <partial name="_VehicleForm" for="Vehicle" />
         <div class="mt-4">
             <button type="submit" class="btn btn-primary">Save</button>
-            <a asp-page="Details" asp-route-id="@Model.Vehicle.Id" class="btn btn-link">Cancel</a>
+            <a asp-page="Details" asp-route-id="@RouteData.Values["id"]" class="btn btn-link">Cancel</a>
         </div>
     </form>
 </div></div>

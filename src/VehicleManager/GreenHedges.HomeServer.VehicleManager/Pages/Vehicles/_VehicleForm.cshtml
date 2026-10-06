@@ -1,7 +1,6 @@
-@model Vehicle
+@model VehicleInput
 @{ var owners = (List<SelectListItem>)ViewData["OwnerOptions"]!; }
 <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
-<input type="hidden" asp-for="Id" />
 <div class="row g-3">
     <div class="col-md-4">
         <label asp-for="OwnerId" class="form-label"></label>
