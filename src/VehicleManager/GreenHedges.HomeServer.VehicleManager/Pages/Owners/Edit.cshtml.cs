@@ -28,7 +28,16 @@ public class EditModel(AppDbContext db) : PageModel
         if (!ModelState.IsValid) return Page();
 
         Owner.ApplyTo(existing);
-        await db.SaveChangesAsync();
+        if (!await db.TrySaveEditAsync(existing, Owner.RowVersion))
+        {
+            if (db.Entry(existing).State == EntityState.Detached) return NotFound();
+            ModelState.AddModelError(string.Empty,
+                "Someone changed this owner after you opened it, so your changes haven't been saved. " +
+                "Reload the page to see the latest version, or save again to overwrite it with yours.");
+            Owner.RowVersion = existing.RowVersion;
+            ModelState.Remove("Owner.RowVersion");
+            return Page();
+        }
 
         TempData["Message"] = "Owner updated.";
         return RedirectToPage("Index");

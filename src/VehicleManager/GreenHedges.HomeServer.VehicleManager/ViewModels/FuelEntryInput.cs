@@ -54,6 +54,9 @@ public class FuelEntryInput
     [StringLength(500)]
     public string? Notes { get; set; }
 
+    /// <summary>The row's version when the form was loaded, to detect conflicting edits. Never copied to the entity.</summary>
+    public byte[] RowVersion { get; set; } = [];
+
     public decimal TotalCost => FuelCalculations.TotalCost(Litres, CostPerLitre, VoucherPerLitre);
 
     public static readonly Expression<Func<FuelEntry, FuelEntryInput>> Projection = f => new FuelEntryInput
@@ -69,7 +72,8 @@ public class FuelEntryInput
         TripMiles = f.TripMiles,
         Range = f.Range,
         Odometer = f.Odometer,
-        Notes = f.Notes
+        Notes = f.Notes,
+        RowVersion = f.RowVersion
     };
 
     public void ApplyTo(FuelEntry entry)

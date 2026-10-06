@@ -4,6 +4,7 @@
     static string Blank(decimal d) => d == 0 ? "" : d.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
 }
 <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+<input type="hidden" asp-for="Entry.RowVersion" />
 
 <h2 class="h6 text-muted text-uppercase mb-3">Fill-up</h2>
 <div class="row g-3 mb-4">

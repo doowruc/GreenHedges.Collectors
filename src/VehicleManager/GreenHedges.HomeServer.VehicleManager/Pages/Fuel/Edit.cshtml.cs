@@ -29,7 +29,17 @@ public class EditModel(AppDbContext db) : FuelFormPageModel(db)
         }
 
         Entry.ApplyTo(existing);
-        await Db.SaveChangesAsync();
+        if (!await Db.TrySaveEditAsync(existing, Entry.RowVersion))
+        {
+            if (Db.Entry(existing).State == EntityState.Detached) return NotFound();
+            ModelState.AddModelError(string.Empty,
+                "Someone changed this fill-up after you opened it, so your changes haven't been saved. " +
+                "Reload the page to see the latest version, or save again to overwrite it with yours.");
+            Entry.RowVersion = existing.RowVersion;
+            ModelState.Remove("Entry.RowVersion");
+            await LoadLookupsAsync(id);
+            return Page();
+        }
         TempData["Message"] = "Fill-up updated.";
         return RedirectToPage("/Vehicles/Details", new { id = Entry.VehicleId });
     }

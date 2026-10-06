@@ -9,7 +9,10 @@ public class OwnerInput
     [Required, StringLength(50)]
     public string Name { get; set; } = string.Empty;
 
-    public static readonly Expression<Func<Owner, OwnerInput>> Projection = o => new OwnerInput { Name = o.Name };
+    /// <summary>The row's version when the form was loaded, to detect conflicting edits. Never copied to the entity.</summary>
+    public byte[] RowVersion { get; set; } = [];
+
+    public static readonly Expression<Func<Owner, OwnerInput>> Projection = o => new OwnerInput { Name = o.Name, RowVersion = o.RowVersion };
 
     public void ApplyTo(Owner owner) => owner.Name = Name;
 }

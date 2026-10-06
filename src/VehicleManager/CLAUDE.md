@@ -20,8 +20,8 @@ There is no test project yet. Verify changes by building and exercising the page
 
 ## Stack
 
-- .NET 10, Razor Pages, EF Core 10 + SQLite (`VehicleManager/vehiclemanager.db`, git-ignored with its `-shm`/`-wal` files).
-- Packages: `Microsoft.EntityFrameworkCore.Sqlite`, `Microsoft.EntityFrameworkCore.Design` (PrivateAssets=all), `ClosedXML`, `Auth0.AspNetCore.Authentication`. Keep EF packages and `dotnet-ef` on the same version.
+- .NET 10, Razor Pages, EF Core 10 + SQL Server (Azure SQL Database). Connection string `ConnectionStrings:VehicleManager` is in user secrets; there is no local database.
+- Packages: `Microsoft.EntityFrameworkCore.SqlServer`, `Microsoft.EntityFrameworkCore.Design` (PrivateAssets=all), `ClosedXML`, `Auth0.AspNetCore.Authentication`. Keep EF packages and `dotnet-ef` on the same version.
 - Front end: Bootstrap 5.3, Bootstrap Icons and Chart.js 4 from the jsDelivr CDN (no npm/bundler). Small vanilla JS files in `wwwroot/js`.
 - en-GB culture throughout (dd/MM/yyyy, £). MPG uses UK gallons (4.54609 L).
 
@@ -29,9 +29,10 @@ There is no test project yet. Verify changes by building and exercising the page
 
 ```
 VehicleManager/
-  Models/      EF Core entities: Owner, Vehicle, FuelEntry (storage only), IUserOwned
+  Models/      EF Core entities: Owner, Vehicle, FuelEntry (storage only), AuditedEntity, IUserOwned
   ViewModels/  What pages use: *View (output, with calculated figures) and *Input (form/import input)
-  Data/        AppDbContext (per-user query filters), DatabaseMigrator, DesignTimeDbContextFactory, Migrations/
+  Data/        AppDbContext (per-user query filters, audit stamping), DatabaseMigrator, ConcurrencyExtensions,
+               DesignTimeDbContextFactory, Migrations/
   Services/    FuelStatsService (summaries), FuelImportService (ClosedXML .xlsx import), FuelCalculations,
                CurrentUser, AllowedUsers, ExistingDataClaim
   Pages/       Index (dashboard), Owners/*, Vehicles/*, Fuel/*, Import/*, Account/* (Login, Logout, SignedOut), Shared/ (layout + partials)
@@ -42,8 +43,15 @@ VehicleManager/
 
 **Database / migrations**
 - Schema changes go through EF Core migrations; never use `EnsureCreated()`.
-- `Data/DatabaseMigrator.cs` runs at startup (`db.MigrateDatabase(logger)` in `Program.cs`) and applies pending migrations. It also adopts old databases created by `EnsureCreated()` (tables present, no `__EFMigrationsHistory`) by recording `InitialCreate` as applied. Don't remove that while such databases might exist.
-- My real data lives in the local `vehiclemanager.db`: don't delete or recreate it. Test against a copy.
+- `Data/DatabaseMigrator.cs` runs at startup (`db.MigrateDatabase(logger)` in `Program.cs`) and applies pending migrations. The migrations were restarted for SQL Server (`InitialCreate`); the SQLite-era ones are gone.
+- My real data lives in the Azure SQL database: never drop, recreate or bulk-change it. Tests that write must use a separate database, or rows owned by a fake `test|…` user id that they delete afterwards.
+- `EnableRetryOnFailure` is on, so explicit transactions must run inside `db.Database.CreateExecutionStrategy().ExecuteAsync(...)` (see `ExistingDataClaim`).
+
+**Audit columns** (every table, via `Models/AuditedEntity.cs`)
+- `AddedDate`, `AddedBy`, `ModifiedDate`, `ModifiedBy` are set in `AppDbContext.SaveChanges` (UTC; user = Auth0 id). Added values can't be changed after insert. Bulk `ExecuteUpdate` bypasses `SaveChanges`, so set `ModifiedDate`/`ModifiedBy` explicitly there.
+- `RowVersion` is a SQL Server `rowversion` (`[Timestamp]`), maintained by the database.
+- Edits use optimistic concurrency: `*Input` classes carry `RowVersion` (a hidden field in the form, base64), and edit pages save with `db.TrySaveEditAsync(entity, input.RowVersion)` (`Data/ConcurrencyExtensions.cs`). On a conflict, show the error and put the latest `RowVersion` back in the form.
+- A new table should inherit `AuditedEntity`.
 
 **Pages never use entity classes** (to limit what's read from the database and prevent overposting)
 - Output: project queries straight to view models, e.g. `.Select(VehicleView.Projection)`, or to a small record or anonymous type when a page needs only a few columns. Don't `Include()` navigations or load entities for display.
@@ -59,7 +67,7 @@ VehicleManager/
 - Use `FirstOrDefaultAsync(x => x.Id == id)` rather than `FindAsync`, so the filters always apply.
 - Rows with an empty `UserId` are pre-per-user data. On sign-in (`OnTokenValidated`), `ExistingDataClaim` gives them to the user whose verified email matches the `ExistingDataOwner` setting.
 - A new user-owned root entity needs `IUserOwned`, a query filter and per-user unique indexes. A child entity needs a filter through its parent.
-- `dotnet ef` uses `DesignTimeDbContextFactory`, so it doesn't need the Auth0 settings.
+- `dotnet ef` uses `DesignTimeDbContextFactory`, so it doesn't need the Auth0 settings (it reads the connection string from user secrets).
 
 **Data rules**
 - Registration numbers are normalised to upper case and must be unique per user (`Pages/Vehicles/VehicleRules.cs`).

@@ -5,10 +5,20 @@ namespace VehicleManager.Data;
 
 /// <summary>
 /// Lets <c>dotnet ef</c> create the context without running <c>Program.cs</c>, which needs the
-/// Auth0 settings. Only used for designing migrations, never at runtime.
+/// Auth0 settings. Uses the connection string from user secrets if there is one, which only
+/// matters for commands that touch the database (e.g. <c>database update</c>); adding a migration
+/// doesn't connect.
 /// </summary>
 public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<AppDbContext>
 {
-    public AppDbContext CreateDbContext(string[] args) =>
-        new(new DbContextOptionsBuilder<AppDbContext>().UseSqlite("Data Source=vehiclemanager.db").Options);
+    public AppDbContext CreateDbContext(string[] args)
+    {
+        var config = new ConfigurationBuilder()
+            .AddUserSecrets<DesignTimeDbContextFactory>(optional: true)
+            .AddEnvironmentVariables()
+            .Build();
+        var connectionString = config.GetConnectionString("VehicleManager")
+            ?? "Server=localhost;Database=VehicleManager;Integrated Security=true";
+        return new(new DbContextOptionsBuilder<AppDbContext>().UseSqlServer(connectionString).Options);
+    }
 }

@@ -6,9 +6,10 @@ namespace VehicleManager.Data;
 
 /// <remarks>
 /// Each signed-in user has their own data. Query filters limit every query to the current user's
-/// owners, vehicles and (through their vehicle) fill-ups, and <see cref="SaveChangesAsync(bool, CancellationToken)"/>
-/// stamps new owners and vehicles with the current user's id. With no signed-in user (e.g. at startup)
-/// queries return nothing. Use <c>IgnoreQueryFilters()</c> only for deliberate cross-user work.
+/// owners, vehicles and (through their vehicle) fill-ups. <see cref="SaveChangesAsync(bool, CancellationToken)"/>
+/// stamps new owners and vehicles with the current user's id and fills in every table's audit columns.
+/// With no signed-in user (e.g. at startup) queries return nothing and saving throws. Use
+/// <c>IgnoreQueryFilters()</c> only for deliberate cross-user work.
 /// </remarks>
 public class AppDbContext(DbContextOptions<AppDbContext> options, CurrentUser? currentUser = null) : DbContext(options)
 {
@@ -56,22 +57,44 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, CurrentUser? c
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
-        StampNewRows();
+        StampChanges();
         return base.SaveChanges(acceptAllChangesOnSuccess);
     }
 
     public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
-        StampNewRows();
+        StampChanges();
         return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
     }
 
-    private void StampNewRows()
+    /// <summary>Fills in the audit columns, and the owning user on new rows.</summary>
+    private void StampChanges()
     {
-        foreach (var entry in ChangeTracker.Entries<IUserOwned>().Where(e => e.State == EntityState.Added))
+        var entries = ChangeTracker.Entries<AuditedEntity>()
+            .Where(e => e.State is EntityState.Added or EntityState.Modified)
+            .ToList();
+        if (entries.Count == 0) return;
+
+        var userId = CurrentUserId
+            ?? throw new InvalidOperationException("Can't save data without a signed-in user.");
+        var now = DateTime.UtcNow;
+
+        foreach (var entry in entries)
         {
-            entry.Entity.UserId = CurrentUserId
-                ?? throw new InvalidOperationException("Can't save user data without a signed-in user.");
+            if (entry.State == EntityState.Added)
+            {
+                entry.Entity.AddedDate = now;
+                entry.Entity.AddedBy = userId;
+                if (entry.Entity is IUserOwned owned) owned.UserId = userId;
+            }
+            else
+            {
+                // Who added a row, and when, never changes.
+                entry.Property(e => e.AddedDate).IsModified = false;
+                entry.Property(e => e.AddedBy).IsModified = false;
+            }
+            entry.Entity.ModifiedDate = now;
+            entry.Entity.ModifiedBy = userId;
         }
     }
 }

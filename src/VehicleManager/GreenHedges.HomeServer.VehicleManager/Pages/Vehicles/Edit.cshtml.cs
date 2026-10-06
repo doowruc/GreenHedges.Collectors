@@ -33,7 +33,17 @@ public class EditModel(AppDbContext db) : PageModel
         }
 
         Vehicle.ApplyTo(existing);
-        await db.SaveChangesAsync();
+        if (!await db.TrySaveEditAsync(existing, Vehicle.RowVersion))
+        {
+            if (db.Entry(existing).State == EntityState.Detached) return NotFound();
+            ModelState.AddModelError(string.Empty,
+                "Someone changed this vehicle after you opened it, so your changes haven't been saved. " +
+                "Reload the page to see the latest version, or save again to overwrite it with yours.");
+            Vehicle.RowVersion = existing.RowVersion;
+            ModelState.Remove("Vehicle.RowVersion");
+            ViewData["OwnerOptions"] = await VehicleRules.OwnerOptionsAsync(db);
+            return Page();
+        }
 
         TempData["Message"] = "Vehicle updated.";
         return RedirectToPage("Details", new { id });

@@ -30,6 +30,9 @@ public class VehicleInput
     [Display(Name = "Purchased date")]
     public DateOnly? PurchasedDate { get; set; }
 
+    /// <summary>The row's version when the form was loaded, to detect conflicting edits. Never copied to the entity.</summary>
+    public byte[] RowVersion { get; set; } = [];
+
     public string DisplayName => $"{Make} {Model}".Trim();
 
     public static readonly Expression<Func<Vehicle, VehicleInput>> Projection = v => new VehicleInput
@@ -40,7 +43,8 @@ public class VehicleInput
         Model = v.Model,
         RegistrationNumber = v.RegistrationNumber,
         RegistrationDate = v.RegistrationDate,
-        PurchasedDate = v.PurchasedDate
+        PurchasedDate = v.PurchasedDate,
+        RowVersion = v.RowVersion
     };
 
     public void ApplyTo(Vehicle vehicle)

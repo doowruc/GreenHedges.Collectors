@@ -11,9 +11,33 @@ cd VehicleManager
 dotnet run
 ```
 
-Sign-in uses Auth0, so set that up first (see below). Then open http://localhost:5080. The SQLite database (`vehiclemanager.db`) is created automatically
-next to the project on first run, and any pending schema migrations are applied each time the app
-starts. Back it up by copying that file.
+The app needs an Azure SQL database and Auth0 sign-in, so set both up first (see below). Then open
+http://localhost:5080. The tables are created on first run, and any pending schema migrations are
+applied each time the app starts.
+
+## Database (Azure SQL)
+
+Data is stored in an Azure SQL Database (SQL Server). To set one up:
+
+1. In the [Azure portal](https://portal.azure.com), create a **SQL database**. The free offer
+   ("Apply free offer" on the create page) is plenty for this app. Create a new server with
+   **SQL authentication** and note the admin login and password.
+2. On the server's **Networking** page, allow public access and add your client IP address to the
+   firewall rules.
+3. Store the connection string in user secrets, from the `VehicleManager` folder:
+
+   ```bash
+   dotnet user-secrets set "ConnectionStrings:VehicleManager" "Server=tcp:<server>.database.windows.net,1433;Initial Catalog=<database>;User ID=<login>;Password=<password>;Encrypt=True;Connection Timeout=60;"
+   ```
+
+A free or serverless database pauses when idle. The first request after a pause can take up to a
+minute while it resumes; the app retries automatically. Azure backs the database up automatically
+and can restore it to an earlier point in time.
+
+Every table has audit columns: `AddedDate`, `AddedBy`, `ModifiedDate` and `ModifiedBy` (UTC times
+and Auth0 user ids, set automatically when rows are saved), and a SQL Server `rowversion` column,
+`RowVersion`. If you save an edit to something that was changed after you opened it (e.g. in
+another tab), you're warned instead of overwriting the other change.
 
 ## Signing in (Auth0)
 
@@ -54,7 +78,8 @@ owners and vehicles, with their fill-ups, become theirs. After that the setting 
 can be removed.
 
 User secrets are only read in Development. Elsewhere, use environment variables
-(`Auth0__Domain`, `Auth0__ClientId`, `Auth0__ClientSecret`, `AllowedEmails`, `ExistingDataOwner`). The app won't start
+(`ConnectionStrings__VehicleManager`, `Auth0__Domain`, `Auth0__ClientId`, `Auth0__ClientSecret`,
+`AllowedEmails`, `ExistingDataOwner`). The app won't start
 without them.
 
 Auth0 posts the sign-in result back to the app, which needs `Secure` cookies. Chrome, Edge and
@@ -113,7 +138,7 @@ updated spreadsheet to pick up just the new rows.
 VehicleManager/
   Models/        EF Core entities: Owner, Vehicle, FuelEntry
   ViewModels/    View (output) and input models used by the pages, with the calculated figures
-  Data/          AppDbContext (EF Core + SQLite), DatabaseMigrator, Migrations/
+  Data/          AppDbContext (EF Core + SQL Server), DatabaseMigrator, Migrations/
   Services/      FuelStatsService, FuelImportService (reads .xlsx via ClosedXML)
   Pages/         Dashboard, Owners/*, Vehicles/*, Fuel/*, Import/*, Account/* (sign in/out)
 ```
@@ -137,9 +162,6 @@ dotnet ef migrations add <Name> --output-dir Data/Migrations
 
 Review the generated file, then run the app to apply it (or `dotnet ef database update`).
 To undo the last migration before it has been applied anywhere, use `dotnet ef migrations remove`.
-
-Databases created before migrations were added (via `EnsureCreated()`) are adopted automatically:
-on first start the initial migration is recorded as already applied, and no data is touched.
 
 ## Notes
 

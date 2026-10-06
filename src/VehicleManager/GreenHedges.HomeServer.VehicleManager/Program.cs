@@ -50,14 +50,16 @@ builder.Services.AddRazorPages();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<CurrentUser>();
 builder.Services.AddScoped<ExistingDataClaim>();
+// Azure SQL Database (see README). Retries cover Azure's brief transient faults, and a serverless
+// database waking up from auto-pause.
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("VehicleManager")));
+    options.UseSqlServer(RequiredSetting("ConnectionStrings:VehicleManager"), sql => sql.EnableRetryOnFailure()));
 builder.Services.AddScoped<FuelStatsService>();
 builder.Services.AddScoped<FuelImportService>();
 
 var app = builder.Build();
 
-// Create the SQLite database on first run and apply any pending migrations.
+// Create the tables on first run and apply any pending migrations.
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();

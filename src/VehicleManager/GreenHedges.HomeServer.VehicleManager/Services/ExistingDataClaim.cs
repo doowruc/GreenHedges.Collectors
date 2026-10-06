@@ -25,10 +25,23 @@ public class ExistingDataClaim(AppDbContext db, AllowedUsers allowedUsers, IConf
         var vehicles = db.Vehicles.IgnoreQueryFilters().Where(v => v.UserId == "");
         if (!await owners.AnyAsync() && !await vehicles.AnyAsync()) return;
 
-        await using var transaction = await db.Database.BeginTransactionAsync();
-        var ownerCount = await owners.ExecuteUpdateAsync(s => s.SetProperty(o => o.UserId, userId));
-        var vehicleCount = await vehicles.ExecuteUpdateAsync(s => s.SetProperty(v => v.UserId, userId));
-        await transaction.CommitAsync();
+        // Bulk updates bypass SaveChanges, so set the audit columns here. The retrying execution
+        // strategy needs the whole transaction inside it, so it can be replayed as one unit.
+        var now = DateTime.UtcNow;
+        var (ownerCount, vehicleCount) = await db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
+        {
+            await using var transaction = await db.Database.BeginTransactionAsync();
+            var ownerCount = await owners.ExecuteUpdateAsync(s => s
+                .SetProperty(o => o.UserId, userId)
+                .SetProperty(o => o.ModifiedBy, userId)
+                .SetProperty(o => o.ModifiedDate, now));
+            var vehicleCount = await vehicles.ExecuteUpdateAsync(s => s
+                .SetProperty(v => v.UserId, userId)
+                .SetProperty(v => v.ModifiedBy, userId)
+                .SetProperty(v => v.ModifiedDate, now));
+            await transaction.CommitAsync();
+            return (ownerCount, vehicleCount);
+        });
 
         logger.LogInformation("Gave {Owners} existing owner(s) and {Vehicles} vehicle(s) to {Email}.",
             ownerCount, vehicleCount, ownerEmail);
