@@ -1,0 +1,9 @@
+@*
+    "Last 12 months" / "All time" switch. Shows the matching content on the page – mark it up as
+    <div class="period-stats" data-period="12m">…</div> and <div class="period-stats d-none" data-period="all">…</div>.
+*@
+<ul class="nav nav-pills mb-2" role="tablist" aria-label="Stats period">
+    <li class="nav-item"><button class="nav-link active" type="button" role="tab" aria-selected="true" data-show-period="12m">Last 12 months</button></li>
+    <li class="nav-item"><button class="nav-link" type="button" role="tab" aria-selected="false" data-show-period="all">All time</button></li>
+</ul>
+<script src="~/js/period-toggle.js" asp-append-version="true" defer></script>

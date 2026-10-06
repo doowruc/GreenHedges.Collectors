@@ -28,13 +28,10 @@
 }
 else
 {
-    <ul class="nav nav-pills mb-2" role="tablist">
-        <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#stats-12m" type="button">Last 12 months</button></li>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#stats-all" type="button">All time</button></li>
-    </ul>
-    <div class="tab-content mb-4">
-        <div class="tab-pane fade show active" id="stats-12m"><partial name="_StatCards" model="Model.LastYear" /></div>
-        <div class="tab-pane fade" id="stats-all"><partial name="_StatCards" model="Model.AllTime" /></div>
+    <partial name="_PeriodToggle" />
+    <div class="mb-4">
+        <div class="period-stats" data-period="12m"><partial name="_StatCards" model="Model.LastYear" /></div>
+        <div class="period-stats d-none" data-period="all"><partial name="_StatCards" model="Model.AllTime" /></div>
     </div>
 
     <div class="card shadow-sm mb-4">

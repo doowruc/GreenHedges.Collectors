@@ -13,6 +13,10 @@
         <a asp-page="/Import/Index" class="btn btn-outline-secondary">Import spreadsheet</a>
     </div></div>
 }
+else
+{
+    <partial name="_PeriodToggle" />
+}
 
 <div class="row g-3">
 @foreach (var c in Model.Cards)
@@ -30,11 +34,14 @@
                 }
                 else
                 {
-                    <div class="row text-center g-2 mb-3">
-                        <div class="col-4"><div class="stat-card"><div class="label">MPG (12m)</div><div class="value">@(c.Year.AverageMpg?.ToString("0.0") ?? "–")</div></div></div>
-                        <div class="col-4"><div class="stat-card"><div class="label">Spent (12m)</div><div class="value">@c.Year.TotalCost.ToString("C0")</div></div></div>
-                        <div class="col-4"><div class="stat-card"><div class="label">Odometer</div><div class="value">@(c.AllTime.LatestOdometer?.ToString("N0") ?? "–")</div></div></div>
-                    </div>
+                    @foreach (var (period, summary) in new[] { ("12m", c.Year), ("all", c.AllTime) })
+                    {
+                        <div class="row text-center g-2 mb-3 period-stats @(period == "12m" ? "" : "d-none")" data-period="@period">
+                            <div class="col-4"><div class="stat-card"><div class="label">MPG</div><div class="value">@(summary.AverageMpg?.ToString("0.0") ?? "–")</div></div></div>
+                            <div class="col-4"><div class="stat-card"><div class="label">Spent</div><div class="value">@summary.TotalCost.ToString("C0")</div></div></div>
+                            <div class="col-4"><div class="stat-card"><div class="label">Odometer</div><div class="value">@(c.AllTime.LatestOdometer?.ToString("N0") ?? "–")</div></div></div>
+                        </div>
+                    }
                     <p class="small text-muted mb-0">
                         Last fill-up @c.Last.Date.ToString("dd MMM yyyy") (@((DateOnly.FromDateTime(DateTime.Today).DayNumber - c.Last.Date.DayNumber)) days ago):
                         @c.Last.Litres.ToString("0.0") l of @c.Last.Brand at @c.Last.Location, @c.Last.EffectiveCostPerLitre.ToString("C3")/l.
