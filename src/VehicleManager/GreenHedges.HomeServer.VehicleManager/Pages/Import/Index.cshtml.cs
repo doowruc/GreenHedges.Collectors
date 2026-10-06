@@ -91,7 +91,8 @@ public partial class IndexModel(AppDbContext db, FuelImportService importer, ILo
             sheets = importer.Parse(fs);
             return true;
         }
-        catch (Exception ex) when (ex is InvalidDataException or System.Xml.XmlException or IOException)
+        // ClosedXML/OpenXML surface a variety of exception types for corrupt or non-xlsx files.
+        catch (Exception ex) when (ex is not OutOfMemoryException)
         {
             logger.LogWarning(ex, "Failed to read uploaded workbook");
             ModelState.AddModelError(string.Empty, "Couldn't read that file – is it a valid .xlsx workbook?");

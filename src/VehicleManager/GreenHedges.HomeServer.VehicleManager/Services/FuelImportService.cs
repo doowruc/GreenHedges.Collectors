@@ -1,3 +1,5 @@
+using System.Globalization;
+using ClosedXML.Excel;
 using Microsoft.EntityFrameworkCore;
 using VehicleManager.Data;
 using VehicleManager.Models;
@@ -19,70 +21,121 @@ public sealed record ImportResult(int Imported, int SkippedDuplicates);
 /// </summary>
 public class FuelImportService(AppDbContext db)
 {
-    public List<ParsedSheet> Parse(Stream xlsx) =>
-        XlsxReader.Read(xlsx).Select(ParseSheet).ToList();
+    private static readonly CultureInfo UkCulture = CultureInfo.GetCultureInfo("en-GB");
 
-    public static ParsedSheet ParseSheet(XlsxReader.Sheet sheet)
+    public List<ParsedSheet> Parse(Stream xlsx)
+    {
+        using var workbook = new XLWorkbook(xlsx);
+        return workbook.Worksheets.Select(ParseSheet).ToList();
+    }
+
+    public static ParsedSheet ParseSheet(IXLWorksheet sheet)
     {
         var warnings = new List<string>();
         var entries = new List<FuelEntry>();
 
-        // Find the header row: the first row (within the first 10) that has both "Date" and "Litres".
-        var headerIndex = sheet.Rows.Take(10).ToList().FindIndex(r =>
-            r.Values.Any(v => v.Equals("Date", StringComparison.OrdinalIgnoreCase)) &&
-            r.Values.Any(v => v.Equals("Litres", StringComparison.OrdinalIgnoreCase)));
+        var lastRow = sheet.LastRowUsed()?.RowNumber() ?? 0;
 
-        if (headerIndex < 0)
+        // Find the header row: the first row (within the first 10) that has both "Date" and "Litres".
+        var headerRow = Enumerable.Range(1, Math.Min(10, lastRow))
+            .Select(sheet.Row)
+            .FirstOrDefault(r =>
+            {
+                var texts = r.CellsUsed().Select(c => Text(c)).ToList();
+                return texts.Contains("Date", StringComparer.OrdinalIgnoreCase) &&
+                       texts.Contains("Litres", StringComparer.OrdinalIgnoreCase);
+            });
+
+        if (headerRow is null)
         {
             warnings.Add("No header row with 'Date' and 'Litres' found – sheet skipped.");
             return new ParsedSheet(sheet.Name, entries, warnings);
         }
 
-        // Map header name -> column. First occurrence wins, so the trip-computer "Miles"/"MPG"
+        // Map header name -> column number. First occurrence wins, so the trip-computer "Miles"/"MPG"
         // are used rather than the later "Calculated" columns with the same names.
         var columns = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-        foreach (var (col, name) in sheet.Rows[headerIndex].OrderBy(kv => kv.Key))
-            columns.TryAdd(name, col);
+        foreach (var cell in headerRow.CellsUsed())
+            if (Text(cell) is { } name) columns.TryAdd(name, cell.Address.ColumnNumber);
 
-        string? Cell(IReadOnlyDictionary<int, string> row, string header) =>
-            columns.TryGetValue(header, out var c) && row.TryGetValue(c, out var v) ? v : null;
+        IXLCell? Cell(IXLRow row, string header) =>
+            columns.TryGetValue(header, out var c) ? row.Cell(c) : null;
 
-        foreach (var (row, i) in sheet.Rows.Skip(headerIndex + 1).Select((r, i) => (r, i)))
+        for (var r = headerRow.RowNumber() + 1; r <= lastRow; r++)
         {
-            var excelRow = headerIndex + 2 + i;
-            if (row.Count == 0) continue;
+            var row = sheet.Row(r);
+            if (row.IsEmpty()) continue;
 
-            var date = XlsxReader.ToDate(Cell(row, "Date"));
-            var litres = XlsxReader.ToDecimal(Cell(row, "Litres"));
-            var price = XlsxReader.ToDecimal(Cell(row, "Per Litre"));
+            var date = Date(Cell(row, "Date"));
+            var litres = Number(Cell(row, "Litres"));
+            var price = Number(Cell(row, "Per Litre"));
 
             if (date is null && litres is null) continue; // blank / summary row
             if (date is null || litres is not > 0 || price is not > 0)
             {
-                warnings.Add($"Row {excelRow}: missing date, litres or price – skipped.");
+                warnings.Add($"Row {r}: missing date, litres or price – skipped.");
                 continue;
             }
 
-            var odometer = XlsxReader.ToDecimal(Cell(row, "Odometer"));
-            var range = XlsxReader.ToDecimal(Cell(row, "Range"));
-            var voucher = XlsxReader.ToDecimal(Cell(row, "Voucher"));
+            var odometer = Number(Cell(row, "Odometer"));
+            var range = Number(Cell(row, "Range"));
+            var voucher = Number(Cell(row, "Voucher"));
 
             entries.Add(new FuelEntry
             {
                 Date = date.Value,
-                Brand = Cell(row, "Brand"),
-                Location = Cell(row, "Location"),
+                Brand = Text(Cell(row, "Brand")),
+                Location = Text(Cell(row, "Location")),
                 Litres = Math.Round(litres.Value, 3),
                 CostPerLitre = Math.Round(price.Value, 3),
                 VoucherPerLitre = voucher is > 0 ? Math.Round(voucher.Value, 3) : null,
                 Range = range is null ? null : (int)Math.Round(range.Value),
-                TripMiles = XlsxReader.ToDecimal(Cell(row, "Miles")) is { } m ? Math.Round(m, 1) : null,
-                TripAverageMpg = XlsxReader.ToDecimal(Cell(row, "MPG")) is { } mpg ? Math.Round(mpg, 1) : null,
+                TripMiles = Number(Cell(row, "Miles")) is { } m ? Math.Round(m, 1) : null,
+                TripAverageMpg = Number(Cell(row, "MPG")) is { } mpg ? Math.Round(mpg, 1) : null,
                 Odometer = odometer is null ? null : (int)Math.Round(odometer.Value)
             });
         }
 
         return new ParsedSheet(sheet.Name, entries, warnings);
+    }
+
+    // --- Cell helpers. CachedValue reads the value Excel last saved for formula cells
+    //     rather than recalculating, and is the plain value for everything else. ---
+
+    private static string? Text(IXLCell? cell)
+    {
+        if (cell is null) return null;
+        var v = cell.CachedValue;
+        var s = v.Type switch
+        {
+            XLDataType.Blank or XLDataType.Error => null,
+            XLDataType.Text => v.GetText(),
+            _ => cell.GetFormattedString()
+        };
+        return string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+    }
+
+    private static decimal? Number(IXLCell? cell)
+    {
+        if (cell is null) return null;
+        var v = cell.CachedValue;
+        if (v.IsNumber) return (decimal)v.GetNumber();
+        if (v.IsText && decimal.TryParse(v.GetText().Trim().TrimStart('£'), NumberStyles.Float, UkCulture, out var d))
+            return d;
+        return null;
+    }
+
+    private static DateOnly? Date(IXLCell? cell)
+    {
+        if (cell is null) return null;
+        var v = cell.CachedValue;
+        if (v.IsDateTime) return DateOnly.FromDateTime(v.GetDateTime());
+        // Unformatted cells hold dates as OLE Automation serial numbers.
+        if (v.IsNumber && v.GetNumber() is > 1 and < 2958466 and var serial)
+            return DateOnly.FromDateTime(DateTime.FromOADate(serial));
+        if (v.IsText && DateTime.TryParse(v.GetText(), UkCulture, DateTimeStyles.None, out var dt))
+            return DateOnly.FromDateTime(dt);
+        return null;
     }
 
     /// <summary>

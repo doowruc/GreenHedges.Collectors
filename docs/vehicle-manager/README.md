@@ -57,7 +57,7 @@ updated spreadsheet to pick up just the new rows.
 VehicleManager/
   Models/        Vehicle, FuelEntry (with calculated properties)
   Data/          AppDbContext (EF Core + SQLite)
-  Services/      FuelStatsService, FuelImportService, XlsxReader (dependency-free .xlsx parser)
+  Services/      FuelStatsService, FuelImportService (reads .xlsx via ClosedXML)
   Pages/         Dashboard, Vehicles/*, Fuel/*, Import/*
 ```
 
