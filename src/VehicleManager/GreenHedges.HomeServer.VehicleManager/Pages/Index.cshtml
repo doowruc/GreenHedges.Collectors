@@ -36,7 +36,7 @@ else
                 {
                     @foreach (var (period, summary) in new[] { ("12m", c.Year), ("all", c.AllTime) })
                     {
-                        <div class="row text-center g-2 mb-3 period-stats @(period == "12m" ? "" : "d-none")" data-period="@period">
+                        <div class="row text-center g-2 mb-3 period-stats" data-period="@period">
                             <div class="col-4"><div class="stat-card"><div class="label">MPG</div><div class="value">@(summary.AverageMpg?.ToString("0.0") ?? "–")</div></div></div>
                             <div class="col-4"><div class="stat-card"><div class="label">Spent</div><div class="value">@summary.TotalCost.ToString("C0")</div></div></div>
                             <div class="col-4"><div class="stat-card"><div class="label">Odometer</div><div class="value">@(c.AllTime.LatestOdometer?.ToString("N0") ?? "–")</div></div></div>

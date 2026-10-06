@@ -13,5 +13,9 @@
 /* Tinted table header that works in both themes (Bootstrap's .table-light stays light in dark mode). */
 .table > thead.table-head > tr > th { --bs-table-bg: var(--bs-tertiary-bg); }
 
+/* Period toggle (_PeriodToggle): show only the stats for the selected period. */
+:root:not([data-stats-period="all"]) .period-stats[data-period="all"],
+:root[data-stats-period="all"] .period-stats[data-period="12m"] { display: none !important; }
+
 .text-optimistic { color: var(--bs-danger-text-emphasis); }
 .text-pessimistic { color: var(--bs-success-text-emphasis); }

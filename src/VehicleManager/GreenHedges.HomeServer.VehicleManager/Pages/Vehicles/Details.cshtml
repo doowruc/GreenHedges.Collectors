@@ -12,7 +12,11 @@
             @if (Model.AllTime.LatestOdometer is { } odo) { <text> · @odo.ToString("N0") miles</text> }
         </div>
     </div>
-    <div class="text-nowrap">
+    <div class="d-flex flex-wrap align-items-center gap-2">
+        @if (Model.VehicleOptions.Count > 1)
+        {
+            <select id="vehicle-switcher" class="form-select w-auto" aria-label="Switch vehicle" asp-items="Model.VehicleOptions"></select>
+        }
         <a asp-page="/Fuel/Create" asp-route-vehicleId="@Model.Vehicle.Id" class="btn btn-success"><i class="bi bi-fuel-pump me-1"></i>Add fill-up</a>
         <a asp-page="Edit" asp-route-id="@Model.Vehicle.Id" class="btn btn-outline-secondary">Edit</a>
         <a asp-page="Delete" asp-route-id="@Model.Vehicle.Id" class="btn btn-outline-danger">Delete</a>
@@ -31,7 +35,7 @@ else
     <partial name="_PeriodToggle" />
     <div class="mb-4">
         <div class="period-stats" data-period="12m"><partial name="_StatCards" model="Model.LastYear" /></div>
-        <div class="period-stats d-none" data-period="all"><partial name="_StatCards" model="Model.AllTime" /></div>
+        <div class="period-stats" data-period="all"><partial name="_StatCards" model="Model.AllTime" /></div>
     </div>
 
     <div class="card shadow-sm mb-4">
@@ -46,6 +50,9 @@ else
 }
 
 @section Scripts {
+    <script>
+        document.getElementById('vehicle-switcher')?.addEventListener('change', e => location.href = e.target.value);
+    </script>
     @if (Model.Entries.Count > 0)
     {
         <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.js"></script>
