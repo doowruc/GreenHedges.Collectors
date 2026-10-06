@@ -11,9 +11,45 @@ cd VehicleManager
 dotnet run
 ```
 
-Then open http://localhost:5080. The SQLite database (`vehiclemanager.db`) is created automatically
+Sign-in uses Auth0, so set that up first (see below). Then open http://localhost:5080. The SQLite database (`vehiclemanager.db`) is created automatically
 next to the project on first run, and any pending schema migrations are applied each time the app
 starts. Back it up by copying that file.
+
+## Signing in (Auth0)
+
+Every page requires signing in with Auth0. In the Auth0 dashboard, create a **Regular Web
+Application** and set:
+
+| Setting | Value |
+|---|---|
+| Allowed Callback URLs | `https://localhost:7080/callback, http://localhost:5080/callback` |
+| Allowed Logout URLs | `https://localhost:7080/Account/SignedOut, http://localhost:5080/Account/SignedOut` |
+
+Then store its settings in user secrets, from the `VehicleManager` folder:
+
+```bash
+dotnet user-secrets set "Auth0:Domain" "<your-tenant>.auth0.com"
+dotnet user-secrets set "Auth0:ClientId" "<client id>"
+dotnet user-secrets set "Auth0:ClientSecret" "<client secret>"
+dotnet user-secrets set "AllowedEmails" "me@example.com; someone@example.com"
+```
+
+`AllowedEmails` lists who may use the app (separate addresses with `;` or `,`; case doesn't
+matter). Signing in isn't enough: the account's email must be on the list **and verified** in
+Auth0, otherwise you see an "Access denied" page. Changes to the list apply on the next request.
+If you create a user in the Auth0 dashboard, make sure its email ends up verified (e.g. via the
+verification email).
+
+User secrets are only read in Development. Elsewhere, use environment variables
+(`Auth0__Domain`, `Auth0__ClientId`, `Auth0__ClientSecret`, `AllowedEmails`). The app won't start
+without them.
+
+Auth0 posts the sign-in result back to the app, which needs `Secure` cookies. Chrome, Edge and
+Firefox allow those on `http://localhost`, but Safari doesn't. If you use Safari, run the https
+profile instead: `dotnet watch -lp https`, then open https://localhost:7080.
+
+As a second layer on top of the allow-list, disable sign-ups (and any social connections you
+don't use) for the application in Auth0.
 
 ## Features
 
@@ -66,7 +102,7 @@ VehicleManager/
   ViewModels/    View (output) and input models used by the pages, with the calculated figures
   Data/          AppDbContext (EF Core + SQLite), DatabaseMigrator, Migrations/
   Services/      FuelStatsService, FuelImportService (reads .xlsx via ClosedXML)
-  Pages/         Dashboard, Owners/*, Vehicles/*, Fuel/*, Import/*
+  Pages/         Dashboard, Owners/*, Vehicles/*, Fuel/*, Import/*, Account/* (sign in/out)
 ```
 
 Bootstrap, Bootstrap Icons and Chart.js are loaded from the jsDelivr CDN.
