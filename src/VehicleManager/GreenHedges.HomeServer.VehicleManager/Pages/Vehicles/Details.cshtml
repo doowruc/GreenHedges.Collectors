@@ -1,0 +1,77 @@
+@page "{id:int}"
+@model VehicleManager.Pages.Vehicles.DetailsModel
+@{ ViewData["Title"] = Model.Vehicle.DisplayName; }
+
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+    <div>
+        <h1 class="h3 mb-1">@Model.Vehicle.DisplayName <span class="reg-plate fs-6 align-middle">@Model.Vehicle.RegistrationNumber</span></h1>
+        <div class="text-muted small">
+            @Model.Vehicle.Type
+            @if (Model.Vehicle.RegistrationDate is { } rd) { <text> · Registered @rd.ToString("dd MMM yyyy")</text> }
+            @if (Model.Vehicle.PurchasedDate is { } pd) { <text> · Purchased @pd.ToString("dd MMM yyyy")</text> }
+            @if (Model.AllTime.LatestOdometer is { } odo) { <text> · @odo.ToString("N0") miles</text> }
+        </div>
+    </div>
+    <div class="text-nowrap">
+        <a asp-page="/Fuel/Create" asp-route-vehicleId="@Model.Vehicle.Id" class="btn btn-success"><i class="bi bi-fuel-pump me-1"></i>Add fill-up</a>
+        <a asp-page="Edit" asp-route-id="@Model.Vehicle.Id" class="btn btn-outline-secondary">Edit</a>
+        <a asp-page="Delete" asp-route-id="@Model.Vehicle.Id" class="btn btn-outline-danger">Delete</a>
+    </div>
+</div>
+
+@if (Model.Entries.Count == 0)
+{
+    <div class="alert alert-info">
+        No fill-ups recorded yet. <a asp-page="/Fuel/Create" asp-route-vehicleId="@Model.Vehicle.Id">Add one</a>
+        or <a asp-page="/Import/Index">import from your spreadsheet</a>.
+    </div>
+}
+else
+{
+    <ul class="nav nav-pills mb-2" role="tablist">
+        <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#stats-12m" type="button">Last 12 months</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#stats-all" type="button">All time</button></li>
+    </ul>
+    <div class="tab-content mb-4">
+        <div class="tab-pane fade show active" id="stats-12m"><partial name="_StatCards" model="Model.LastYear" /></div>
+        <div class="tab-pane fade" id="stats-all"><partial name="_StatCards" model="Model.AllTime" /></div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white fw-semibold">MPG and fuel price over time</div>
+        <div class="card-body"><canvas id="chart" height="90"></canvas></div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-white fw-semibold">Fuel log (@Model.Entries.Count)</div>
+        <partial name="_FuelTable" model="Model.Entries" />
+    </div>
+}
+
+@section Scripts {
+    @if (Model.Entries.Count > 0)
+    {
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.js"></script>
+        <script>
+            const data = @Html.Raw(Model.ChartJson);
+            new Chart(document.getElementById('chart'), {
+                type: 'line',
+                data: {
+                    labels: data.map(d => d.date),
+                    datasets: [
+                        { label: 'Real MPG', data: data.map(d => d.mpg), borderColor: '#0d6efd', backgroundColor: '#0d6efd', spanGaps: true, tension: .2, pointRadius: 2 },
+                        { label: 'Dash MPG', data: data.map(d => d.dash), borderColor: '#adb5bd', backgroundColor: '#adb5bd', spanGaps: true, tension: .2, pointRadius: 0, borderDash: [4, 4] },
+                        { label: '£ per litre', data: data.map(d => d.price), borderColor: '#fd7e14', backgroundColor: '#fd7e14', yAxisID: 'price', tension: .2, pointRadius: 0 }
+                    ]
+                },
+                options: {
+                    interaction: { mode: 'index', intersect: false },
+                    scales: {
+                        y: { title: { display: true, text: 'MPG' } },
+                        price: { position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: '£ / litre' } }
+                    }
+                }
+            });
+        </script>
+    }
+}

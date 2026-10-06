@@ -1,0 +1,28 @@
+@page
+@model VehicleManager.Pages.Fuel.IndexModel
+@{ ViewData["Title"] = "Fuel log"; }
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <h1 class="h3 mb-0">Fuel log</h1>
+    <form method="get" class="d-flex gap-2">
+        <select name="vehicleId" asp-items="Model.VehicleOptions" class="form-select form-select-sm" onchange="this.form.submit()">
+            <option value="">All vehicles</option>
+        </select>
+        <select name="year" asp-items="Model.YearOptions" class="form-select form-select-sm" onchange="this.form.submit()">
+            <option value="">All years</option>
+        </select>
+    </form>
+</div>
+
+<div class="mb-4"><partial name="_StatCards" model="Model.Summary" /></div>
+
+<div class="card shadow-sm">
+    @if (Model.Entries.Count == 0)
+    {
+        <div class="card-body text-muted">No fill-ups match.</div>
+    }
+    else
+    {
+        <partial name="_FuelTable" model="Model.Entries" view-data='new ViewDataDictionary(ViewData) { ["ShowVehicle"] = Model.VehicleId is null }' />
+    }
+</div>

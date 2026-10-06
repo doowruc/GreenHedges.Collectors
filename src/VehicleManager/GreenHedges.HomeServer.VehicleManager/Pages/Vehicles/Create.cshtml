@@ -1,0 +1,16 @@
+@page
+@model VehicleManager.Pages.Vehicles.CreateModel
+@{ ViewData["Title"] = "Add vehicle"; }
+
+<h1 class="h3 mb-3">Add vehicle</h1>
+<div class="card shadow-sm"><div class="card-body">
+    <form method="post">
+        <partial name="_VehicleForm" for="Vehicle" />
+        <div class="mt-4">
+            <button type="submit" class="btn btn-primary">Save</button>
+            <a asp-page="Index" class="btn btn-link">Cancel</a>
+        </div>
+    </form>
+</div></div>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

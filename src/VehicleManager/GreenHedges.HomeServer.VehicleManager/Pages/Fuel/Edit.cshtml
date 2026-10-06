@@ -1,0 +1,16 @@
+@page "{id:int}"
+@model VehicleManager.Pages.Fuel.EditModel
+@{ ViewData["Title"] = "Edit fill-up"; }
+
+<h1 class="h3 mb-3">Edit fill-up</h1>
+<div class="card shadow-sm"><div class="card-body">
+    <form method="post">
+        <partial name="_FuelForm" model="Model" />
+        <div class="mt-4">
+            <button type="submit" class="btn btn-primary">Save</button>
+            <a asp-page="/Vehicles/Details" asp-route-id="@Model.Entry.VehicleId" class="btn btn-link">Cancel</a>
+        </div>
+    </form>
+</div></div>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

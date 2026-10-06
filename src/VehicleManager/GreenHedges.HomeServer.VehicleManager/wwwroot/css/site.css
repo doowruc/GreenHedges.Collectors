@@ -1,0 +1,11 @@
+body { background: #f6f7f9; }
+.stat-card .value { font-size: 1.5rem; font-weight: 600; line-height: 1.2; }
+.stat-card .label { font-size: .8rem; color: #6c757d; text-transform: uppercase; letter-spacing: .03em; }
+.reg-plate {
+    font-family: "Charles Wright", "Arial Narrow", Arial, sans-serif;
+    background: #ffd500; color: #111; border-radius: 4px;
+    padding: .1rem .5rem; font-weight: 700; letter-spacing: .05em; white-space: nowrap;
+}
+.table-fuel td, .table-fuel th { white-space: nowrap; font-size: .9rem; }
+.text-optimistic { color: #b02a37; }
+.text-pessimistic { color: #146c43; }

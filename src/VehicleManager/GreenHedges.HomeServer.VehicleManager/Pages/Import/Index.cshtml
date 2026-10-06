@@ -1,0 +1,63 @@
+@page
+@model VehicleManager.Pages.Import.IndexModel
+@{ ViewData["Title"] = "Import fuel history"; }
+
+<h1 class="h3 mb-3">Import fuel history</h1>
+<div asp-validation-summary="All" class="alert alert-danger" role="alert"></div>
+
+@if (Model.Sheets.Count == 0)
+{
+    <div class="card shadow-sm"><div class="card-body">
+        <p>Upload your fuel spreadsheet (e.g. <code>Fuel2.xlsx</code>). Each worksheet is treated as one vehicle,
+           with headers <em>Date, Brand, Location, Litres, Per Litre, [Voucher], Range, Miles, MPG, Odometer</em>.
+           Calculated columns are ignored – the app works those out itself.</p>
+        <p class="text-muted small">Re-importing is safe: fill-ups already recorded for a vehicle (same date and litres) are skipped,
+           so you can re-upload an updated spreadsheet to pick up new rows.</p>
+        @if (Model.Vehicles.Count == 0)
+        {
+            <div class="alert alert-warning">Add your vehicles first so the sheets can be matched to them. <a asp-page="/Vehicles/Create">Add a vehicle</a></div>
+        }
+        <form method="post" enctype="multipart/form-data" asp-page-handler="Upload" class="d-flex gap-2 flex-wrap">
+            <input asp-for="Upload" type="file" accept=".xlsx" class="form-control" style="max-width: 28rem" />
+            <button type="submit" class="btn btn-primary">Upload &amp; preview</button>
+        </form>
+    </div></div>
+}
+else
+{
+    <form method="post" asp-page-handler="Import">
+        <input type="hidden" asp-for="Token" />
+        <div class="card shadow-sm mb-3">
+            <table class="table align-middle mb-0">
+                <thead class="table-light">
+                    <tr><th>Sheet</th><th class="text-end">Fill-ups</th><th>Date range</th><th class="text-end">Litres</th><th class="text-end">Cost</th><th style="width: 22rem">Import into</th></tr>
+                </thead>
+                <tbody>
+                @for (var i = 0; i < Model.Sheets.Count; i++)
+                {
+                    var s = Model.Sheets[i];
+                    <tr>
+                        <td>
+                            <strong>@s.Name</strong>
+                            @foreach (var w in s.Warnings.Take(5)) { <div class="small text-warning-emphasis">@w</div> }
+                            @if (s.Warnings.Count > 5) { <div class="small text-muted">…and @(s.Warnings.Count - 5) more</div> }
+                        </td>
+                        <td class="text-end">@s.Entries.Count</td>
+                        <td>@s.From?.ToString("dd/MM/yyyy") – @s.To?.ToString("dd/MM/yyyy")</td>
+                        <td class="text-end">@s.Entries.Sum(e => e.Litres).ToString("N0")</td>
+                        <td class="text-end">@s.Entries.Sum(e => e.TotalCost).ToString("C0")</td>
+                        <td>
+                            <select name="VehicleForSheet[@i]" asp-items="Model.OptionsFor(i)" class="form-select form-select-sm" disabled="@(s.Entries.Count == 0)"></select>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        <p class="small text-muted">
+            Missing a vehicle? <a asp-page="/Vehicles/Create" target="_blank">Add it in a new tab</a>, then upload the file again.
+        </p>
+        <button type="submit" class="btn btn-primary">Import</button>
+        <a asp-page="Index" class="btn btn-link">Start again</a>
+    </form>
+}

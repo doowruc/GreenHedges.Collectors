@@ -1,0 +1,52 @@
+@page
+@model VehicleManager.Pages.IndexModel
+@{ ViewData["Title"] = "Dashboard"; }
+
+<h1 class="h3 mb-3">Dashboard</h1>
+
+@if (Model.Cards.Count == 0)
+{
+    <div class="card shadow-sm"><div class="card-body">
+        <h2 class="h5">Welcome</h2>
+        <p class="mb-2">Get started by adding the vehicles you own, then import your historical fuel spreadsheet.</p>
+        <a asp-page="/Vehicles/Create" class="btn btn-primary">Add a vehicle</a>
+        <a asp-page="/Import/Index" class="btn btn-outline-secondary">Import spreadsheet</a>
+    </div></div>
+}
+
+<div class="row g-3">
+@foreach (var c in Model.Cards)
+{
+    <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <a asp-page="/Vehicles/Details" asp-route-id="@c.Vehicle.Id" class="fw-semibold text-decoration-none">@c.Vehicle.DisplayName</a>
+                <span class="reg-plate small">@c.Vehicle.RegistrationNumber</span>
+            </div>
+            <div class="card-body">
+                @if (c.Last is null)
+                {
+                    <p class="text-muted mb-0">No fill-ups yet.</p>
+                }
+                else
+                {
+                    <div class="row text-center g-2 mb-3">
+                        <div class="col-4"><div class="stat-card"><div class="label">MPG (12m)</div><div class="value">@(c.Year.AverageMpg?.ToString("0.0") ?? "–")</div></div></div>
+                        <div class="col-4"><div class="stat-card"><div class="label">Spent (12m)</div><div class="value">@c.Year.TotalCost.ToString("C0")</div></div></div>
+                        <div class="col-4"><div class="stat-card"><div class="label">Odometer</div><div class="value">@(c.AllTime.LatestOdometer?.ToString("N0") ?? "–")</div></div></div>
+                    </div>
+                    <p class="small text-muted mb-0">
+                        Last fill-up @c.Last.Date.ToString("dd MMM yyyy") (@((DateOnly.FromDateTime(DateTime.Today).DayNumber - c.Last.Date.DayNumber)) days ago):
+                        @c.Last.Litres.ToString("0.0") l of @c.Last.Brand at @c.Last.Location, @c.Last.EffectiveCostPerLitre.ToString("C3")/l.
+                        @c.AllTime.FillUps fill-ups since @c.AllTime.FirstFillUp?.ToString("MMM yyyy").
+                    </p>
+                }
+            </div>
+            <div class="card-footer bg-white">
+                <a asp-page="/Fuel/Create" asp-route-vehicleId="@c.Vehicle.Id" class="btn btn-sm btn-success"><i class="bi bi-fuel-pump me-1"></i>Add fill-up</a>
+                <a asp-page="/Vehicles/Details" asp-route-id="@c.Vehicle.Id" class="btn btn-sm btn-outline-secondary">Details</a>
+            </div>
+        </div>
+    </div>
+}
+</div>

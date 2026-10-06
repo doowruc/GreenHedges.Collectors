@@ -1,0 +1,112 @@
+@model VehicleManager.Pages.Fuel.FuelFormPageModel
+@functions {
+    // Show an empty box rather than "0" for a new fill-up.
+    static string Blank(decimal d) => d == 0 ? "" : d.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
+}
+<div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+<input type="hidden" asp-for="Entry.Id" />
+
+<h2 class="h6 text-muted text-uppercase mb-3">Fill-up</h2>
+<div class="row g-3 mb-4">
+    <div class="col-md-5">
+        <label asp-for="Entry.VehicleId" class="form-label">Vehicle</label>
+        <select asp-for="Entry.VehicleId" asp-items="Model.VehicleOptions" class="form-select">
+            <option value="">— choose —</option>
+        </select>
+        <span asp-validation-for="Entry.VehicleId" class="text-danger small"></span>
+    </div>
+    <div class="col-md-3">
+        <label asp-for="Entry.Date" class="form-label"></label>
+        <input asp-for="Entry.Date" class="form-control" />
+        <span asp-validation-for="Entry.Date" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4"></div>
+    <div class="col-md-4">
+        <label asp-for="Entry.Brand" class="form-label"></label>
+        <input asp-for="Entry.Brand" class="form-control" list="brands" autocomplete="off" />
+        <datalist id="brands">@foreach (var b in Model.Brands) { <option value="@b"></option> }</datalist>
+    </div>
+    <div class="col-md-5">
+        <label asp-for="Entry.Location" class="form-label"></label>
+        <input asp-for="Entry.Location" class="form-control" list="locations" autocomplete="off" />
+        <datalist id="locations">@foreach (var l in Model.Locations) { <option value="@l"></option> }</datalist>
+    </div>
+    <div class="col-md-3"></div>
+    <div class="col-6 col-md-3">
+        <label asp-for="Entry.Litres" class="form-label"></label>
+        <input asp-for="Entry.Litres" class="form-control" type="number" step="0.001" min="0" value="@Blank(Model.Entry.Litres)" />
+        <span asp-validation-for="Entry.Litres" class="text-danger small"></span>
+    </div>
+    <div class="col-6 col-md-3">
+        <label asp-for="Entry.CostPerLitre" class="form-label"></label>
+        <input asp-for="Entry.CostPerLitre" class="form-control" type="number" step="0.001" min="0" value="@Blank(Model.Entry.CostPerLitre)" />
+        <span asp-validation-for="Entry.CostPerLitre" class="text-danger small"></span>
+    </div>
+    <div class="col-6 col-md-3">
+        <label asp-for="Entry.VoucherPerLitre" class="form-label">Voucher off per litre (£)</label>
+        <input asp-for="Entry.VoucherPerLitre" class="form-control" type="number" step="0.001" min="0" placeholder="optional" />
+        <span asp-validation-for="Entry.VoucherPerLitre" class="text-danger small"></span>
+    </div>
+    <div class="col-6 col-md-3">
+        <label class="form-label">Total cost</label>
+        <div class="form-control-plaintext fw-semibold" id="total-cost">–</div>
+    </div>
+</div>
+
+<h2 class="h6 text-muted text-uppercase mb-3">Trip computer (before resetting)</h2>
+<div class="row g-3">
+    <div class="col-6 col-md-3">
+        <label asp-for="Entry.TripAverageMpg" class="form-label">Average MPG</label>
+        <input asp-for="Entry.TripAverageMpg" class="form-control" type="number" step="0.1" min="0" />
+        <span asp-validation-for="Entry.TripAverageMpg" class="text-danger small"></span>
+    </div>
+    <div class="col-6 col-md-3">
+        <label asp-for="Entry.TripMiles" class="form-label"></label>
+        <input asp-for="Entry.TripMiles" class="form-control" type="number" step="0.1" min="0" />
+        <span asp-validation-for="Entry.TripMiles" class="text-danger small"></span>
+    </div>
+    <div class="col-6 col-md-3">
+        <label asp-for="Entry.Range" class="form-label"></label>
+        <input asp-for="Entry.Range" class="form-control" type="number" step="1" min="0" />
+        <span asp-validation-for="Entry.Range" class="text-danger small"></span>
+    </div>
+    <div class="col-6 col-md-3">
+        <label asp-for="Entry.Odometer" class="form-label"></label>
+        <input asp-for="Entry.Odometer" class="form-control" type="number" step="1" min="0" />
+        <span asp-validation-for="Entry.Odometer" class="text-danger small"></span>
+        @if (Model.PreviousEntry is { } prev)
+        {
+            <div class="form-text" id="odo-hint" data-prev-odo="@prev.Odometer">
+                Previous fill-up @prev.Date.ToString("dd/MM/yyyy")@(prev.Odometer is { } po ? $" at {po:N0} miles" : "")
+            </div>
+        }
+    </div>
+    <div class="col-12">
+        <label asp-for="Entry.Notes" class="form-label"></label>
+        <textarea asp-for="Entry.Notes" class="form-control" rows="2"></textarea>
+    </div>
+    <div class="col-12">
+        <div class="form-text" id="calc-mpg"></div>
+    </div>
+</div>
+
+<script>
+    (() => {
+        const $ = id => document.getElementById(id);
+        const num = id => parseFloat($(id)?.value) || 0;
+        function update() {
+            const litres = num('Entry_Litres'), price = num('Entry_CostPerLitre'), voucher = num('Entry_VoucherPerLitre');
+            $('total-cost').textContent = litres && price
+                ? new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(litres * (price - voucher)) : '–';
+            const miles = num('Entry_TripMiles');
+            let msg = '';
+            if (litres && miles) msg = `Real MPG for this tank: ${(miles / (litres / 4.54609)).toFixed(1)}`;
+            const hint = $('odo-hint'), odo = num('Entry_Odometer');
+            const prev = hint ? parseFloat(hint.dataset.prevOdo) : NaN;
+            if (odo && !isNaN(prev)) msg += `${msg ? ' · ' : ''}Odometer change since last fill-up: ${(odo - prev).toLocaleString('en-GB')} miles`;
+            $('calc-mpg').textContent = msg;
+        }
+        document.querySelectorAll('input').forEach(i => i.addEventListener('input', update));
+        update();
+    })();
+</script>
