@@ -14,11 +14,11 @@ builder.Services.AddScoped<FuelImportService>();
 
 var app = builder.Build();
 
-// Create the SQLite database on first run.
+// Create the SQLite database on first run and apply any pending migrations.
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.EnsureCreated();
+    db.MigrateDatabase(app.Logger);
 }
 
 if (!app.Environment.IsDevelopment())

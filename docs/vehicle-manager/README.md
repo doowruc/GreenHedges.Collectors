@@ -12,7 +12,8 @@ dotnet run
 ```
 
 Then open http://localhost:5080. The SQLite database (`vehiclemanager.db`) is created automatically
-next to the project on first run. Back it up by copying that file.
+next to the project on first run, and any pending schema migrations are applied each time the app
+starts. Back it up by copying that file.
 
 ## Features
 
@@ -56,17 +57,34 @@ updated spreadsheet to pick up just the new rows.
 ```
 VehicleManager/
   Models/        Vehicle, FuelEntry (with calculated properties)
-  Data/          AppDbContext (EF Core + SQLite)
+  Data/          AppDbContext (EF Core + SQLite), DatabaseMigrator, Migrations/
   Services/      FuelStatsService, FuelImportService (reads .xlsx via ClosedXML)
   Pages/         Dashboard, Vehicles/*, Fuel/*, Import/*
 ```
 
 Bootstrap, Bootstrap Icons and Chart.js are loaded from the jsDelivr CDN.
 
+## Database migrations
+
+The schema is managed with EF Core migrations in `VehicleManager/Data/Migrations`, applied
+automatically at startup. The `dotnet-ef` tool is pinned in `dotnet-tools.json`; restore it once with:
+
+```bash
+dotnet tool restore
+```
+
+After changing a model or `AppDbContext`, add a migration from the `VehicleManager` folder:
+
+```bash
+dotnet ef migrations add <Name> --output-dir Data/Migrations
+```
+
+Review the generated file, then run the app to apply it (or `dotnet ef database update`).
+To undo the last migration before it has been applied anywhere, use `dotnet ef migrations remove`.
+
+Databases created before migrations were added (via `EnsureCreated()`) are adopted automatically:
+on first start the initial migration is recorded as already applied, and no data is touched.
+
 ## Notes
 
-- The database schema is created with `EnsureCreated()`. If you later want EF Core migrations,
-  add `Microsoft.EntityFrameworkCore.Design`, run `dotnet ef migrations add InitialCreate`,
-  swap `EnsureCreated()` for `Migrate()` in `Program.cs`, and start from a fresh database
-  (or re-import).
 - Dates and currency use the en-GB culture (dd/MM/yyyy, £).
