@@ -105,14 +105,14 @@ real MPG and odometer change as you type. For a **split fill-up** (topped up at 
 click **Add another station** to record each brand and station in order; lists show them as
 "Shell + Sainsbury's" / "Meadowbank + Hill Top".
 
-**Brands** and **Stations** – each has its own list (per user), managed from the navigation bar:
-rename, merge duplicates (e.g. a misspelling) into the right one, or delete unused ones. Every
-station belongs to a brand, so one location can have several stations (e.g. Riverside for Asda
-and for Morrisons); a fill-up records the station, and its brand comes from the station. New
-brands and stations are added by typing them on a fill-up; names match ignoring case. Typing a
-station that only one brand has fills in the brand. If a station is rebranded, record it as a new
-station so earlier fill-ups keep the old brand. Merging a brand moves its stations to the other
-brand, combining any with the same name.
+**Fuel Brands** – under **Manage** in the navigation bar (per user): rename, merge duplicates (e.g. a
+misspelling) into the right one, or delete unused ones. Each fuel brand has its own **Stations** page
+(e.g. Fuel Brands › Shell) to rename, merge or delete that brand's stations. Every station belongs to a
+brand, so one location can have several stations (e.g. Riverside for Asda and for Morrisons); a fill-up
+records the station, and its brand comes from the station. New brands and stations are added by typing
+them on a fill-up; names match ignoring case. Typing a station that only one brand has fills in the
+brand. If a station is rebranded, record it as a new station so earlier fill-ups keep the old brand.
+Merging a fuel brand moves its stations to the other brand, combining any with the same name.
 
 **Calculated figures** (not stored, always worked out from the raw data):
 
@@ -152,7 +152,7 @@ VehicleManager/
   ViewModels/    View (output) and input models used by the pages, with the calculated figures
   Data/          AppDbContext (EF Core + SQL Server), DatabaseMigrator, Migrations/
   Services/      FuelStatsService, FuelImportService (reads .xlsx via ClosedXML), FuelStops
-  Pages/         Dashboard, Owners/*, Vehicles/*, Fuel/*, Import/*, Places/* (Brands, Stations),
+  Pages/         Dashboard, Owners/*, Vehicles/*, Fuel/*, Import/*, FuelBrands/* (and each brand's Stations/*),
                  Account/* (sign in/out)
 VehicleManager.Tests/
   Unit/, Data/, Pages/   unit, database and in-memory page tests; Infrastructure/ holds the helpers

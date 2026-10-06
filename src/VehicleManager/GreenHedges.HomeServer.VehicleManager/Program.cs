@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using VehicleManager.Data;
-using VehicleManager.Pages.Places;
+using VehicleManager.Pages.FuelBrands;
 using VehicleManager.Services;
 
 var builder = WebApplication.CreateBuilder(args);

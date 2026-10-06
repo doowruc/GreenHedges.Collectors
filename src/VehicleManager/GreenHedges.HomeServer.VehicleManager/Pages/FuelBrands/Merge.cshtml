@@ -1,0 +1,35 @@
+@page "{id:int}"
+@model VehicleManager.Pages.FuelBrands.MergeModel
+@{ ViewData["Title"] = "Merge fuel brand"; }
+
+<h1 class="h3 mb-3">Merge fuel brand</h1>
+<div class="card shadow-sm"><div class="card-body">
+    @if (Model.Targets.Count == 0)
+    {
+        <p>There are no other fuel brands to merge <strong>@Model.Source.Name</strong> into.</p>
+        <a asp-page="Index" class="btn btn-outline-secondary">Back</a>
+    }
+    else
+    {
+        <p>
+            Move <strong>@Model.Source.Name</strong>'s @Model.Source.Stations station(s) and @Model.Source.FillUps fill-up(s)
+            to another fuel brand, then delete <strong>@Model.Source.Name</strong>. Stations with the same name in both are
+            combined. Use this to combine duplicates, such as a misspelling.
+        </p>
+        <form method="post">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="IntoId" class="form-label">Merge into</label>
+                    <select asp-for="IntoId" asp-items="Model.Targets" class="form-select">
+                        <option value="">— choose —</option>
+                    </select>
+                    <span asp-validation-for="IntoId" class="text-danger small"></span>
+                </div>
+            </div>
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary">Merge</button>
+                <a asp-page="Index" class="btn btn-link">Cancel</a>
+            </div>
+        </form>
+    }
+</div></div>

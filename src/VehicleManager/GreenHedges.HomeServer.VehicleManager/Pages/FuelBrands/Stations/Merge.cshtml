@@ -1,0 +1,36 @@
+@page "/FuelBrands/{brandId:int}/Stations/Merge/{id:int}"
+@model VehicleManager.Pages.FuelBrands.Stations.MergeModel
+@{ ViewData["Title"] = "Merge station"; }
+
+<partial name="_Breadcrumb" model="Model" />
+<h1 class="h3 mb-3">Merge station</h1>
+<div class="card shadow-sm"><div class="card-body">
+    @if (Model.Targets.Count == 0)
+    {
+        <p>There are no other stations to merge <strong>@Model.Source.Name</strong> into.</p>
+        <a asp-page="Index" asp-route-brandId="@Model.BrandId" class="btn btn-outline-secondary">Back</a>
+    }
+    else
+    {
+        <p>
+            Move <strong>@Model.Source.Name</strong>'s @Model.Source.FillUps fill-up(s) to another station, then delete
+            <strong>@Model.Source.Name</strong>. Use this to combine duplicates, such as a misspelling, or a station recorded
+            under the wrong fuel brand.
+        </p>
+        <form method="post">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="IntoId" class="form-label">Merge into</label>
+                    <select asp-for="IntoId" asp-items="Model.Targets" class="form-select">
+                        <option value="">— choose —</option>
+                    </select>
+                    <span asp-validation-for="IntoId" class="text-danger small"></span>
+                </div>
+            </div>
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary">Merge</button>
+                <a asp-page="Index" asp-route-brandId="@Model.BrandId" class="btn btn-link">Cancel</a>
+            </div>
+        </form>
+    }
+</div></div>

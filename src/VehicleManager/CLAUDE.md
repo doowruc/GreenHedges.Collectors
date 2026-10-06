@@ -60,7 +60,7 @@ VehicleManager/
                DesignTimeDbContextFactory, Migrations/
   Services/    FuelStatsService (summaries), FuelImportService (ClosedXML .xlsx import), FuelCalculations,
                CurrentUser, AllowedUsers, ExistingDataClaim, FuelStops (typed names → stops)
-  Pages/       Index (dashboard), Owners/*, Vehicles/*, Fuel/*, Import/*, Places/* (Brands + Stations),
+  Pages/       Index (dashboard), Owners/*, Vehicles/*, Fuel/*, Import/*, FuelBrands/* (+ Stations/* per brand),
                Account/* (Login, Logout, SignedOut), Shared/ (layout + partials)
   wwwroot/     css/site.css, js/color-mode.js, js/period-toggle.js
 ```
@@ -103,7 +103,7 @@ VehicleManager/
 - A station's brand is fixed, so a rebrand is a new station and history keeps the old brand. Names are case-insensitive: brands are unique per user, stations unique per brand (one location can have stations for several brands).
 - Forms take typed brand + station names. `Services/FuelStops.ValidateAsync` requires both (filling in the brand when only one brand has that station name); `SetStopsAsync` reuses or creates them and updates stops in place (marking the fill-up modified so its RowVersion check applies).
 - Brands with stations, and stations with fill-ups, can't be deleted (FK `Restrict`); merge them instead. Merging a brand moves its stations, combining same-named ones.
-- `Pages/Places/*` is one set of pages for both lists, routed as `/brands/...` and `/stations/...`. `FuelPlaceList<T>` holds the shared logic, with `FuelBrandList`/`FuelStationList` subclasses for the differences (a station's edit form also picks its brand).
+- Fuel brands are managed at `/FuelBrands` (Manage menu); a brand's stations are a sub-page, `/FuelBrands/{brandId}/Stations/...` (`Pages/FuelBrands/Stations`, base `StationPageModel`, which 404s a station not under the brand in the URL). Links and redirects between station pages must pass `brandId`: ASP.NET doesn't carry a route value over to a different page, and the link comes out empty. `FuelPlaceList<T>` (`Pages/FuelBrands/FuelPlaceList.cs`) holds the database logic shared by both, with `FuelBrandList`/`FuelStationList` subclasses.
 - Fuel import de-duplicates on (vehicle, date, litres) so re-importing is safe. ClosedXML reads `CachedValue` so formula cells use Excel's saved results.
 
 **Authentication (Auth0)**

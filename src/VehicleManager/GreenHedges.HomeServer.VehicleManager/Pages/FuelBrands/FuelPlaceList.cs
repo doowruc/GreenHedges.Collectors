@@ -5,11 +5,12 @@ using VehicleManager.Models;
 using VehicleManager.Services;
 using VehicleManager.ViewModels;
 
-namespace VehicleManager.Pages.Places;
+namespace VehicleManager.Pages.FuelBrands;
 
-/// <param name="Brand">A station's brand; null for brands.</param>
+/// <param name="BrandId">A station's brand; null for brands.</param>
+/// <param name="Brand">A station's brand name; null for brands.</param>
 /// <param name="Stations">A brand's number of stations; null for stations.</param>
-public record FuelPlaceRow(int Id, string Name, string? Brand, int FillUps, int? Stations)
+public record FuelPlaceRow(int Id, string Name, int? BrandId, string? Brand, int FillUps, int? Stations)
 {
     /// <summary>Name to show in a list mixing several brands' stations, e.g. "Riverside (Asda)".</summary>
     public string FullName => Brand is null ? Name : $"{Name} ({Brand})";
@@ -19,45 +20,14 @@ public record FuelPlaceRow(int Id, string Name, string? Brand, int FillUps, int?
 
 public enum SaveResult { Saved, NotFound, Conflict }
 
-/// <summary>What the shared Brands/Stations pages need from either list.</summary>
-public interface IFuelPlaceList
-{
-    /// <summary>The page title, e.g. "Brands".</summary>
-    string Plural { get; }
-    /// <summary>For messages, e.g. "brand".</summary>
-    string Singular { get; }
-    int MaxNameLength { get; }
-    /// <summary>True for stations, which each belong to a brand.</summary>
-    bool HasBrand { get; }
-
-    Task<List<FuelPlaceRow>> ListAsync();
-    Task<FuelPlaceRow?> FindAsync(int id);
-    Task<FuelPlaceInput?> GetForEditAsync(int id);
-    /// <summary>Tidies the input and adds any errors to <paramref name="state"/> (keys <c>Place.Name</c>, <c>Place.BrandId</c>).</summary>
-    Task ValidateAsync(int id, FuelPlaceInput input, ModelStateDictionary state);
-    /// <summary>
-    /// Saves the edit, unless it changed since the form was loaded (a conflict). Returns its current
-    /// RowVersion, to put back in the form after a conflict.
-    /// </summary>
-    Task<(SaveResult Result, byte[] RowVersion)> SaveAsync(int id, FuelPlaceInput input);
-    /// <summary>Moves everything from one to the other, then deletes the first. Returns the fill-up stops moved.</summary>
-    Task<int> MergeAsync(int fromId, int intoId);
-    /// <summary>Deletes it if nothing uses it.</summary>
-    Task<bool> DeleteIfUnusedAsync(int id);
-}
-
-/// <summary>Database work shared by the Brands and Stations pages.</summary>
-public abstract class FuelPlaceList<T>(AppDbContext db, CurrentUser user) : IFuelPlaceList
+/// <summary>Database work shared by the Fuel Brands pages and their Stations pages.</summary>
+public abstract class FuelPlaceList<T>(AppDbContext db, CurrentUser user)
     where T : AuditedEntity, IFuelPlace
 {
-    public abstract string Plural { get; }
-    public abstract string Singular { get; }
     public abstract int MaxNameLength { get; }
-    public abstract bool HasBrand { get; }
 
     protected AppDbContext Db => db;
 
-    public abstract Task<List<FuelPlaceRow>> ListAsync();
     public abstract Task<FuelPlaceRow?> FindAsync(int id);
     public abstract Task<FuelPlaceInput?> GetForEditAsync(int id);
     /// <summary>Checks a tidied name and brand; add errors to <paramref name="state"/>.</summary>
@@ -66,6 +36,7 @@ public abstract class FuelPlaceList<T>(AppDbContext db, CurrentUser user) : IFue
     protected abstract Task<int> MergeCoreAsync(int fromId, int intoId, string userId, DateTime now);
     protected abstract Task<bool> InUseAsync(int id);
 
+    /// <summary>Tidies the input and adds any errors to <paramref name="state"/> (keys <c>Place.Name</c>, <c>Place.BrandId</c>).</summary>
     public async Task ValidateAsync(int id, FuelPlaceInput input, ModelStateDictionary state)
     {
         input.Name = FuelStops.NormaliseName(input.Name);
@@ -75,6 +46,10 @@ public abstract class FuelPlaceList<T>(AppDbContext db, CurrentUser user) : IFue
             await CheckAsync(id, input, state);
     }
 
+    /// <summary>
+    /// Saves the edit, unless it changed since the form was loaded (a conflict). Returns its current
+    /// RowVersion, to put back in the form after a conflict.
+    /// </summary>
     public async Task<(SaveResult Result, byte[] RowVersion)> SaveAsync(int id, FuelPlaceInput input)
     {
         var place = await db.Set<T>().FirstOrDefaultAsync(p => p.Id == id);
@@ -87,6 +62,7 @@ public abstract class FuelPlaceList<T>(AppDbContext db, CurrentUser user) : IFue
             : (SaveResult.Conflict, place.RowVersion);
     }
 
+    /// <summary>Moves everything from one to the other, then deletes the first. Returns the fill-up stops moved.</summary>
     public async Task<int> MergeAsync(int fromId, int intoId)
     {
         var userId = user.Id ?? throw new InvalidOperationException("Can't merge without a signed-in user.");
@@ -103,6 +79,7 @@ public abstract class FuelPlaceList<T>(AppDbContext db, CurrentUser user) : IFue
         });
     }
 
+    /// <summary>Deletes it if nothing uses it.</summary>
     public async Task<bool> DeleteIfUnusedAsync(int id) =>
         !await InUseAsync(id) && await db.Set<T>().Where(p => p.Id == id).ExecuteDeleteAsync() > 0;
 
@@ -116,19 +93,16 @@ public abstract class FuelPlaceList<T>(AppDbContext db, CurrentUser user) : IFue
 
 public class FuelBrandList(AppDbContext db, CurrentUser user) : FuelPlaceList<FuelBrand>(db, user)
 {
-    public override string Plural => "Brands";
-    public override string Singular => "brand";
     public override int MaxNameLength => FuelBrand.MaxNameLength;
-    public override bool HasBrand => false;
 
-    public override Task<List<FuelPlaceRow>> ListAsync() =>
+    public Task<List<FuelPlaceRow>> ListAsync() =>
         Rows(Db.FuelBrands.OrderBy(b => b.Name)).ToListAsync();
 
     public override Task<FuelPlaceRow?> FindAsync(int id) =>
         Rows(Db.FuelBrands.Where(b => b.Id == id)).FirstOrDefaultAsync();
 
     private static IQueryable<FuelPlaceRow> Rows(IQueryable<FuelBrand> brands) =>
-        brands.Select(b => new FuelPlaceRow(b.Id, b.Name, null, b.Stations.SelectMany(s => s.Stops).Count(), b.Stations.Count));
+        brands.Select(b => new FuelPlaceRow(b.Id, b.Name, null, null, b.Stations.SelectMany(s => s.Stops).Count(), b.Stations.Count));
 
     public override Task<FuelPlaceInput?> GetForEditAsync(int id) =>
         Db.FuelBrands.Where(b => b.Id == id)
@@ -138,7 +112,7 @@ public class FuelBrandList(AppDbContext db, CurrentUser user) : FuelPlaceList<Fu
     protected override async Task CheckAsync(int id, FuelPlaceInput input, ModelStateDictionary state)
     {
         if (await Db.FuelBrands.AnyAsync(b => b.Id != id && b.Name == input.Name))
-            state.AddModelError("Place.Name", "There's already a brand with this name. To combine them, use Merge instead.");
+            state.AddModelError("Place.Name", "There's already a fuel brand with this name. To combine them, use Merge instead.");
     }
 
     protected override void Apply(FuelPlaceInput input, FuelBrand brand) => brand.Name = input.Name;
@@ -179,19 +153,18 @@ public class FuelBrandList(AppDbContext db, CurrentUser user) : FuelPlaceList<Fu
 
 public class FuelStationList(AppDbContext db, CurrentUser user) : FuelPlaceList<FuelStation>(db, user)
 {
-    public override string Plural => "Stations";
-    public override string Singular => "station";
     public override int MaxNameLength => FuelStation.MaxNameLength;
-    public override bool HasBrand => true;
 
-    public override Task<List<FuelPlaceRow>> ListAsync() =>
-        Rows(Db.FuelStations.OrderBy(s => s.Name).ThenBy(s => s.FuelBrand!.Name)).ToListAsync();
+    /// <summary>One brand's stations, or every station (e.g. to merge into) if <paramref name="brandId"/> is null.</summary>
+    public Task<List<FuelPlaceRow>> ListAsync(int? brandId = null) =>
+        Rows(Db.FuelStations.Where(s => brandId == null || s.FuelBrandId == brandId)
+            .OrderBy(s => s.Name).ThenBy(s => s.FuelBrand!.Name)).ToListAsync();
 
     public override Task<FuelPlaceRow?> FindAsync(int id) =>
         Rows(Db.FuelStations.Where(s => s.Id == id)).FirstOrDefaultAsync();
 
     private static IQueryable<FuelPlaceRow> Rows(IQueryable<FuelStation> stations) =>
-        stations.Select(s => new FuelPlaceRow(s.Id, s.Name, s.FuelBrand!.Name, s.Stops.Count, null));
+        stations.Select(s => new FuelPlaceRow(s.Id, s.Name, s.FuelBrandId, s.FuelBrand!.Name, s.Stops.Count, null));
 
     public override Task<FuelPlaceInput?> GetForEditAsync(int id) =>
         Db.FuelStations.Where(s => s.Id == id)

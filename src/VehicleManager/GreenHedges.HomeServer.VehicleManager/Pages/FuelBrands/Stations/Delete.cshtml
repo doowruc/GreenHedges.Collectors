@@ -1,0 +1,23 @@
+@page "/FuelBrands/{brandId:int}/Stations/Delete/{id:int}"
+@model VehicleManager.Pages.FuelBrands.Stations.DeleteModel
+@{ ViewData["Title"] = "Delete station"; }
+
+<partial name="_Breadcrumb" model="Model" />
+<h1 class="h3 mb-3">Delete station</h1>
+<div class="card shadow-sm border-danger"><div class="card-body">
+    @if (Model.Station.InUse)
+    {
+        <p><strong>@Model.Station.Name</strong> can't be deleted because @Model.Station.FillUps fill-up(s) use it.
+           To get rid of a duplicate, merge it into the right station instead.</p>
+        <a asp-page="Merge" asp-route-brandId="@Model.BrandId" asp-route-id="@Model.Station.Id" class="btn btn-primary">Merge</a>
+        <a asp-page="Index" asp-route-brandId="@Model.BrandId" class="btn btn-link">Back</a>
+    }
+    else
+    {
+        <p>Are you sure you want to delete <strong>@Model.Station.Name</strong>?</p>
+        <form method="post">
+            <button type="submit" class="btn btn-danger">Delete</button>
+            <a asp-page="Index" asp-route-brandId="@Model.BrandId" class="btn btn-link">Cancel</a>
+        </form>
+    }
+</div></div>

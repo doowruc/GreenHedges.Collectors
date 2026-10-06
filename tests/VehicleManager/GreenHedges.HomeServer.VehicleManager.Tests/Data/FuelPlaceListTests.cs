@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
-using VehicleManager.Pages.Places;
+using VehicleManager.Pages.FuelBrands;
 using VehicleManager.Tests.Infrastructure;
 using VehicleManager.ViewModels;
 

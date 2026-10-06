@@ -9,7 +9,7 @@ public class SecurityTests(AppFactory app) : DatabaseTest, IClassFixture<AppFact
     [DatabaseTheory]
     [InlineData("/")]
     [InlineData("/Vehicles")]
-    [InlineData("/Brands")]
+    [InlineData("/FuelBrands")]
     [InlineData("/Fuel/Create")]
     public async Task Pages_need_a_signed_in_user(string url)
     {
