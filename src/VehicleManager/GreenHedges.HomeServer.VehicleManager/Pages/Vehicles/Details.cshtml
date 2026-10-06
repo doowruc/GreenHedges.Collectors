@@ -38,12 +38,12 @@ else
     </div>
 
     <div class="card shadow-sm mb-4">
-        <div class="card-header bg-white fw-semibold">MPG and fuel price over time</div>
+        <div class="card-header bg-body fw-semibold">MPG and fuel price over time</div>
         <div class="card-body"><canvas id="chart" height="90"></canvas></div>
     </div>
 
     <div class="card shadow-sm">
-        <div class="card-header bg-white fw-semibold">Fuel log (@Model.Entries.Count)</div>
+        <div class="card-header bg-body fw-semibold">Fuel log (@Model.Entries.Count)</div>
         <partial name="_FuelTable" model="Model.Entries" />
     </div>
 }
@@ -54,7 +54,13 @@ else
         <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.js"></script>
         <script>
             const data = @Html.Raw(Model.ChartJson);
-            new Chart(document.getElementById('chart'), {
+            const styleChart = () => {
+                const { text, grid } = window.themeColors();
+                Chart.defaults.color = text;
+                Chart.defaults.borderColor = grid;
+            };
+            styleChart();
+            const chart = new Chart(document.getElementById('chart'), {
                 type: 'line',
                 data: {
                     labels: data.map(d => d.date),
@@ -71,6 +77,19 @@ else
                         price: { position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: '£ / litre' } }
                     }
                 }
+            });
+            document.addEventListener('themechange', () => {
+                styleChart();
+                // Scales copy the defaults when created, so update them directly too.
+                const { text, grid } = window.themeColors();
+                for (const scale of Object.values(chart.options.scales)) {
+                    scale.ticks.color = text;
+                    scale.title.color = text;
+                    scale.grid.color = grid;
+                    scale.border.color = grid;
+                }
+                chart.options.plugins.legend.labels.color = text;
+                chart.update('none');
             });
         </script>
     }

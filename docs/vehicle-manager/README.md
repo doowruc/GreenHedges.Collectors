@@ -38,6 +38,8 @@ real MPG and odometer change as you type.
 **Dashboard** – one card per vehicle with 12-month MPG, spend, odometer and last fill-up.
 **Vehicle page** – last-12-months / all-time stats, an MPG and fuel-price chart, and the full log.
 **Fuel log page** – all fill-ups, filterable by vehicle and year.
+**Light / dark mode** – follows your system setting by default; pick Light, Dark or System from the
+theme menu in the navigation bar. The choice is remembered per browser.
 
 ## Importing Fuel2.xlsx
 
