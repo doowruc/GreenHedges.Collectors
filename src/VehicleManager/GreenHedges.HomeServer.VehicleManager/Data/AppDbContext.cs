@@ -5,11 +5,21 @@ namespace VehicleManager.Data;
 
 public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {
+    public DbSet<Owner> Owners => Set<Owner>();
     public DbSet<Vehicle> Vehicles => Set<Vehicle>();
     public DbSet<FuelEntry> FuelEntries => Set<FuelEntry>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<Owner>(e =>
+        {
+            e.HasIndex(o => o.Name).IsUnique();
+            e.HasMany(o => o.Vehicles)
+             .WithOne(v => v.Owner)
+             .HasForeignKey(v => v.OwnerId)
+             .OnDelete(DeleteBehavior.Restrict);
+        });
+
         modelBuilder.Entity<Vehicle>(e =>
         {
             e.Property(v => v.Type).HasConversion<string>().HasMaxLength(20);

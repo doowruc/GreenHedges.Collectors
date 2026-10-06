@@ -74,6 +74,25 @@ namespace VehicleManager.Data.Migrations
                     b.ToTable("FuelEntries");
                 });
 
+            modelBuilder.Entity("VehicleManager.Models.Owner", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("Owners");
+                });
+
             modelBuilder.Entity("VehicleManager.Models.Vehicle", b =>
                 {
                     b.Property<int>("Id")
@@ -89,6 +108,9 @@ namespace VehicleManager.Data.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("TEXT");
+
+                    b.Property<int>("OwnerId")
+                        .HasColumnType("INTEGER");
 
                     b.Property<DateOnly?>("PurchasedDate")
                         .HasColumnType("TEXT");
@@ -108,6 +130,8 @@ namespace VehicleManager.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("OwnerId");
+
                     b.HasIndex("RegistrationNumber")
                         .IsUnique();
 
@@ -123,6 +147,22 @@ namespace VehicleManager.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Vehicle");
+                });
+
+            modelBuilder.Entity("VehicleManager.Models.Vehicle", b =>
+                {
+                    b.HasOne("VehicleManager.Models.Owner", "Owner")
+                        .WithMany("Vehicles")
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Owner");
+                });
+
+            modelBuilder.Entity("VehicleManager.Models.Owner", b =>
+                {
+                    b.Navigation("Vehicles");
                 });
 
             modelBuilder.Entity("VehicleManager.Models.Vehicle", b =>

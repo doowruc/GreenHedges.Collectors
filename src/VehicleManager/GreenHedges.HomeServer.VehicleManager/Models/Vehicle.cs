@@ -15,6 +15,11 @@ public class Vehicle
 {
     public int Id { get; set; }
 
+    [Display(Name = "Owner")]
+    public int OwnerId { get; set; }
+
+    public Owner? Owner { get; set; }
+
     [Required]
     public VehicleType Type { get; set; } = VehicleType.Car;
 

@@ -22,7 +22,7 @@ public class DetailsModel(AppDbContext db, FuelStatsService stats) : PageModel
 
     public async Task<IActionResult> OnGetAsync(int id)
     {
-        var vehicle = await db.Vehicles.FindAsync(id);
+        var vehicle = await db.Vehicles.Include(v => v.Owner).FirstOrDefaultAsync(v => v.Id == id);
         if (vehicle is null) return NotFound();
         Vehicle = vehicle;
 

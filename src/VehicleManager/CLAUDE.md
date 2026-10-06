@@ -28,10 +28,10 @@ There is no test project yet. Verify changes by building and exercising the page
 
 ```
 VehicleManager/
-  Models/      Vehicle, FuelEntry (calculated figures are properties, not stored)
+  Models/      Owner, Vehicle, FuelEntry (calculated figures are properties, not stored)
   Data/        AppDbContext, DatabaseMigrator, Migrations/
   Services/    FuelStatsService (summaries), FuelImportService (ClosedXML .xlsx import)
-  Pages/       Index (dashboard), Vehicles/*, Fuel/*, Import/*, Shared/ (layout + partials)
+  Pages/       Index (dashboard), Owners/*, Vehicles/*, Fuel/*, Import/*, Shared/ (layout + partials)
   wwwroot/     css/site.css, js/color-mode.js, js/period-toggle.js
 ```
 
@@ -44,6 +44,7 @@ VehicleManager/
 
 **Data rules**
 - Registration numbers are normalised to upper case and must be unique (`Pages/Vehicles/VehicleRules.cs`).
+- Every vehicle has a required owner (`Owners` table, FK with `Restrict`, so owners with vehicles can't be deleted). Owner names are unique, case-insensitive (`Pages/Owners/OwnerRules.cs`).
 - Calculated figures (total cost, real MPG, dash-vs-real, pence per mile) are computed from raw data, never stored. Average MPG is weighted: total miles ÷ total gallons, not an average of averages.
 - Fuel import de-duplicates on (vehicle, date, litres) so re-importing is safe. ClosedXML reads `CachedValue` so formula cells use Excel's saved results.
 

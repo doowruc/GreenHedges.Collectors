@@ -11,7 +11,13 @@ public class CreateModel(AppDbContext db) : PageModel
     [BindProperty]
     public Vehicle Vehicle { get; set; } = new();
 
-    public void OnGet() { }
+    public async Task OnGetAsync()
+    {
+        var owners = await VehicleRules.OwnerOptionsAsync(db);
+        ViewData["OwnerOptions"] = owners;
+        // With a single owner there's nothing to choose, so pre-select it.
+        if (owners.Count == 1) Vehicle.OwnerId = int.Parse(owners[0].Value);
+    }
 
     public async Task<IActionResult> OnPostAsync()
     {
@@ -19,8 +25,13 @@ public class CreateModel(AppDbContext db) : PageModel
         if (await db.Vehicles.AnyAsync(v => v.RegistrationNumber == Vehicle.RegistrationNumber))
             ModelState.AddModelError("Vehicle.RegistrationNumber", "A vehicle with this registration already exists.");
         VehicleRules.ValidateDates(Vehicle, ModelState);
+        await VehicleRules.ValidateOwnerAsync(db, Vehicle, ModelState);
 
-        if (!ModelState.IsValid) return Page();
+        if (!ModelState.IsValid)
+        {
+            ViewData["OwnerOptions"] = await VehicleRules.OwnerOptionsAsync(db);
+            return Page();
+        }
 
         db.Vehicles.Add(Vehicle);
         await db.SaveChangesAsync();

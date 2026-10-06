@@ -16,6 +16,7 @@ public class EditModel(AppDbContext db) : PageModel
         var vehicle = await db.Vehicles.FindAsync(id);
         if (vehicle is null) return NotFound();
         Vehicle = vehicle;
+        ViewData["OwnerOptions"] = await VehicleRules.OwnerOptionsAsync(db);
         return Page();
     }
 
@@ -29,9 +30,15 @@ public class EditModel(AppDbContext db) : PageModel
         if (await db.Vehicles.AnyAsync(v => v.Id != id && v.RegistrationNumber == Vehicle.RegistrationNumber))
             ModelState.AddModelError("Vehicle.RegistrationNumber", "Another vehicle already has this registration.");
         VehicleRules.ValidateDates(Vehicle, ModelState);
+        await VehicleRules.ValidateOwnerAsync(db, Vehicle, ModelState);
 
-        if (!ModelState.IsValid) return Page();
+        if (!ModelState.IsValid)
+        {
+            ViewData["OwnerOptions"] = await VehicleRules.OwnerOptionsAsync(db);
+            return Page();
+        }
 
+        existing.OwnerId = Vehicle.OwnerId;
         existing.Type = Vehicle.Type;
         existing.Make = Vehicle.Make;
         existing.Model = Vehicle.Model;

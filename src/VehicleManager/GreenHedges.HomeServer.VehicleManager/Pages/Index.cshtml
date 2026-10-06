@@ -24,7 +24,10 @@ else
     <div class="col-lg-6">
         <div class="card shadow-sm h-100">
             <div class="card-header bg-body d-flex justify-content-between align-items-center">
-                <a asp-page="/Vehicles/Details" asp-route-id="@c.Vehicle.Id" class="fw-semibold text-decoration-none">@c.Vehicle.DisplayName</a>
+                <div>
+                    <a asp-page="/Vehicles/Details" asp-route-id="@c.Vehicle.Id" class="fw-semibold text-decoration-none">@c.Vehicle.DisplayName</a>
+                    <div class="text-muted small">@c.Vehicle.Owner?.Name</div>
+                </div>
                 <span class="reg-plate small">@c.Vehicle.RegistrationNumber</span>
             </div>
             <div class="card-body">

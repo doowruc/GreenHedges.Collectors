@@ -16,6 +16,7 @@ public class IndexModel(AppDbContext db, FuelStatsService stats) : PageModel
     {
         var vehicles = await db.Vehicles
             .Include(v => v.FuelEntries)
+            .Include(v => v.Owner)
             .OrderBy(v => v.Make).ThenBy(v => v.Model)
             .ToListAsync();
 

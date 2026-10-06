@@ -1,7 +1,22 @@
 @model Vehicle
+@{ var owners = (List<SelectListItem>)ViewData["OwnerOptions"]!; }
 <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
 <input type="hidden" asp-for="Id" />
 <div class="row g-3">
+    <div class="col-md-4">
+        <label asp-for="OwnerId" class="form-label"></label>
+        @if (owners.Count == 0)
+        {
+            <div class="form-control-plaintext">No owners yet – <a asp-page="/Owners/Create">add one</a> first.</div>
+        }
+        else
+        {
+            <select asp-for="OwnerId" asp-items="owners" class="form-select">
+                <option value="0" disabled>Choose an owner…</option>
+            </select>
+        }
+        <span asp-validation-for="OwnerId" class="text-danger small"></span>
+    </div>
     <div class="col-md-4">
         <label asp-for="Type" class="form-label"></label>
         <select asp-for="Type" asp-items="Html.GetEnumSelectList<VehicleType>()" class="form-select"></select>

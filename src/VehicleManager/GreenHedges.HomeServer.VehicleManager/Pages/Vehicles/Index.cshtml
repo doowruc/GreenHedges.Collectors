@@ -13,11 +13,11 @@
 }
 else
 {
-    <div class="card shadow-sm">
+    <div class="card shadow-sm"><div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
             <thead class="table-head">
                 <tr>
-                    <th>Registration</th><th>Vehicle</th><th>Type</th>
+                    <th>Registration</th><th>Vehicle</th><th>Owner</th><th>Type</th>
                     <th>Registered</th><th>Purchased</th><th class="text-end">Fill-ups</th><th></th>
                 </tr>
             </thead>
@@ -27,6 +27,7 @@ else
                 <tr>
                     <td><span class="reg-plate">@v.Vehicle.RegistrationNumber</span></td>
                     <td><a asp-page="Details" asp-route-id="@v.Vehicle.Id">@v.Vehicle.DisplayName</a></td>
+                    <td>@v.Vehicle.Owner?.Name</td>
                     <td>@v.Vehicle.Type</td>
                     <td>@v.Vehicle.RegistrationDate?.ToString("dd/MM/yyyy")</td>
                     <td>@v.Vehicle.PurchasedDate?.ToString("dd/MM/yyyy")</td>
@@ -40,5 +41,5 @@ else
             }
             </tbody>
         </table>
-    </div>
+    </div></div>
 }

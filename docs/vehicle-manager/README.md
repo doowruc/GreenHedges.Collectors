@@ -17,8 +17,12 @@ starts. Back it up by copying that file.
 
 ## Features
 
-**Vehicles** – type, make, model, registration number, registration date, purchased date.
-Registration numbers are normalised to upper case and must be unique.
+**Owners** – managed from **Owners** in the navigation bar. Names must be unique, and an owner
+can't be deleted while they still own vehicles.
+
+**Vehicles** – owner, type, make, model, registration number, registration date, purchased date.
+Registration numbers are normalised to upper case and must be unique. Vehicles that existed before
+owners were added are assigned to an "Unassigned" owner; rename it or reassign the vehicles.
 
 **Fuel log** (per vehicle) – date, fuel brand, station location, litres, cost per litre, optional
 voucher discount per litre, and trip computer figures (average MPG, trip miles, range, odometer).
@@ -58,10 +62,10 @@ updated spreadsheet to pick up just the new rows.
 
 ```
 VehicleManager/
-  Models/        Vehicle, FuelEntry (with calculated properties)
+  Models/        Owner, Vehicle, FuelEntry (with calculated properties)
   Data/          AppDbContext (EF Core + SQLite), DatabaseMigrator, Migrations/
   Services/      FuelStatsService, FuelImportService (reads .xlsx via ClosedXML)
-  Pages/         Dashboard, Vehicles/*, Fuel/*, Import/*
+  Pages/         Dashboard, Owners/*, Vehicles/*, Fuel/*, Import/*
 ```
 
 Bootstrap, Bootstrap Icons and Chart.js are loaded from the jsDelivr CDN.
