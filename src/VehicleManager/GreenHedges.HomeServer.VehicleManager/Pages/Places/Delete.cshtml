@@ -1,0 +1,23 @@
+@page "/{kind:regex(^(brands|stations)$)}/Delete/{id:int}"
+@model VehicleManager.Pages.Places.DeleteModel
+@{ ViewData["Title"] = $"Delete {Model.Places.Singular}"; }
+
+<h1 class="h3 mb-3">Delete @Model.Places.Singular</h1>
+<div class="card shadow-sm border-danger"><div class="card-body">
+    @if (Model.Place.InUse)
+    {
+        <p><strong>@Model.Place.FullName</strong> can't be deleted because
+           @(Model.Place.Stations > 0 ? $"it has {Model.Place.Stations} station(s)" : $"{Model.Place.FillUps} fill-up(s) use it").
+           To get rid of a duplicate, merge it into the right @Model.Places.Singular instead.</p>
+        <a asp-page="Merge" asp-route-kind="@Model.Kind" asp-route-id="@Model.Place.Id" class="btn btn-primary">Merge</a>
+        <a asp-page="Index" asp-route-kind="@Model.Kind" class="btn btn-link">Back</a>
+    }
+    else
+    {
+        <p>Are you sure you want to delete <strong>@Model.Place.FullName</strong>?</p>
+        <form method="post">
+            <button type="submit" class="btn btn-danger">Delete</button>
+            <a asp-page="Index" asp-route-kind="@Model.Kind" class="btn btn-link">Cancel</a>
+        </form>
+    }
+</div></div>

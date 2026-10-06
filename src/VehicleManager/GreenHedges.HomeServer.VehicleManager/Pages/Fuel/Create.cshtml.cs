@@ -2,10 +2,12 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using VehicleManager.Data;
 using VehicleManager.Models;
+using VehicleManager.Services;
+using VehicleManager.ViewModels;
 
 namespace VehicleManager.Pages.Fuel;
 
-public class CreateModel(AppDbContext db) : FuelFormPageModel(db)
+public class CreateModel(AppDbContext db, FuelStops stops) : FuelFormPageModel(db, stops)
 {
     public async Task OnGetAsync(int? vehicleId)
     {
@@ -18,12 +20,9 @@ public class CreateModel(AppDbContext db) : FuelFormPageModel(db)
 
         await LoadLookupsAsync();
 
-        // Most fill-ups are at the usual station, so pre-fill from the last one.
+        // Most fill-ups are at the usual station, so pre-fill from where the last one finished.
         if (PreviousEntry is { } prev)
-        {
-            Entry.Brand = prev.Brand;
-            Entry.Location = prev.Location;
-        }
+            Entry.Stops = [new FuelStopInput { Brand = prev.Brand, Station = prev.Station }];
     }
 
     public async Task<IActionResult> OnPostAsync(bool addAnother = false)
@@ -37,6 +36,7 @@ public class CreateModel(AppDbContext db) : FuelFormPageModel(db)
 
         var entry = new FuelEntry();
         Entry.ApplyTo(entry);
+        await Stops.SetStopsAsync(entry, Entry.Stops);
         Db.FuelEntries.Add(entry);
         await Db.SaveChangesAsync();
         TempData["Message"] = $"Fill-up on {Entry.Date:dd/MM/yyyy} saved ({Entry.TotalCost:C}).";

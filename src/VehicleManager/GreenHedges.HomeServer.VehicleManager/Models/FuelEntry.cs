@@ -12,12 +12,6 @@ public class FuelEntry : AuditedEntity
 
     public DateOnly Date { get; set; }
 
-    [StringLength(50)]
-    public string? Brand { get; set; }
-
-    [StringLength(100)]
-    public string? Location { get; set; }
-
     public decimal Litres { get; set; }
     public decimal CostPerLitre { get; set; }
     public decimal? VoucherPerLitre { get; set; }
@@ -30,4 +24,7 @@ public class FuelEntry : AuditedEntity
 
     [StringLength(500)]
     public string? Notes { get; set; }
+
+    /// <summary>The brand(s) and station(s) the fuel came from, in order.</summary>
+    public List<FuelEntryStop> Stops { get; set; } = [];
 }

@@ -98,10 +98,21 @@ can't be deleted while they still own vehicles.
 Registration numbers are normalised to upper case and must be unique (per user). Vehicles that existed before
 owners were added are assigned to an "Unassigned" owner; rename it or reassign the vehicles.
 
-**Fuel log** (per vehicle) – date, fuel brand, station location, litres, cost per litre, optional
+**Fuel log** (per vehicle) – date, fuel brand and station, litres, cost per litre, optional
 voucher discount per litre, and trip computer figures (average MPG, trip miles, range, odometer).
 The form pre-fills the brand and station from your last fill-up and shows the total cost,
-real MPG and odometer change as you type.
+real MPG and odometer change as you type. For a **split fill-up** (topped up at two stations),
+click **Add another station** to record each brand and station in order; lists show them as
+"Shell + Sainsbury's" / "Meadowbank + Hill Top".
+
+**Brands** and **Stations** – each has its own list (per user), managed from the navigation bar:
+rename, merge duplicates (e.g. a misspelling) into the right one, or delete unused ones. Every
+station belongs to a brand, so one location can have several stations (e.g. Riverside for Asda
+and for Morrisons); a fill-up records the station, and its brand comes from the station. New
+brands and stations are added by typing them on a fill-up; names match ignoring case. Typing a
+station that only one brand has fills in the brand. If a station is rebranded, record it as a new
+station so earlier fill-ups keep the old brand. Merging a brand moves its stations to the other
+brand, combining any with the same name.
 
 **Calculated figures** (not stored, always worked out from the raw data):
 
@@ -128,7 +139,8 @@ theme menu in the navigation bar. The choice is remembered per browser.
 3. Click **Import**.
 
 The importer reads the header row (`Date, Brand, Location, Litres, Per Litre, [Voucher], Range,
-Miles, MPG, Odometer`) and ignores the spreadsheet's calculated columns. Re-importing is safe:
+Miles, MPG, Odometer`) and ignores the spreadsheet's calculated columns. A split fill-up is written
+with `+` in both columns, in the same order (`Bx + By` / `Lx + Ly`). Re-importing is safe:
 fill-ups already present (same vehicle, date and litres) are skipped, so you can re-upload an
 updated spreadsheet to pick up just the new rows.
 
@@ -136,14 +148,28 @@ updated spreadsheet to pick up just the new rows.
 
 ```
 VehicleManager/
-  Models/        EF Core entities: Owner, Vehicle, FuelEntry
+  Models/        EF Core entities: Owner, Vehicle, FuelEntry, FuelEntryStop, FuelBrand, FuelStation
   ViewModels/    View (output) and input models used by the pages, with the calculated figures
   Data/          AppDbContext (EF Core + SQL Server), DatabaseMigrator, Migrations/
-  Services/      FuelStatsService, FuelImportService (reads .xlsx via ClosedXML)
-  Pages/         Dashboard, Owners/*, Vehicles/*, Fuel/*, Import/*, Account/* (sign in/out)
+  Services/      FuelStatsService, FuelImportService (reads .xlsx via ClosedXML), FuelStops
+  Pages/         Dashboard, Owners/*, Vehicles/*, Fuel/*, Import/*, Places/* (Brands, Stations),
+                 Account/* (sign in/out)
+VehicleManager.Tests/
+  Unit/, Data/, Pages/   unit, database and in-memory page tests; Infrastructure/ holds the helpers
 ```
 
 Bootstrap, Bootstrap Icons and Chart.js are loaded from the jsDelivr CDN.
+
+## Tests
+
+```bash
+dotnet test
+```
+
+`VehicleManager.Tests` has unit tests, database tests and page tests. The page tests run the whole
+app in memory, signed in as a test user. The database and page tests use the Azure database from your
+user secrets. Each test runs as its own throwaway `test|…` user, and deletes that user's data
+afterwards, so your data isn't touched. Without a connection string they're skipped.
 
 ## Database migrations
 

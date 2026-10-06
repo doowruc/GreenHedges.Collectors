@@ -8,7 +8,7 @@
         <tr>
             <th>Date</th>
             @if (showVehicle) { <th>Vehicle</th> }
-            <th>Brand</th><th>Location</th>
+            <th>Brand</th><th>Station</th>
             <th class="text-end">Litres</th><th class="text-end">£/litre</th><th class="text-end">Cost</th>
             <th class="text-end">Trip miles</th><th class="text-end">Dash MPG</th><th class="text-end">Real MPG</th>
             <th class="text-end">Range</th><th class="text-end">Odometer</th><th class="text-end">p/mile</th><th></th>
@@ -25,7 +25,7 @@
                 <td><a asp-page="/Vehicles/Details" asp-route-id="@f.VehicleId">@f.VehicleName</a></td>
             }
             <td>@f.Brand</td>
-            <td>@f.Location</td>
+            <td>@f.Station</td>
             <td class="text-end">@f.Litres.ToString("0.00")</td>
             <td class="text-end">
                 @f.EffectiveCostPerLitre.ToString("0.000")

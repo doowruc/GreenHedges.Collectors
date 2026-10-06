@@ -6,8 +6,9 @@ namespace VehicleManager.Data;
 
 /// <remarks>
 /// Each signed-in user has their own data. Query filters limit every query to the current user's
-/// owners, vehicles and (through their vehicle) fill-ups. <see cref="SaveChangesAsync(bool, CancellationToken)"/>
-/// stamps new owners and vehicles with the current user's id and fills in every table's audit columns.
+/// owners, vehicles, fuel brands and stations, and (through their vehicle) fill-ups and their stops.
+/// <see cref="SaveChangesAsync(bool, CancellationToken)"/> stamps new user-owned rows with the
+/// current user's id and fills in every table's audit columns.
 /// With no signed-in user (e.g. at startup) queries return nothing and saving throws. Use
 /// <c>IgnoreQueryFilters()</c> only for deliberate cross-user work.
 /// </remarks>
@@ -16,6 +17,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, CurrentUser? c
     public DbSet<Owner> Owners => Set<Owner>();
     public DbSet<Vehicle> Vehicles => Set<Vehicle>();
     public DbSet<FuelEntry> FuelEntries => Set<FuelEntry>();
+    public DbSet<FuelEntryStop> FuelEntryStops => Set<FuelEntryStop>();
+    public DbSet<FuelBrand> FuelBrands => Set<FuelBrand>();
+    public DbSet<FuelStation> FuelStations => Set<FuelStation>();
 
     /// <summary>Read by the query filters; EF Core evaluates it per query, as a parameter.</summary>
     private string? CurrentUserId => currentUser?.Id;
@@ -52,6 +56,37 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, CurrentUser? c
             e.Property(f => f.VoucherPerLitre).HasPrecision(6, 3);
             e.Property(f => f.TripAverageMpg).HasPrecision(5, 1);
             e.Property(f => f.TripMiles).HasPrecision(7, 1);
+            e.HasMany(f => f.Stops)
+             .WithOne(s => s.FuelEntry)
+             .HasForeignKey(s => s.FuelEntryId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<FuelEntryStop>(e =>
+        {
+            e.HasQueryFilter(s => s.FuelEntry!.Vehicle!.UserId == CurrentUserId);
+            e.HasIndex(s => new { s.FuelEntryId, s.Sequence }).IsUnique();
+        });
+
+        // Brands with stations, and stations in use, can't be deleted; merge them instead (Pages/Places).
+        modelBuilder.Entity<FuelBrand>(e =>
+        {
+            e.HasQueryFilter(b => b.UserId == CurrentUserId);
+            e.HasIndex(b => new { b.UserId, b.Name }).IsUnique();
+            e.HasMany(b => b.Stations)
+             .WithOne(s => s.FuelBrand)
+             .HasForeignKey(s => s.FuelBrandId)
+             .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<FuelStation>(e =>
+        {
+            e.HasQueryFilter(s => s.UserId == CurrentUserId);
+            e.HasIndex(s => new { s.FuelBrandId, s.Name }).IsUnique();
+            e.HasMany(s => s.Stops)
+             .WithOne(st => st.FuelStation)
+             .HasForeignKey(st => st.FuelStationId)
+             .OnDelete(DeleteBehavior.Restrict);
         });
     }
 

@@ -16,7 +16,31 @@ dotnet ef migrations add <Name> --output-dir Data/Migrations
 dotnet list package --vulnerable --include-transitive
 ```
 
-There is no test project yet. Verify changes by building and exercising the pages in the running app.
+From the repo root:
+
+```bash
+dotnet test                  # all tests (VehicleManager.Tests); must all pass
+```
+
+## Tests
+
+`VehicleManager.Tests` (xUnit) is the main way to verify changes. I can't sign in to the running app for you,
+so test pages through the in-memory host rather than relying on the browser.
+
+- `Unit/` – pure logic, no database (calculations, stats, allow-list, text splitting).
+- `Data/` – EF Core against the real Azure database: per-user isolation, audit columns, concurrency, stops, brands/stations.
+- `Pages/` – the whole app in memory (`Infrastructure/AppFactory`, a `WebApplicationFactory<Program>`). It loads pages,
+  follows links and submits forms through `PageClient`, which sends a form's current values like a browser.
+  Auth0 is replaced by a test sign-in, as whichever user the client is for; Auth0 settings and `AllowedEmails` are
+  overridden with dummy values via environment variables.
+- Database tests use the real database, so they must never touch real data. Derive from `DatabaseTest`: each test
+  runs as its own throwaway `test|<guid>` user, which the per-user query filters keep apart, and
+  `TestDatabase.DeleteUserDataAsync` removes everything it owns afterwards (it refuses any other user id).
+  Mark them `[DatabaseFact]`/`[DatabaseTheory]` so they're skipped when no connection string is configured.
+- Never test against real data or run unscoped `ExecuteUpdate`/`ExecuteDelete` in tests. For a migration, run its
+  SQL (`dotnet ef migrations script <from> <to> --no-transactions`) inside a transaction against the real database,
+  check the results, and roll back. Then ask me before applying it.
+- When fixing a bug, add a test that fails without the fix.
 
 ## Stack
 
@@ -29,13 +53,15 @@ There is no test project yet. Verify changes by building and exercising the page
 
 ```
 VehicleManager/
-  Models/      EF Core entities: Owner, Vehicle, FuelEntry (storage only), AuditedEntity, IUserOwned
+  Models/      EF Core entities: Owner, Vehicle, FuelEntry, FuelEntryStop, FuelBrand, FuelStation (storage only),
+               AuditedEntity, IUserOwned, IFuelPlace
   ViewModels/  What pages use: *View (output, with calculated figures) and *Input (form/import input)
   Data/        AppDbContext (per-user query filters, audit stamping), DatabaseMigrator, ConcurrencyExtensions,
                DesignTimeDbContextFactory, Migrations/
   Services/    FuelStatsService (summaries), FuelImportService (ClosedXML .xlsx import), FuelCalculations,
-               CurrentUser, AllowedUsers, ExistingDataClaim
-  Pages/       Index (dashboard), Owners/*, Vehicles/*, Fuel/*, Import/*, Account/* (Login, Logout, SignedOut), Shared/ (layout + partials)
+               CurrentUser, AllowedUsers, ExistingDataClaim, FuelStops (typed names → stops)
+  Pages/       Index (dashboard), Owners/*, Vehicles/*, Fuel/*, Import/*, Places/* (Brands + Stations),
+               Account/* (Login, Logout, SignedOut), Shared/ (layout + partials)
   wwwroot/     css/site.css, js/color-mode.js, js/period-toggle.js
 ```
 
@@ -73,6 +99,11 @@ VehicleManager/
 - Registration numbers are normalised to upper case and must be unique per user (`Pages/Vehicles/VehicleRules.cs`).
 - Every vehicle has a required owner (`Owners` table, FK with `Restrict`, so owners with vehicles can't be deleted). Owner names are unique per user, case-insensitive (`Pages/Owners/OwnerRules.cs`).
 - Calculated figures (total cost, real MPG, dash-vs-real, pence per mile) are computed from raw data, never stored. They are properties on `FuelEntryView`; the cost formulas are shared with `FuelEntryInput` via `Services/FuelCalculations.cs`. Average MPG is weighted: total miles ÷ total gallons, not an average of averages.
+- Every `FuelStation` belongs to a `FuelBrand` (required `FuelBrandId`). A fill-up's stops are `FuelEntryStop` rows (ordered by `Sequence`) linking only a station; the brand comes from the station. A split fill-up has one stop per station. `FuelEntryView.Brand`/`.Station` join them with " + " for display. Spreadsheet text "Bx + By" / "Lx + Ly" pairs up by position (`FuelStopInput.FromText`).
+- A station's brand is fixed, so a rebrand is a new station and history keeps the old brand. Names are case-insensitive: brands are unique per user, stations unique per brand (one location can have stations for several brands).
+- Forms take typed brand + station names. `Services/FuelStops.ValidateAsync` requires both (filling in the brand when only one brand has that station name); `SetStopsAsync` reuses or creates them and updates stops in place (marking the fill-up modified so its RowVersion check applies).
+- Brands with stations, and stations with fill-ups, can't be deleted (FK `Restrict`); merge them instead. Merging a brand moves its stations, combining same-named ones.
+- `Pages/Places/*` is one set of pages for both lists, routed as `/brands/...` and `/stations/...`. `FuelPlaceList<T>` holds the shared logic, with `FuelBrandList`/`FuelStationList` subclasses for the differences (a station's edit form also picks its brand).
 - Fuel import de-duplicates on (vehicle, date, litres) so re-importing is safe. ClosedXML reads `CachedValue` so formula cells use Excel's saved results.
 
 **Authentication (Auth0)**

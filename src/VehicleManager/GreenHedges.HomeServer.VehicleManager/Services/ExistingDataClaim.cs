@@ -5,10 +5,10 @@ using VehicleManager.Data;
 namespace VehicleManager.Services;
 
 /// <summary>
-/// Hands data from before per-user data existed (owners and vehicles with no user id) to one
-/// person: the user whose verified email matches the <c>ExistingDataOwner</c> setting, the first
-/// time they sign in. Their fill-ups follow their vehicles. Once claimed the setting does nothing,
-/// so it can be removed.
+/// Hands data from before per-user data existed (owners, vehicles, brands and stations with no
+/// user id) to one person: the user whose verified email matches the <c>ExistingDataOwner</c>
+/// setting, the first time they sign in. Their fill-ups follow their vehicles. Once claimed the
+/// setting does nothing, so it can be removed.
 /// </summary>
 public class ExistingDataClaim(AppDbContext db, AllowedUsers allowedUsers, IConfiguration config, ILogger<ExistingDataClaim> logger)
 {
@@ -23,7 +23,10 @@ public class ExistingDataClaim(AppDbContext db, AllowedUsers allowedUsers, IConf
         // Unclaimed rows belong to no user, so the usual per-user query filters must be bypassed.
         var owners = db.Owners.IgnoreQueryFilters().Where(o => o.UserId == "");
         var vehicles = db.Vehicles.IgnoreQueryFilters().Where(v => v.UserId == "");
-        if (!await owners.AnyAsync() && !await vehicles.AnyAsync()) return;
+        var brands = db.FuelBrands.IgnoreQueryFilters().Where(b => b.UserId == "");
+        var stations = db.FuelStations.IgnoreQueryFilters().Where(s => s.UserId == "");
+        if (!await owners.AnyAsync() && !await vehicles.AnyAsync() && !await brands.AnyAsync() && !await stations.AnyAsync())
+            return;
 
         // Bulk updates bypass SaveChanges, so set the audit columns here. The retrying execution
         // strategy needs the whole transaction inside it, so it can be replayed as one unit.
@@ -39,6 +42,14 @@ public class ExistingDataClaim(AppDbContext db, AllowedUsers allowedUsers, IConf
                 .SetProperty(v => v.UserId, userId)
                 .SetProperty(v => v.ModifiedBy, userId)
                 .SetProperty(v => v.ModifiedDate, now));
+            await brands.ExecuteUpdateAsync(s => s
+                .SetProperty(b => b.UserId, userId)
+                .SetProperty(b => b.ModifiedBy, userId)
+                .SetProperty(b => b.ModifiedDate, now));
+            await stations.ExecuteUpdateAsync(s => s
+                .SetProperty(st => st.UserId, userId)
+                .SetProperty(st => st.ModifiedBy, userId)
+                .SetProperty(st => st.ModifiedDate, now));
             await transaction.CommitAsync();
             return (ownerCount, vehicleCount);
         });

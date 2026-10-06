@@ -22,6 +22,54 @@ namespace VehicleManager.Data.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("VehicleManager.Models.FuelBrand", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AddedBy")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<DateTime>("AddedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ModifiedBy")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<DateTime>("ModifiedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("FuelBrands");
+                });
+
             modelBuilder.Entity("VehicleManager.Models.FuelEntry", b =>
                 {
                     b.Property<int>("Id")
@@ -38,10 +86,6 @@ namespace VehicleManager.Data.Migrations
                     b.Property<DateTime>("AddedDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("Brand")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
                     b.Property<decimal>("CostPerLitre")
                         .HasPrecision(6, 3)
                         .HasColumnType("decimal(6,3)");
@@ -52,10 +96,6 @@ namespace VehicleManager.Data.Migrations
                     b.Property<decimal>("Litres")
                         .HasPrecision(8, 3)
                         .HasColumnType("decimal(8,3)");
-
-                    b.Property<string>("Location")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("ModifiedBy")
                         .IsRequired()
@@ -101,6 +141,106 @@ namespace VehicleManager.Data.Migrations
                     b.HasIndex("VehicleId", "Date");
 
                     b.ToTable("FuelEntries");
+                });
+
+            modelBuilder.Entity("VehicleManager.Models.FuelEntryStop", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AddedBy")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<DateTime>("AddedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("FuelEntryId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("FuelStationId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ModifiedBy")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<DateTime>("ModifiedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("Sequence")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FuelStationId");
+
+                    b.HasIndex("FuelEntryId", "Sequence")
+                        .IsUnique();
+
+                    b.ToTable("FuelEntryStops");
+                });
+
+            modelBuilder.Entity("VehicleManager.Models.FuelStation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AddedBy")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<DateTime>("AddedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("FuelBrandId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ModifiedBy")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<DateTime>("ModifiedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FuelBrandId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("FuelStations");
                 });
 
             modelBuilder.Entity("VehicleManager.Models.Owner", b =>
@@ -236,6 +376,36 @@ namespace VehicleManager.Data.Migrations
                     b.Navigation("Vehicle");
                 });
 
+            modelBuilder.Entity("VehicleManager.Models.FuelEntryStop", b =>
+                {
+                    b.HasOne("VehicleManager.Models.FuelEntry", "FuelEntry")
+                        .WithMany("Stops")
+                        .HasForeignKey("FuelEntryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("VehicleManager.Models.FuelStation", "FuelStation")
+                        .WithMany("Stops")
+                        .HasForeignKey("FuelStationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("FuelEntry");
+
+                    b.Navigation("FuelStation");
+                });
+
+            modelBuilder.Entity("VehicleManager.Models.FuelStation", b =>
+                {
+                    b.HasOne("VehicleManager.Models.FuelBrand", "FuelBrand")
+                        .WithMany("Stations")
+                        .HasForeignKey("FuelBrandId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("FuelBrand");
+                });
+
             modelBuilder.Entity("VehicleManager.Models.Vehicle", b =>
                 {
                     b.HasOne("VehicleManager.Models.Owner", "Owner")
@@ -245,6 +415,21 @@ namespace VehicleManager.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Owner");
+                });
+
+            modelBuilder.Entity("VehicleManager.Models.FuelBrand", b =>
+                {
+                    b.Navigation("Stations");
+                });
+
+            modelBuilder.Entity("VehicleManager.Models.FuelEntry", b =>
+                {
+                    b.Navigation("Stops");
+                });
+
+            modelBuilder.Entity("VehicleManager.Models.FuelStation", b =>
+                {
+                    b.Navigation("Stops");
                 });
 
             modelBuilder.Entity("VehicleManager.Models.Owner", b =>

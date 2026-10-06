@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using VehicleManager.Data;
+using VehicleManager.Pages.Places;
 using VehicleManager.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -50,6 +51,9 @@ builder.Services.AddRazorPages();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<CurrentUser>();
 builder.Services.AddScoped<ExistingDataClaim>();
+builder.Services.AddScoped<FuelStops>();
+builder.Services.AddScoped<FuelBrandList>();
+builder.Services.AddScoped<FuelStationList>();
 // Azure SQL Database (see README). Retries cover Azure's brief transient faults, and a serverless
 // database waking up from auto-pause.
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -89,3 +93,6 @@ app.MapStaticAssets().AllowAnonymous();
 app.MapRazorPages().WithStaticAssets();
 
 app.Run();
+
+// Lets tests start the app in memory (WebApplicationFactory<Program>).
+public partial class Program;

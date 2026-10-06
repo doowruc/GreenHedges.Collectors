@@ -13,13 +13,8 @@ public class FuelEntryInput
     [DataType(DataType.Date)]
     public DateOnly Date { get; set; } = DateOnly.FromDateTime(DateTime.Today);
 
-    [StringLength(50)]
-    [Display(Name = "Fuel brand")]
-    public string? Brand { get; set; }
-
-    [StringLength(100)]
-    [Display(Name = "Station location")]
-    public string? Location { get; set; }
+    /// <summary>Where the fuel came from; more than one for a split fill-up. Blank rows are ignored.</summary>
+    public List<FuelStopInput> Stops { get; set; } = [];
 
     [Range(0.01, 1000)]
     [Display(Name = "Litres")]
@@ -63,8 +58,9 @@ public class FuelEntryInput
     {
         VehicleId = f.VehicleId,
         Date = f.Date,
-        Brand = f.Brand,
-        Location = f.Location,
+        Stops = f.Stops.OrderBy(s => s.Sequence)
+            .Select(s => new FuelStopInput { Brand = s.FuelStation!.FuelBrand!.Name, Station = s.FuelStation.Name })
+            .ToList(),
         Litres = f.Litres,
         CostPerLitre = f.CostPerLitre,
         VoucherPerLitre = f.VoucherPerLitre,
@@ -76,12 +72,11 @@ public class FuelEntryInput
         RowVersion = f.RowVersion
     };
 
+    /// <summary>Copies the fields to <paramref name="entry"/>, except <see cref="Stops"/>: use <c>FuelStops.SetStopsAsync</c>.</summary>
     public void ApplyTo(FuelEntry entry)
     {
         entry.VehicleId = VehicleId;
         entry.Date = Date;
-        entry.Brand = Brand;
-        entry.Location = Location;
         entry.Litres = Litres;
         entry.CostPerLitre = CostPerLitre;
         entry.VoucherPerLitre = VoucherPerLitre;

@@ -1,0 +1,35 @@
+@page "/{kind:regex(^(brands|stations)$)}/Edit/{id:int}"
+@model VehicleManager.Pages.Places.EditModel
+@{ ViewData["Title"] = $"Edit {Model.Places.Singular}"; }
+
+<h1 class="h3 mb-3">Edit @Model.Places.Singular</h1>
+<div class="card shadow-sm"><div class="card-body">
+    <form method="post">
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+        <input type="hidden" asp-for="Place.RowVersion" />
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label asp-for="Place.Name" class="form-label"></label>
+                <input asp-for="Place.Name" class="form-control" maxlength="@Model.Places.MaxNameLength" autofocus />
+                <span asp-validation-for="Place.Name" class="text-danger small"></span>
+            </div>
+            @if (Model.Places.HasBrand)
+            {
+                <div class="col-md-6">
+                    <label asp-for="Place.BrandId" class="form-label"></label>
+                    <select asp-for="Place.BrandId" asp-items="Model.BrandOptions" class="form-select">
+                        <option value="">— choose —</option>
+                    </select>
+                    <span asp-validation-for="Place.BrandId" class="text-danger small"></span>
+                </div>
+            }
+        </div>
+        <p class="form-text">Every fill-up using it shows the change.@(Model.Places.HasBrand ? " If the station was rebranded, add a new station instead, so earlier fill-ups keep the old brand." : "")</p>
+        <div class="mt-4">
+            <button type="submit" class="btn btn-primary">Save</button>
+            <a asp-page="Index" asp-route-kind="@Model.Kind" class="btn btn-link">Cancel</a>
+        </div>
+    </form>
+</div></div>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

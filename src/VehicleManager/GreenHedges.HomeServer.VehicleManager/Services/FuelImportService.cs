@@ -22,7 +22,7 @@ public sealed record ImportResult(int Imported, int SkippedDuplicates);
 /// row 2 holds the headers: Date, Brand, Location, Litres, Per Litre, [Voucher], [Total],
 /// Range, Miles, MPG, Odometer, then calculated columns (ignored – the app recalculates them).
 /// </summary>
-public class FuelImportService(AppDbContext db)
+public class FuelImportService(AppDbContext db, FuelStops stops)
 {
     private static readonly CultureInfo UkCulture = CultureInfo.GetCultureInfo("en-GB");
 
@@ -80,6 +80,16 @@ public class FuelImportService(AppDbContext db)
                 continue;
             }
 
+            // A split fill-up lists its brands and locations as "Bx + By" / "Lx + Ly", in the same order.
+            var brands = Text(Cell(row, "Brand"));
+            var locations = Text(Cell(row, "Location"));
+            var fuelStops = FuelStopInput.FromText(brands, locations);
+            if ((brands?.Count(c => c == '+') ?? 0) != (locations?.Count(c => c == '+') ?? 0) && brands is not null && locations is not null)
+                warnings.Add($"Row {r}: brand and location have different numbers of '+' parts – paired up in order.");
+            // Every station belongs to a brand, so a part without both can't be recorded.
+            if (fuelStops.RemoveAll(s => string.IsNullOrWhiteSpace(s.Brand) || string.IsNullOrWhiteSpace(s.Station)) > 0)
+                warnings.Add($"Row {r}: a brand without a location (or a location without a brand) – not recorded.");
+
             var odometer = Number(Cell(row, "Odometer"));
             var range = Number(Cell(row, "Range"));
             var voucher = Number(Cell(row, "Voucher"));
@@ -87,8 +97,7 @@ public class FuelImportService(AppDbContext db)
             entries.Add(new FuelEntryInput
             {
                 Date = date.Value,
-                Brand = Text(Cell(row, "Brand")),
-                Location = Text(Cell(row, "Location")),
+                Stops = fuelStops,
                 Litres = Math.Round(litres.Value, 3),
                 CostPerLitre = Math.Round(price.Value, 3),
                 VoucherPerLitre = voucher is > 0 ? Math.Round(voucher.Value, 3) : null,
@@ -161,6 +170,7 @@ public class FuelImportService(AppDbContext db)
             var entry = new FuelEntry();
             e.ApplyTo(entry);
             entry.VehicleId = vehicleId;
+            await stops.SetStopsAsync(entry, e.Stops);
             db.FuelEntries.Add(entry);
             imported++;
         }

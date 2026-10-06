@@ -1,11 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using VehicleManager.Data;
+using VehicleManager.Services;
 using VehicleManager.ViewModels;
 
 namespace VehicleManager.Pages.Fuel;
 
-public class EditModel(AppDbContext db) : FuelFormPageModel(db)
+public class EditModel(AppDbContext db, FuelStops stops) : FuelFormPageModel(db, stops)
 {
     public async Task<IActionResult> OnGetAsync(int id)
     {
@@ -18,7 +19,7 @@ public class EditModel(AppDbContext db) : FuelFormPageModel(db)
 
     public async Task<IActionResult> OnPostAsync(int id)
     {
-        var existing = await Db.FuelEntries.FirstOrDefaultAsync(f => f.Id == id);
+        var existing = await Db.FuelEntries.Include(f => f.Stops).FirstOrDefaultAsync(f => f.Id == id);
         if (existing is null) return NotFound();
 
         await ValidateAsync();
@@ -29,6 +30,7 @@ public class EditModel(AppDbContext db) : FuelFormPageModel(db)
         }
 
         Entry.ApplyTo(existing);
+        await Stops.SetStopsAsync(existing, Entry.Stops);
         if (!await Db.TrySaveEditAsync(existing, Entry.RowVersion))
         {
             if (Db.Entry(existing).State == EntityState.Detached) return NotFound();

@@ -47,7 +47,7 @@ else
                     }
                     <p class="small text-muted mb-0">
                         Last fill-up @c.Last.Date.ToString("dd MMM yyyy") (@((DateOnly.FromDateTime(DateTime.Today).DayNumber - c.Last.Date.DayNumber)) days ago):
-                        @c.Last.Litres.ToString("0.0") l of @c.Last.Brand at @c.Last.Location, @c.Last.EffectiveCostPerLitre.ToString("C3")/l.
+                        @c.Last.Litres.ToString("0.0") l of @c.Last.Brand at @c.Last.Station, @c.Last.EffectiveCostPerLitre.ToString("C3")/l.
                         @c.AllTime.FillUps fill-ups since @c.AllTime.FirstFillUp?.ToString("MMM yyyy").
                     </p>
                 }

@@ -21,17 +21,33 @@
         <span asp-validation-for="Entry.Date" class="text-danger small"></span>
     </div>
     <div class="col-md-4"></div>
-    <div class="col-md-4">
-        <label asp-for="Entry.Brand" class="form-label"></label>
-        <input asp-for="Entry.Brand" class="form-control" list="brands" autocomplete="off" />
+    @* One row per stop: a split fill-up (topped up at two stations) has a row for each, in order. *@
+    <div class="col-12" id="fuel-stops" data-station-brands="@System.Text.Json.JsonSerializer.Serialize(Model.StationBrands)">
+        @for (var i = 0; i < Model.Entry.Stops.Count; i++)
+        {
+            <div class="row g-3 mb-3 fuel-stop">
+                <div class="col-md-4">
+                    <label asp-for="Entry.Stops[i].Brand" class="form-label"></label>
+                    <input asp-for="Entry.Stops[i].Brand" class="form-control" list="brands" autocomplete="off" />
+                    <span asp-validation-for="Entry.Stops[i].Brand" class="text-danger small"></span>
+                </div>
+                <div class="col-md-5">
+                    <label asp-for="Entry.Stops[i].Station" class="form-label"></label>
+                    <div class="d-flex gap-2">
+                        <input asp-for="Entry.Stops[i].Station" class="form-control" list="stations" autocomplete="off" />
+                        <button type="button" class="btn btn-outline-danger remove-stop@(Model.Entry.Stops.Count == 1 ? " invisible" : "")"
+                                title="Remove this station" aria-label="Remove this station"><i class="bi bi-x-lg"></i></button>
+                    </div>
+                    <span asp-validation-for="Entry.Stops[i].Station" class="text-danger small"></span>
+                </div>
+            </div>
+        }
         <datalist id="brands">@foreach (var b in Model.Brands) { <option value="@b"></option> }</datalist>
+        <datalist id="stations">@foreach (var s in Model.Stations) { <option value="@s.Name" label="@s.Brand"></option> }</datalist>
+        <button type="button" class="btn btn-sm btn-link px-0" id="add-stop">
+            <i class="bi bi-plus-lg me-1"></i>Add another station (split fill-up)
+        </button>
     </div>
-    <div class="col-md-5">
-        <label asp-for="Entry.Location" class="form-label"></label>
-        <input asp-for="Entry.Location" class="form-control" list="locations" autocomplete="off" />
-        <datalist id="locations">@foreach (var l in Model.Locations) { <option value="@l"></option> }</datalist>
-    </div>
-    <div class="col-md-3"></div>
     <div class="col-6 col-md-3">
         <label asp-for="Entry.Litres" class="form-label"></label>
         <input asp-for="Entry.Litres" class="form-control" type="number" step="0.001" min="0" value="@Blank(Model.Entry.Litres)" />
@@ -108,5 +124,51 @@
         }
         document.querySelectorAll('input').forEach(i => i.addEventListener('input', update));
         update();
+
+        // Brand/station rows. Field names are renumbered after adding or removing a row, so they
+        // stay Entry.Stops[0], [1], ... and model binding sees every row.
+        const stops = $('fuel-stops');
+        function renumber() {
+            const rows = stops.querySelectorAll('.fuel-stop');
+            rows.forEach((row, i) => {
+                row.querySelectorAll('[name], [id], [for], [data-valmsg-for]').forEach(el => {
+                    for (const attr of ['name', 'id', 'for', 'data-valmsg-for']) {
+                        const value = el.getAttribute(attr);
+                        if (value) el.setAttribute(attr, value.replace(/Stops\[\d+\]/, `Stops[${i}]`).replace(/Stops_\d+__/, `Stops_${i}__`));
+                    }
+                });
+                row.querySelector('.remove-stop').classList.toggle('invisible', rows.length === 1);
+            });
+            // Let client-side validation see the new fields (the validation scripts load after this).
+            const jq = window.jQuery;
+            if (jq?.validator?.unobtrusive) {
+                const form = stops.closest('form');
+                jq(form).removeData('validator').removeData('unobtrusiveValidation');
+                jq.validator.unobtrusive.parse(form);
+            }
+        }
+        $('add-stop').addEventListener('click', () => {
+            const rows = stops.querySelectorAll('.fuel-stop');
+            const copy = rows[rows.length - 1].cloneNode(true);
+            copy.querySelectorAll('input').forEach(i => { i.value = ''; i.classList.remove('input-validation-error'); });
+            copy.querySelectorAll('[data-valmsg-for]').forEach(s => { s.textContent = ''; s.className = 'text-danger small field-validation-valid'; });
+            rows[rows.length - 1].after(copy);
+            renumber();
+            copy.querySelector('input').focus();
+        });
+        // Typing a station only one brand has fills in that brand, if it's blank.
+        const stationBrands = JSON.parse(stops.dataset.stationBrands || '{}');
+        stops.addEventListener('change', e => {
+            if (!e.target.matches('[list="stations"]')) return;
+            const brand = e.target.closest('.fuel-stop').querySelector('[list="brands"]');
+            const known = stationBrands[e.target.value.trim().replace(/\s+/g, ' ').toLowerCase()];
+            if (known && !brand.value.trim()) brand.value = known;
+        });
+        stops.addEventListener('click', e => {
+            const button = e.target.closest('.remove-stop');
+            if (!button) return;
+            button.closest('.fuel-stop').remove();
+            renumber();
+        });
     })();
 </script>

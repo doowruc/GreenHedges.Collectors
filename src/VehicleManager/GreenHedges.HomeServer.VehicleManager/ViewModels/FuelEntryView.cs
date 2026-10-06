@@ -11,8 +11,7 @@ public class FuelEntryView
     public int VehicleId { get; init; }
     public string VehicleName { get; init; } = string.Empty;
     public DateOnly Date { get; init; }
-    public string? Brand { get; init; }
-    public string? Location { get; init; }
+    public List<FuelStopView> Stops { get; init; } = [];
     public decimal Litres { get; init; }
     public decimal CostPerLitre { get; init; }
     public decimal? VoucherPerLitre { get; init; }
@@ -27,8 +26,9 @@ public class FuelEntryView
         VehicleId = f.VehicleId,
         VehicleName = f.Vehicle!.Make + " " + f.Vehicle.Model,
         Date = f.Date,
-        Brand = f.Brand,
-        Location = f.Location,
+        Stops = f.Stops.OrderBy(s => s.Sequence)
+            .Select(s => new FuelStopView(s.FuelStation!.FuelBrand!.Name, s.FuelStation.Name))
+            .ToList(),
         Litres = f.Litres,
         CostPerLitre = f.CostPerLitre,
         VoucherPerLitre = f.VoucherPerLitre,
@@ -37,6 +37,14 @@ public class FuelEntryView
         Range = f.Range,
         Odometer = f.Odometer
     };
+
+    /// <summary>The brand, or brands joined with " + " for a split fill-up.</summary>
+    public string Brand => Join(s => s.Brand);
+
+    /// <summary>The station, or stations joined with " + " for a split fill-up (same order as <see cref="Brand"/>).</summary>
+    public string Station => Join(s => s.Station);
+
+    private string Join(Func<FuelStopView, string> name) => string.Join(" + ", Stops.Select(name));
 
     // --- Calculated values ---
 
@@ -57,3 +65,5 @@ public class FuelEntryView
     public decimal? CostPerMile =>
         TripMiles is > 0 ? Math.Round(TotalCost / TripMiles.Value, 3) : null;
 }
+
+public record FuelStopView(string Brand, string Station);
