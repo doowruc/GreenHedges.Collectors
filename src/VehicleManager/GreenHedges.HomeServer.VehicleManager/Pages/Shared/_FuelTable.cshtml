@@ -40,9 +40,10 @@
             <td class="text-end">@f.TripAverageMpg?.ToString("0.0")</td>
             <td class="text-end" data-order="@Sort(f.CalculatedMpg)">
                 @f.CalculatedMpg?.ToString("0.0")
-                @if (diff is { } d && Math.Abs(d) >= 0.5m)
+                @if (diff is { } d)
                 {
-                    <small class="@(d > 0 ? "text-optimistic" : "text-pessimistic")" title="Dash minus real">(@d.ToString("+0.0;-0.0"))</small>
+                    // Shown whenever there's a dash figure to compare, however small; an exact match is muted.
+                    <small class="@(d > 0 ? "text-optimistic" : d < 0 ? "text-pessimistic" : "text-body-secondary")" title="Dash minus real">(@d.ToString("+0.0;-0.0;0.0"))</small>
                 }
             </td>
             <td class="text-end">@f.Range</td>

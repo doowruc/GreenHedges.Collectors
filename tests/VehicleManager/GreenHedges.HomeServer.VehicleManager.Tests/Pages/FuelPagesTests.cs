@@ -153,4 +153,31 @@ public class FuelPagesTests(AppFactory app) : DatabaseTest, IClassFixture<AppFac
         Assert.Equal(10, pageLength);
         Assert.Contains($".dt-pending .table-fuel tbody tr:nth-child(n+{pageLength + 1})", css);
     }
+
+    [DatabaseFact]
+    public async Task Real_mpg_always_shows_the_difference_from_the_dash()
+    {
+        var (client, vehicleId) = await SeedAsync();
+        await using (var db = Db())
+        {
+            // 40 litres = 8.799 gallons. 400 miles -> 45.5 real MPG.
+            foreach (var (day, dash) in new[] { (2, 48.0m), (3, 45.8m), (4, 45.5m), (5, 45.2m) })
+            {
+                var e = await TestData.AddFillUpAsync(db, vehicleId, new DateOnly(2026, 2, day), ("Beta", "Village"));
+                (e.TripMiles, e.TripAverageMpg) = (400, dash);
+            }
+            await TestData.AddFillUpAsync(db, vehicleId, new DateOnly(2026, 2, 6), ("Beta", "Village"));   // no trip miles: no Real MPG
+            await db.SaveChangesAsync();
+        }
+        var log = (await client.GetAsync($"/FuelLog?vehicleId={vehicleId}")).Text;
+        string RealMpg(string date) => Regex.Replace(
+            // The Real MPG cell is the row's second sort-value cell, after £/Litre.
+            Regex.Match(log, $@"<td data-order=""{date}"">(?:.*?<td class=""text-end"" data-order=""[^""]*"">){{2}}(.*?)</td>", RegexOptions.Singleline).Groups[1].Value, @"\s+", " ").Trim();
+
+        Assert.Equal(@"45.5 <small class=""text-optimistic"" title=""Dash minus real"">(+2.5)</small>", RealMpg("2026-02-02"));
+        Assert.Equal(@"45.5 <small class=""text-optimistic"" title=""Dash minus real"">(+0.3)</small>", RealMpg("2026-02-03"));    // under 0.5: shown too
+        Assert.Equal(@"45.5 <small class=""text-body-secondary"" title=""Dash minus real"">(0.0)</small>", RealMpg("2026-02-04")); // exact match
+        Assert.Equal(@"45.5 <small class=""text-pessimistic"" title=""Dash minus real"">(-0.3)</small>", RealMpg("2026-02-05"));
+        Assert.Equal("", RealMpg("2026-02-06"));
+    }
 }
