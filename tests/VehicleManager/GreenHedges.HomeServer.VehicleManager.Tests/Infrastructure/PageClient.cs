@@ -39,7 +39,7 @@ public sealed class PageClient(HttpClient client)
 
     /// <summary>
     /// Submits the form on <paramref name="page"/> to <paramref name="url"/>: its current values
-    /// (inputs, including the anti-forgery token and hidden fields, selected options and text areas),
+    /// (enabled inputs, including the anti-forgery token and hidden fields, selected options and text areas),
     /// with <paramref name="fields"/> changed or added.
     /// </summary>
     public async Task<PageResponse> PostFormAsync(string url, PageResponse page, Dictionary<string, string>? fields = null) =>
@@ -64,6 +64,7 @@ public sealed class PageClient(HttpClient client)
         // Attributes can come in any order (an explicit value="" is written before the tag helper's name="").
         foreach (Match m in Regex.Matches(page.Html, "<input [^>]*>"))
             if (Attribute(m.Value, "name") is { } name && Attribute(m.Value, "value") is { } value &&
+                !Regex.IsMatch(m.Value, @"\sdisabled\b") &&   // disabled fields aren't sent
                 !(Attribute(m.Value, "type") is "checkbox" && !Regex.IsMatch(m.Value, @"\schecked\b")))   // unticked boxes aren't sent
                 Add(name, value);
         foreach (Match m in Regex.Matches(page.Html, "<select[^>]*name=\"([^\"]+)\"[^>]*>(.*?)</select>", RegexOptions.Singleline))

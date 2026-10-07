@@ -100,7 +100,7 @@ owners were added are assigned to an "Unassigned" owner; rename it or reassign t
 
 **Fuel Log** (per vehicle) – date, fuel brand and station, litres, cost per litre, optional
 voucher discount per litre, and trip computer figures (average MPG, trip miles, range, odometer).
-The form pre-fills the brand and station from your last fill-up and shows the total cost,
+The brand and station start blank (with suggestions as you type), and the form shows the total cost,
 real MPG and odometer change as you type. For a **split fill-up** (topped up at two stations),
 click **Add another station** to record each brand and station in order; lists show them as
 "Shell + Sainsbury's" / "Meadowbank + Hill Top".
@@ -110,8 +110,8 @@ misspelling) into the right one, or delete unused ones. Each fuel brand has its 
 (e.g. Fuel Brands › Shell) to rename, merge or delete that brand's stations. Every station belongs to a
 brand, so one location can have several stations (e.g. Riverside for Asda and for Morrisons); a fill-up
 records the station, and its brand comes from the station. New brands and stations are added by typing
-them on a fill-up; names match ignoring case. Typing a station that only one brand has fills in the
-brand. If a station is rebranded, record it as a new station so earlier fill-ups keep the old brand.
+them on a fill-up; names match ignoring case. The fill-up form suggests every brand; the station box
+is enabled once a brand is entered and suggests only that brand's stations (none for a new brand). If a station is rebranded, record it as a new station so earlier fill-ups keep the old brand.
 Merging a fuel brand moves its stations to the other brand, combining any with the same name.
 
 **Calculated figures** (not stored, always worked out from the raw data):

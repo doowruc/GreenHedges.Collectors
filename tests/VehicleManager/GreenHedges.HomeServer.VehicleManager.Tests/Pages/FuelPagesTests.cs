@@ -27,14 +27,35 @@ public class FuelPagesTests(AppFactory app) : DatabaseTest, IClassFixture<AppFac
     }
 
     [DatabaseFact]
-    public async Task Add_fill_up_form_prefills_the_last_station_and_suggests_stations_with_brands()
+    public async Task Add_fill_up_form_starts_blank_and_suggests_stations_by_brand()
+    {
+        var (client, _) = await SeedAsync();
+        await using (var db = Db())
+        {
+            var vehicle = await TestData.AddVehicleAsync(db, "ZZ99 ZZZ");
+            await TestData.AddFillUpAsync(db, vehicle.Id, new DateOnly(2025, 6, 1), ("Beta", "Abbey"), ("Gamma", "Hamlet"));
+        }
+        var form = await client.GetAsync("/FuelLog/Create");
+        Assert.Equal(HttpStatusCode.OK, form.Status);
+        // Not pre-filled from the last fill-up (Beta Village).
+        Assert.Matches("<input [^>]*name=\"Entry.Stops\\[0\\].Brand\"[^>]*value=\"\"", form.Html);
+        Assert.Matches("<input [^>]*name=\"Entry.Stops\\[0\\].Station\"[^>]*value=\"\"", form.Html);
+        // Every brand is suggested; stations are listed per brand (lower case) for the script to filter by.
+        // The suggestions are a dropdown (typeahead.js), not the browser's own <datalist>.
+        Assert.Contains("/js/typeahead.", form.Html);
+        Assert.DoesNotContain("<datalist", form.Html);
+        Assert.Contains("data-brands=\"[\"Beta\",\"Gamma\"]\"", form.Text);
+        Assert.Contains("data-stations-by-brand=\"{\"beta\":[\"Abbey\",\"Village\"],\"gamma\":[\"Hamlet\"]}\"", form.Text);
+    }
+
+    [DatabaseFact]
+    public async Task Station_is_disabled_until_a_brand_is_entered()
     {
         var (client, _) = await SeedAsync();
         var form = await client.GetAsync("/FuelLog/Create");
-        Assert.Equal(HttpStatusCode.OK, form.Status);
-        Assert.Contains("name=\"Entry.Stops[0].Station\"", form.Html);
-        Assert.Matches("name=\"Entry.Stops\\[0\\].Station\"[^>]*value=\"Village\"", form.Html);
-        Assert.Contains("<option value=\"Village\" label=\"Beta\">", form.Html);
+        Assert.Matches("<input [^>]*name=\"Entry.Stops\\[0\\].Brand\"", form.Html);
+        Assert.DoesNotMatch("<input [^>]*disabled[^>]*name=\"Entry.Stops\\[0\\].Brand\"|name=\"Entry.Stops\\[0\\].Brand\"[^>]*disabled", form.Html);
+        Assert.Matches("<input [^>]*name=\"Entry.Stops\\[0\\].Station\"[^>]*disabled=\"disabled\"|<input [^>]*disabled=\"disabled\"[^>]*name=\"Entry.Stops\\[0\\].Station\"", form.Html);
     }
 
     [DatabaseFact]

@@ -30,3 +30,7 @@
 
 /* Chart container: Chart.js fills it (maintainAspectRatio: false), so the chart stays readable on phones. */
 .chart-box { position: relative; height: clamp(16rem, 35vw, 22rem); }
+
+/* Typeahead suggestions (wwwroot/js/typeahead.js): a dropdown menu under the input, scrolling if long. */
+.typeahead-menu { position: absolute; margin-top: .125rem; max-height: 16rem; overflow-y: auto; }
+.typeahead-menu .dropdown-item { white-space: normal; }

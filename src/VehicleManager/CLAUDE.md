@@ -64,7 +64,7 @@ VehicleManager/
                BackupEmailer (emails a backup via Resend), ScheduledBackups (Coravel invocable, nightly)
   Pages/       Index (dashboard), Owners/*, Vehicles/*, FuelLog/* (log + fill-up pages), Import/*, Backup/* (Index, Restore), Settings/* (user menu), FuelBrands/* (+ Stations/* per brand),
                Account/* (Login, Logout, SignedOut), Shared/ (layout + partials)
-  wwwroot/     css/site.css, js/color-mode.js, js/period-toggle.js, js/fuel-table.js
+  wwwroot/     css/site.css, js/color-mode.js, js/period-toggle.js, js/fuel-table.js, js/typeahead.js (dropdown suggestions)
 ```
 
 ## Conventions and how things work

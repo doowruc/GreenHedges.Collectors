@@ -24,7 +24,7 @@ else
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script>
-        // Reload when the vehicle changes so brand/location defaults and odometer hints match it.
+        // Reload when the vehicle changes so the odometer hint matches it.
         document.getElementById('Entry_VehicleId')?.addEventListener('change', e => {
             if (e.target.value) location.search = '?vehicleId=' + e.target.value;
         });

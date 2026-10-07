@@ -11,10 +11,8 @@ namespace VehicleManager.Pages.FuelLog;
 /// <summary>Shared plumbing for the Create and Edit fill-up pages.</summary>
 public abstract class FuelFormPageModel(AppDbContext db, FuelStops stops) : PageModel
 {
-    /// <summary>The previous fill-up, with the brand and station it finished at (its last stop).</summary>
-    public record PreviousFillUp(DateOnly Date, int? Odometer, string? Brand, string? Station);
-
-    public record StationOption(string Name, string Brand);
+    /// <summary>The previous fill-up's date and odometer reading.</summary>
+    public record PreviousFillUp(DateOnly Date, int? Odometer);
 
     protected AppDbContext Db => db;
     protected FuelStops Stops => stops;
@@ -24,13 +22,12 @@ public abstract class FuelFormPageModel(AppDbContext db, FuelStops stops) : Page
 
     public List<SelectListItem> VehicleOptions { get; private set; } = [];
     public List<string> Brands { get; private set; } = [];
-    public List<StationOption> Stations { get; private set; } = [];
 
     /// <summary>
-    /// Station name (lower case) → its brand, for stations only one brand has. The form uses it to
-    /// fill in the brand when a station is typed.
+    /// Brand name (lower case) → its station names. The form suggests only the typed brand's stations,
+    /// and none for a new brand.
     /// </summary>
-    public Dictionary<string, string> StationBrands { get; private set; } = [];
+    public Dictionary<string, List<string>> StationsByBrand { get; private set; } = [];
 
     /// <summary>The fill-up before this one for the selected vehicle (for odometer hints).</summary>
     public PreviousFillUp? PreviousEntry { get; private set; }
@@ -44,11 +41,10 @@ public abstract class FuelFormPageModel(AppDbContext db, FuelStops stops) : Page
             .ToListAsync();
 
         Brands = await db.FuelBrands.OrderBy(b => b.Name).Select(b => b.Name).ToListAsync();
-        Stations = await db.FuelStations.OrderBy(s => s.Name).ThenBy(s => s.FuelBrand!.Name)
-            .Select(s => new StationOption(s.Name, s.FuelBrand!.Name)).ToListAsync();
-        StationBrands = Stations.GroupBy(s => s.Name.ToLowerInvariant())
-            .Where(g => g.Count() == 1)
-            .ToDictionary(g => g.Key, g => g.Single().Brand);
+        var stations = await db.FuelStations.OrderBy(s => s.Name)
+            .Select(s => new { s.Name, Brand = s.FuelBrand!.Name }).ToListAsync();
+        StationsByBrand = stations.GroupBy(s => s.Brand.ToLowerInvariant())
+            .ToDictionary(g => g.Key, g => g.Select(s => s.Name).ToList());
 
         // The form always shows at least one brand/station row.
         if (Entry.Stops.Count == 0) Entry.Stops.Add(new FuelStopInput());
@@ -58,9 +54,7 @@ public abstract class FuelFormPageModel(AppDbContext db, FuelStops stops) : Page
             PreviousEntry = await db.FuelEntries
                 .Where(f => f.VehicleId == Entry.VehicleId && f.Id != editingId && f.Date <= Entry.Date)
                 .OrderByDescending(f => f.Date).ThenByDescending(f => f.Id)
-                .Select(f => new PreviousFillUp(f.Date, f.Odometer,
-                    f.Stops.OrderByDescending(s => s.Sequence).Select(s => s.FuelStation!.FuelBrand!.Name).FirstOrDefault(),
-                    f.Stops.OrderByDescending(s => s.Sequence).Select(s => s.FuelStation!.Name).FirstOrDefault()))
+                .Select(f => new PreviousFillUp(f.Date, f.Odometer))
                 .FirstOrDefaultAsync();
         }
     }

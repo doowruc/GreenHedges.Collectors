@@ -18,11 +18,8 @@ public class CreateModel(AppDbContext db, FuelStops stops) : FuelFormPageModel(d
             ?? await Db.Vehicles.Select(v => (int?)v.Id).FirstOrDefaultAsync()
             ?? 0;
 
+        // Brand and station start blank (picked with the form's suggestions each time).
         await LoadLookupsAsync();
-
-        // Most fill-ups are at the usual station, so pre-fill from where the last one finished.
-        if (PreviousEntry is { } prev)
-            Entry.Stops = [new FuelStopInput { Brand = prev.Brand, Station = prev.Station }];
     }
 
     public async Task<IActionResult> OnPostAsync(bool addAnother = false)
