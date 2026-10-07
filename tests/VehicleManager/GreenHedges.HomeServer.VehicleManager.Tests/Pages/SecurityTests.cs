@@ -11,6 +11,7 @@ public class SecurityTests(AppFactory app) : DatabaseTest, IClassFixture<AppFact
     [InlineData("/Vehicles")]
     [InlineData("/FuelBrands")]
     [InlineData("/FuelLog/Create")]
+    [InlineData("/Backup?handler=Download")]
     public async Task Pages_need_a_signed_in_user(string url)
     {
         Assert.Equal(HttpStatusCode.Unauthorized, (await app.ClientFor(null).GetAsync(url)).Status);

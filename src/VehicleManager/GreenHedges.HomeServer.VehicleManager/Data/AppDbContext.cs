@@ -24,6 +24,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, CurrentUser? c
     /// <summary>Read by the query filters; EF Core evaluates it per query, as a parameter.</summary>
     private string? CurrentUserId => currentUser?.Id;
 
+    /// <summary>
+    /// When set, new rows keep the audit values they already have (a restored backup's), and only
+    /// missing ones are filled in. New user-owned rows still always belong to the current user.
+    /// </summary>
+    public bool KeepAuditValues { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Owner>(e =>
@@ -116,11 +122,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, CurrentUser? c
 
         foreach (var entry in entries)
         {
+            var audit = entry.Entity;
+            var keep = KeepAuditValues && entry.State == EntityState.Added;
             if (entry.State == EntityState.Added)
             {
-                entry.Entity.AddedDate = now;
-                entry.Entity.AddedBy = userId;
-                if (entry.Entity is IUserOwned owned) owned.UserId = userId;
+                if (!keep || audit.AddedDate == default) audit.AddedDate = now;
+                if (!keep || audit.AddedBy.Length == 0) audit.AddedBy = userId;
+                if (audit is IUserOwned owned) owned.UserId = userId;
             }
             else
             {
@@ -128,8 +136,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, CurrentUser? c
                 entry.Property(e => e.AddedDate).IsModified = false;
                 entry.Property(e => e.AddedBy).IsModified = false;
             }
-            entry.Entity.ModifiedDate = now;
-            entry.Entity.ModifiedBy = userId;
+            if (!keep || audit.ModifiedDate == default) audit.ModifiedDate = now;
+            if (!keep || audit.ModifiedBy.Length == 0) audit.ModifiedBy = userId;
         }
     }
 }

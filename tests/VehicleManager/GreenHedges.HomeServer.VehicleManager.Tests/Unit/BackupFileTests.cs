@@ -1,0 +1,141 @@
+using System.IO.Compression;
+using System.Text;
+using System.Text.Json;
+using VehicleManager.Models;
+using VehicleManager.Services;
+
+namespace VehicleManager.Tests.Unit;
+
+public class BackupFileTests
+{
+    private static readonly DateTime Added = new(2025, 3, 4, 10, 20, 30, DateTimeKind.Utc);
+
+    private static BackupFile Sample(Func<BackupFile, BackupFile>? change = null)
+    {
+        var backup = new BackupFile
+        {
+            Format = BackupFile.FormatName,
+            Version = BackupFile.CurrentVersion,
+            CreatedDate = new DateTime(2026, 10, 7, 9, 0, 0, DateTimeKind.Utc),
+            Owners = [new() { Id = 1, Name = "Me", AddedDate = Added, AddedBy = "auth0|me" }],
+            Vehicles = [new() { Id = 2, OwnerId = 1, Type = VehicleType.Van, Make = "Ford", Model = "Transit", RegistrationNumber = "AB12 CDE" }],
+            FuelBrands = [new() { Id = 3, Name = "Shell" }, new() { Id = 4, Name = "BP" }],
+            FuelStations = [new() { Id = 5, FuelBrandId = 3, Name = "Meadowbank" }, new() { Id = 6, FuelBrandId = 4, Name = "Oak Lane" }],
+            FuelEntries = [new() { Id = 7, VehicleId = 2, Date = new DateOnly(2026, 1, 2), Litres = 40.5m, CostPerLitre = 1.459m, Notes = "Split" }],
+            FuelEntryStops = [new() { FuelEntryId = 7, Sequence = 1, FuelStationId = 5 }, new() { FuelEntryId = 7, Sequence = 2, FuelStationId = 6 }]
+        };
+        return change is null ? backup : change(backup);
+    }
+
+    private static string Json(BackupFile backup) => JsonSerializer.Serialize(backup, BackupFile.JsonOptions);
+
+    private static BackupFile Read(string json) => BackupFile.Read(new MemoryStream(Encoding.UTF8.GetBytes(json)));
+
+    private static string ReadError(string json) => Assert.Throws<BackupFormatException>(() => Read(json)).Message;
+
+    private static string ReadError(BackupFile backup) => ReadError(Json(backup));
+
+    [Fact]
+    public async Task Reads_a_compressed_backup()
+    {
+        var file = new MemoryStream();
+        await Sample().WriteAsync(file);
+        Assert.Equal([0x1F, 0x8B], file.ToArray()[..2]);
+
+        file.Position = 0;
+        Assert.Equal(Json(Sample()), Json(BackupFile.Read(file)));
+    }
+
+    [Fact]
+    public void Reads_plain_json_with_or_without_a_byte_order_mark()
+    {
+        Assert.Equal(Json(Sample()), Json(Read(Json(Sample()))));
+        Assert.Equal(Json(Sample()), Json(Read("﻿" + Json(Sample()))));
+    }
+
+    [Fact]
+    public void Times_are_written_as_utc_and_enums_as_names()
+    {
+        var json = Json(Sample());
+        Assert.Contains("\"addedDate\": \"2025-03-04T10:20:30Z\"", json);
+        Assert.Contains("\"type\": \"Van\"", json);
+        Assert.Contains("\"date\": \"2026-01-02\"", json);
+    }
+
+    [Theory]
+    [InlineData("not json")]
+    [InlineData("[]")]
+    [InlineData("{}")]                                   // not even an empty backup: that would delete everything
+    [InlineData("{\"owners\": []}")]
+    [InlineData("{\"format\": \"something-else\", \"version\": 1, \"createdDate\": \"2026-01-01T00:00:00Z\"}")]
+    public void Rejects_a_file_that_isnt_a_backup(string json) => ReadError(json);
+
+    [Fact]
+    public void Rejects_a_newer_version() =>
+        Assert.Contains("version 2", ReadError(Sample(b => b with { Version = 2 })));
+
+    [Fact]
+    public void Rejects_a_corrupt_compressed_file() =>
+        Assert.Throws<BackupFormatException>(() => BackupFile.Read(new MemoryStream([0x1F, 0x8B, 1, 2, 3, 4])));
+
+    [Fact]
+    public void Rejects_a_compressed_file_that_expands_too_far()
+    {
+        var file = new MemoryStream();
+        using (var gzip = new GZipStream(file, CompressionLevel.Fastest, leaveOpen: true))
+            gzip.Write(new byte[BackupFile.MaxJsonBytes + 1]);
+        file.Position = 0;
+        Assert.Contains("too large", Assert.Throws<BackupFormatException>(() => BackupFile.Read(file)).Message);
+    }
+
+    [Fact]
+    public void Rejects_links_to_rows_that_arent_in_the_backup()
+    {
+        var error = ReadError(Sample(b =>
+        {
+            b.Vehicles[0] = b.Vehicles[0] with { OwnerId = 99 };
+            b.FuelStations[0] = b.FuelStations[0] with { FuelBrandId = 98 };
+            b.FuelEntryStops[0] = b.FuelEntryStops[0] with { FuelStationId = 97 };
+            return b;
+        }));
+        Assert.Contains("owner (99)", error);
+        Assert.Contains("brand (98)", error);
+        Assert.Contains("station (97)", error);
+    }
+
+    [Fact]
+    public void Rejects_names_the_database_would_refuse()
+    {
+        var error = ReadError(Sample(b =>
+        {
+            b.FuelBrands.Add(new() { Id = 10, Name = "shell" });
+            b.Vehicles.Add(b.Vehicles[0] with { Id = 11, RegistrationNumber = "ab12  cde" });
+            b.Owners.Add(new() { Id = 12, Name = new string('x', 51) });
+            b.FuelStations.Add(new() { Id = 13, FuelBrandId = 4, Name = " " });
+            b.FuelEntryStops.Add(new() { FuelEntryId = 7, Sequence = 2, FuelStationId = 5 });
+            return b;
+        }));
+        Assert.Contains("more than one fuel brand called \"Shell\"", error);
+        Assert.Contains("more than one vehicle registered AB12 CDE", error);
+        Assert.Contains("longer than 50 characters", error);
+        Assert.Contains("Fuel station 13's name is missing", error);
+        Assert.Contains("more than one stop 2", error);
+    }
+
+    [Fact]
+    public void Rejects_a_row_missing_a_required_value() =>
+        ReadError(Json(Sample()).Replace("\"make\": \"Ford\",", ""));
+
+    [Fact]
+    public void Tidies_registrations_and_names_like_the_app()
+    {
+        var backup = Read(Json(Sample(b =>
+        {
+            b.Vehicles[0].RegistrationNumber = " ab12   cde ";
+            b.FuelBrands[0].Name = " Shell  Fuel ";
+            return b;
+        })));
+        Assert.Equal("AB12 CDE", backup.Vehicles[0].RegistrationNumber);
+        Assert.Equal("Shell Fuel", backup.FuelBrands[0].Name);
+    }
+}

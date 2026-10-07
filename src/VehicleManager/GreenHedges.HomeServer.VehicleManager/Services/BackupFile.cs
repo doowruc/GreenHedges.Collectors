@@ -1,0 +1,272 @@
+using System.IO.Compression;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using VehicleManager.Models;
+using VehicleManager.Pages.Vehicles;
+
+namespace VehicleManager.Services;
+
+/// <summary>
+/// A backup of one user's data: a JSON document with a list per table, written gzip-compressed
+/// (<c>.json.gz</c>). Rows refer to each other by their ids in the file, which are replaced with new
+/// ids on restore. The user id isn't stored, so a backup can be restored into any account.
+/// </summary>
+public sealed record BackupFile
+{
+    public const string FormatName = "vehicle-manager-backup";
+    public const int CurrentVersion = 1;
+
+    /// <summary>The most JSON <see cref="Read"/> accepts, after decompressing.</summary>
+    public const int MaxJsonBytes = 100 * 1024 * 1024;
+
+    public static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        WriteIndented = true,
+        Converters = { new JsonStringEnumConverter(), new UtcDateTimeConverter() }
+    };
+
+    /// <summary>Always <see cref="FormatName"/>; required, so other JSON can't be mistaken for an empty backup.</summary>
+    public required string Format { get; init; }
+    public required int Version { get; init; }
+    public required DateTime CreatedDate { get; init; }
+
+    public List<OwnerBackup> Owners { get; init; } = [];
+    public List<VehicleBackup> Vehicles { get; init; } = [];
+    public List<FuelBrandBackup> FuelBrands { get; init; } = [];
+    public List<FuelStationBackup> FuelStations { get; init; } = [];
+    public List<FuelEntryBackup> FuelEntries { get; init; } = [];
+    public List<FuelEntryStopBackup> FuelEntryStops { get; init; } = [];
+
+    public BackupCounts Counts => new(Owners.Count, Vehicles.Count, FuelBrands.Count, FuelStations.Count, FuelEntries.Count);
+
+    /// <summary>Writes the backup to <paramref name="output"/> as gzip-compressed JSON.</summary>
+    public async Task WriteAsync(Stream output)
+    {
+        await using var gzip = new GZipStream(output, CompressionLevel.Optimal, leaveOpen: true);
+        await JsonSerializer.SerializeAsync(gzip, this, JsonOptions);
+    }
+
+    /// <summary>
+    /// Reads a backup, gzip-compressed or plain JSON (told apart by the gzip header, not the file
+    /// name), and checks it can be restored: ids and links between rows, required values, lengths,
+    /// and names that must be unique. Names and registrations are tidied as the app does.
+    /// </summary>
+    /// <exception cref="BackupFormatException">The file isn't a backup that can be restored.</exception>
+    public static BackupFile Read(Stream input)
+    {
+        BackupFile? backup;
+        try
+        {
+            var json = ReadJson(input);
+            backup = JsonSerializer.Deserialize<BackupFile>(json, JsonOptions);
+        }
+        catch (InvalidDataException) { throw new BackupFormatException("The file is compressed, but isn't a valid gzip file."); }
+        catch (JsonException ex) { throw new BackupFormatException($"The file isn't a valid backup: {ex.Message}"); }
+
+        if (backup is null || backup.Format != FormatName)
+            throw new BackupFormatException("The file isn't a Vehicle Manager backup.");
+        if (backup.Version != CurrentVersion)
+            throw new BackupFormatException($"The backup is version {backup.Version}; this app reads version {CurrentVersion}.");
+
+        backup.Tidy();
+        if (backup.Validate() is { Count: > 0 } errors)
+            throw new BackupFormatException("The backup can't be restored: " + string.Join(" ", errors.Take(10)) +
+                                            (errors.Count > 10 ? $" …and {errors.Count - 10} more." : ""));
+        return backup;
+    }
+
+    private static ReadOnlySpan<byte> ReadJson(Stream input)
+    {
+        var buffer = new MemoryStream();
+        CopyLimited(input, buffer);
+        var bytes = buffer.GetBuffer().AsSpan(0, (int)buffer.Length);
+
+        if (bytes is [0x1F, 0x8B, ..])
+        {
+            var json = new MemoryStream();
+            using (var gzip = new GZipStream(new MemoryStream(buffer.GetBuffer(), 0, (int)buffer.Length), CompressionMode.Decompress))
+                CopyLimited(gzip, json);
+            bytes = json.GetBuffer().AsSpan(0, (int)json.Length);
+        }
+
+        return bytes.StartsWith("﻿"u8) ? bytes[3..] : bytes;
+    }
+
+    /// <summary>Copies at most <see cref="MaxJsonBytes"/>, so a small compressed file can't expand without limit.</summary>
+    private static void CopyLimited(Stream from, MemoryStream to)
+    {
+        var chunk = new byte[81920];
+        int read;
+        while ((read = from.Read(chunk)) > 0)
+        {
+            if (to.Length + read > MaxJsonBytes)
+                throw new BackupFormatException($"The backup is too large (over {MaxJsonBytes / 1024 / 1024} MB of data).");
+            to.Write(chunk, 0, read);
+        }
+    }
+
+    private void Tidy()
+    {
+        foreach (var o in Owners) o.Name = FuelStops.NormaliseName(o.Name);
+        foreach (var v in Vehicles) v.RegistrationNumber = VehicleRules.NormaliseReg(v.RegistrationNumber);
+        foreach (var b in FuelBrands) b.Name = FuelStops.NormaliseName(b.Name);
+        foreach (var s in FuelStations) s.Name = FuelStops.NormaliseName(s.Name);
+    }
+
+    private List<string> Validate()
+    {
+        var errors = new List<string>();
+
+        var ownerIds = UniqueIds(Owners, o => o.Id, "owner", errors);
+        var vehicleIds = UniqueIds(Vehicles, v => v.Id, "vehicle", errors);
+        var brandIds = UniqueIds(FuelBrands, b => b.Id, "fuel brand", errors);
+        var stationIds = UniqueIds(FuelStations, s => s.Id, "fuel station", errors);
+        var entryIds = UniqueIds(FuelEntries, f => f.Id, "fill-up", errors);
+
+        foreach (var o in Owners)
+            Text(o.Name, 50, $"Owner {o.Id}'s name", errors);
+        Unique(Owners, o => o.Name, o => $"There's more than one owner called \"{o.Name}\".", errors);
+
+        foreach (var v in Vehicles)
+        {
+            if (!ownerIds.Contains(v.OwnerId)) errors.Add($"Vehicle {v.Id}'s owner ({v.OwnerId}) isn't in the backup.");
+            if (!Enum.IsDefined(v.Type)) errors.Add($"Vehicle {v.Id}'s type ({v.Type}) isn't a vehicle type.");
+            Text(v.Make, 50, $"Vehicle {v.Id}'s make", errors);
+            Text(v.Model, 50, $"Vehicle {v.Id}'s model", errors);
+            Text(v.RegistrationNumber, 15, $"Vehicle {v.Id}'s registration", errors);
+        }
+        Unique(Vehicles, v => v.RegistrationNumber, v => $"There's more than one vehicle registered {v.RegistrationNumber}.", errors);
+
+        foreach (var b in FuelBrands)
+            Text(b.Name, FuelBrand.MaxNameLength, $"Fuel brand {b.Id}'s name", errors);
+        Unique(FuelBrands, b => b.Name, b => $"There's more than one fuel brand called \"{b.Name}\".", errors);
+
+        foreach (var s in FuelStations)
+        {
+            if (!brandIds.Contains(s.FuelBrandId)) errors.Add($"Fuel station {s.Id}'s brand ({s.FuelBrandId}) isn't in the backup.");
+            Text(s.Name, FuelStation.MaxNameLength, $"Fuel station {s.Id}'s name", errors);
+        }
+        Unique(FuelStations, s => $"{s.FuelBrandId}|{s.Name}", s => $"Fuel brand {s.FuelBrandId} has more than one station called \"{s.Name}\".", errors);
+
+        foreach (var f in FuelEntries)
+        {
+            if (!vehicleIds.Contains(f.VehicleId)) errors.Add($"Fill-up {f.Id}'s vehicle ({f.VehicleId}) isn't in the backup.");
+            if (f.Notes is { Length: > 500 }) errors.Add($"Fill-up {f.Id}'s notes are longer than 500 characters.");
+        }
+
+        foreach (var s in FuelEntryStops)
+        {
+            if (!entryIds.Contains(s.FuelEntryId)) errors.Add($"A stop's fill-up ({s.FuelEntryId}) isn't in the backup.");
+            if (!stationIds.Contains(s.FuelStationId)) errors.Add($"Fill-up {s.FuelEntryId}'s station ({s.FuelStationId}) isn't in the backup.");
+        }
+        Unique(FuelEntryStops, s => $"{s.FuelEntryId}|{s.Sequence}", s => $"Fill-up {s.FuelEntryId} has more than one stop {s.Sequence}.", errors);
+
+        foreach (var row in new IEnumerable<BackupRow>[] { Owners, Vehicles, FuelBrands, FuelStations, FuelEntries, FuelEntryStops }.SelectMany(r => r))
+            if (row.AddedBy.Length > 128 || row.ModifiedBy.Length > 128)
+                errors.Add("An AddedBy or ModifiedBy value is longer than 128 characters.");
+
+        return errors.Distinct().ToList();
+    }
+
+    private static HashSet<int> UniqueIds<T>(List<T> rows, Func<T, int> id, string what, List<string> errors)
+    {
+        var ids = new HashSet<int>();
+        foreach (var row in rows)
+            if (!ids.Add(id(row))) errors.Add($"There's more than one {what} with id {id(row)}.");
+        return ids;
+    }
+
+    /// <summary>Unique ignoring case, as the database's indexes are.</summary>
+    private static void Unique<T>(List<T> rows, Func<T, string> key, Func<T, string> error, List<string> errors) =>
+        errors.AddRange(rows.GroupBy(key, StringComparer.OrdinalIgnoreCase).Where(g => g.Count() > 1).Select(g => error(g.First())));
+
+    private static void Text(string? value, int maxLength, string what, List<string> errors)
+    {
+        if (string.IsNullOrWhiteSpace(value)) errors.Add($"{what} is missing.");
+        else if (value.Length > maxLength) errors.Add($"{what} is longer than {maxLength} characters.");
+    }
+
+    /// <summary>Times are UTC: written with a Z, and read back as UTC (a time without an offset is taken as UTC).</summary>
+    private sealed class UtcDateTimeConverter : JsonConverter<DateTime>
+    {
+        public override DateTime Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            var value = reader.GetDateTime();
+            return value.Kind == DateTimeKind.Local ? value.ToUniversalTime() : DateTime.SpecifyKind(value, DateTimeKind.Utc);
+        }
+
+        public override void Write(Utf8JsonWriter writer, DateTime value, JsonSerializerOptions options) =>
+            writer.WriteStringValue(value.Kind == DateTimeKind.Local ? value.ToUniversalTime() : DateTime.SpecifyKind(value, DateTimeKind.Utc));
+    }
+}
+
+/// <summary>The audit columns every table has. Restoring keeps them; missing ones are filled in as for new rows.</summary>
+public abstract record BackupRow
+{
+    public DateTime AddedDate { get; init; }
+    public string AddedBy { get; init; } = string.Empty;
+    public DateTime ModifiedDate { get; init; }
+    public string ModifiedBy { get; init; } = string.Empty;
+}
+
+public sealed record OwnerBackup : BackupRow
+{
+    public required int Id { get; init; }
+    public required string Name { get; set; }
+}
+
+public sealed record VehicleBackup : BackupRow
+{
+    public required int Id { get; init; }
+    public required int OwnerId { get; init; }
+    public VehicleType Type { get; init; }
+    public required string Make { get; init; }
+    public required string Model { get; init; }
+    public required string RegistrationNumber { get; set; }
+    public DateOnly? RegistrationDate { get; init; }
+    public DateOnly? PurchasedDate { get; init; }
+}
+
+public sealed record FuelBrandBackup : BackupRow
+{
+    public required int Id { get; init; }
+    public required string Name { get; set; }
+}
+
+public sealed record FuelStationBackup : BackupRow
+{
+    public required int Id { get; init; }
+    public required int FuelBrandId { get; init; }
+    public required string Name { get; set; }
+}
+
+public sealed record FuelEntryBackup : BackupRow
+{
+    public required int Id { get; init; }
+    public required int VehicleId { get; init; }
+    public required DateOnly Date { get; init; }
+    public required decimal Litres { get; init; }
+    public required decimal CostPerLitre { get; init; }
+    public decimal? VoucherPerLitre { get; init; }
+    public decimal? TripAverageMpg { get; init; }
+    public decimal? TripMiles { get; init; }
+    public int? Range { get; init; }
+    public int? Odometer { get; init; }
+    public string? Notes { get; init; }
+}
+
+public sealed record FuelEntryStopBackup : BackupRow
+{
+    public required int FuelEntryId { get; init; }
+    public required int Sequence { get; init; }
+    public required int FuelStationId { get; init; }
+}
+
+public sealed record BackupCounts(int Owners, int Vehicles, int FuelBrands, int FuelStations, int FillUps)
+{
+    public override string ToString() =>
+        $"{Owners} owner(s), {Vehicles} vehicle(s), {FuelBrands} fuel brand(s), {FuelStations} station(s) and {FillUps} fill-up(s)";
+}
+
+/// <summary>A file that can't be restored; the message says why, for showing to the user.</summary>
+public sealed class BackupFormatException(string message) : Exception(message);

@@ -15,7 +15,7 @@ public class LayoutTests(AppFactory app) : DatabaseTest, IClassFixture<AppFactor
         Assert.True(menu.Success, "No Manage menu");
 
         var items = Regex.Matches(menu.Groups[1].Value, "<a [^>]*>([^<]+)</a>").Select(m => (Text: m.Groups[1].Value, Href: PageResponse.Href(m.Value))).ToList();
-        Assert.Equal(["Vehicles", "Owners", "Fuel Brands", "Import"], items.Select(i => i.Text));
+        Assert.Equal(["Vehicles", "Owners", "Fuel Brands", "Import", "Backup", "Restore"], items.Select(i => i.Text));
         Assert.Equal("/FuelBrands", items.Single(i => i.Text == "Fuel Brands").Href);
         Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync("/Brands")).Status);   // the old address is gone
         foreach (var (text, href) in items)

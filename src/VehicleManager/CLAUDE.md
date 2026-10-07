@@ -59,8 +59,9 @@ VehicleManager/
   Data/        AppDbContext (per-user query filters, audit stamping), DatabaseMigrator, ConcurrencyExtensions,
                DesignTimeDbContextFactory, Migrations/
   Services/    FuelStatsService (summaries), FuelImportService (ClosedXML .xlsx import), FuelCalculations,
-               CurrentUser, AllowedUsers, ExistingDataClaim, FuelStops (typed names → stops)
-  Pages/       Index (dashboard), Owners/*, Vehicles/*, FuelLog/* (log + fill-up pages), Import/*, FuelBrands/* (+ Stations/* per brand),
+               CurrentUser, AllowedUsers, ExistingDataClaim, FuelStops (typed names → stops),
+               BackupFile (backup JSON format: read/validate/write) + BackupService (create, restore)
+  Pages/       Index (dashboard), Owners/*, Vehicles/*, FuelLog/* (log + fill-up pages), Import/*, Backup/* (Index, Restore), FuelBrands/* (+ Stations/* per brand),
                Account/* (Login, Logout, SignedOut), Shared/ (layout + partials)
   wwwroot/     css/site.css, js/color-mode.js, js/period-toggle.js, js/fuel-table.js
 ```
@@ -84,7 +85,8 @@ VehicleManager/
 - Input: bind `[BindProperty]` to an `*Input` class, never an entity. Ids come from the route, not the form. Create a new entity, or load it with `FindAsync`, then copy the fields across with `input.ApplyTo(entity)`.
 - Deletes use `ExecuteDeleteAsync()`. Fill-ups go with their vehicle via the FK cascade.
 - Entities keep only the attributes that shape the schema (`[Required]`, `[StringLength]`). Display names and validation ranges belong on the `*Input` classes.
-- When adding a field, update the entity, its `*View`/`*Input` projections and `ApplyTo`.
+- When adding a field, update the entity, its `*View`/`*Input` projections and `ApplyTo`, and the backup
+  (`Services/BackupFile.cs` record + validation, `BackupService` create/restore). A new table needs adding to the backup too.
 
 **Per-user data**
 - Owners and vehicles implement `IUserOwned` (`UserId` = Auth0 `sub`, via `Services/CurrentUser.cs`). Fill-ups belong to the user who owns their vehicle.
@@ -105,6 +107,15 @@ VehicleManager/
 - Brands with stations, and stations with fill-ups, can't be deleted (FK `Restrict`); merge them instead. Merging a brand moves its stations, combining same-named ones.
 - Fuel brands are managed at `/FuelBrands` (Manage menu); a brand's stations are a sub-page, `/FuelBrands/{brandId}/Stations/...` (`Pages/FuelBrands/Stations`, base `StationPageModel`, which 404s a station not under the brand in the URL). Links and redirects between station pages must pass `brandId`: ASP.NET doesn't carry a route value over to a different page, and the link comes out empty. `FuelPlaceList<T>` (`Pages/FuelBrands/FuelPlaceList.cs`) holds the database logic shared by both, with `FuelBrandList`/`FuelStationList` subclasses.
 - Fuel import de-duplicates on (vehicle, date, litres) so re-importing is safe. ClosedXML reads `CachedValue` so formula cells use Excel's saved results.
+
+**Backup / restore** (`/Backup`, `/Backup/Restore`, under Manage)
+- A backup is gzip-compressed JSON (`BackupFile`): `format`/`version` plus a flat list per table, rows linked by their ids in
+  the file. No user id is stored. Restore accepts gzip or plain JSON (detected by the gzip header, not the file name).
+- `BackupFile.Read` validates everything (links, required values, lengths, case-insensitive uniqueness) before any data is
+  touched. `format`/`version` are `required`, so arbitrary JSON can't pass as an empty backup and wipe the data.
+- `BackupService.RestoreAsync` deletes the user's rows (filtered `ExecuteDelete`) and inserts the backup's in one transaction
+  in the execution strategy. It sets `AppDbContext.KeepAuditValues` so restored rows keep their audit values; `UserId` is always
+  the current user. Don't use `KeepAuditValues` elsewhere.
 
 **Authentication (Auth0)**
 - `Auth0:Domain`, `Auth0:ClientId`, `Auth0:ClientSecret`, `AllowedEmails` and optional `ExistingDataOwner` come from user secrets (env vars outside Development). Never put them in `appsettings*.json` or commit them. The app throws at startup if any are missing.

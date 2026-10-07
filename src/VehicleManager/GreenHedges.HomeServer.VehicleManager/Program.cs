@@ -60,6 +60,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(RequiredSetting("ConnectionStrings:VehicleManager"), sql => sql.EnableRetryOnFailure()));
 builder.Services.AddScoped<FuelStatsService>();
 builder.Services.AddScoped<FuelImportService>();
+builder.Services.AddScoped<BackupService>();
 
 var app = builder.Build();
 

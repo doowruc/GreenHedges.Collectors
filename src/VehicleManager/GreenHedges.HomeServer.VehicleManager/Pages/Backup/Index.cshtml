@@ -1,0 +1,11 @@
+@page
+@model VehicleManager.Pages.Backup.IndexModel
+@{ ViewData["Title"] = "Backup"; }
+
+<h1 class="h3 mb-3">Backup</h1>
+<div class="card shadow-sm"><div class="card-body">
+    <p>Download a backup of all your data: @Model.Counts.</p>
+    <p class="text-muted small">The backup is a compressed JSON file (<code>.json.gz</code>). You can restore it, or the
+       uncompressed <code>.json</code> inside it, from <a asp-page="Restore">Restore</a>.</p>
+    <a asp-page-handler="Download" class="btn btn-primary"><i class="bi bi-download me-1"></i>Download backup</a>
+</div></div>

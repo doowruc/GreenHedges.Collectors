@@ -144,6 +144,17 @@ with `+` in both columns, in the same order (`Bx + By` / `Lx + Ly`). Re-importin
 fill-ups already present (same vehicle, date and litres) are skipped, so you can re-upload an
 updated spreadsheet to pick up just the new rows.
 
+## Backup and restore
+
+Under **Manage**:
+
+- **Backup** downloads all your data (owners, vehicles, fuel brands, stations and fill-ups) as a
+  compressed JSON file, `vehicle-manager-backup-<date>.json.gz`. Other users' data isn't included.
+- **Restore** replaces **all** your data with a backup's. It accepts the `.json.gz` file or the plain
+  `.json` inside it. The file is checked before anything is changed, and the restore runs in one
+  transaction, so if it fails your data is left as it was. Restored rows keep their original audit
+  dates and "added by" values, and become yours, so a backup can also be restored into another account.
+
 ## Project layout
 
 ```
@@ -151,8 +162,8 @@ VehicleManager/
   Models/        EF Core entities: Owner, Vehicle, FuelEntry, FuelEntryStop, FuelBrand, FuelStation
   ViewModels/    View (output) and input models used by the pages, with the calculated figures
   Data/          AppDbContext (EF Core + SQL Server), DatabaseMigrator, Migrations/
-  Services/      FuelStatsService, FuelImportService (reads .xlsx via ClosedXML), FuelStops
-  Pages/         Dashboard, Owners/*, Vehicles/*, FuelLog/* (log + fill-up pages), Import/*, FuelBrands/* (and each brand's Stations/*),
+  Services/      FuelStatsService, FuelImportService (reads .xlsx via ClosedXML), FuelStops, BackupFile + BackupService
+  Pages/         Dashboard, Owners/*, Vehicles/*, FuelLog/* (log + fill-up pages), Import/*, Backup/* (backup + restore), FuelBrands/* (and each brand's Stations/*),
                  Account/* (sign in/out)
 VehicleManager.Tests/
   Unit/, Data/, Pages/   unit, database and in-memory page tests; Infrastructure/ holds the helpers
