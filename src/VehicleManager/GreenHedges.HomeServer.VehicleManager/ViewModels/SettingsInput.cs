@@ -6,6 +6,9 @@ namespace VehicleManager.ViewModels;
 
 public class SettingsInput
 {
+    [EmailAddress, StringLength(254), Display(Name = "Reminder email")]
+    public string? ReminderEmail { get; set; }
+
     [EmailAddress, StringLength(254), Display(Name = "Backup email")]
     public string? BackupEmail { get; set; }
 
@@ -14,9 +17,14 @@ public class SettingsInput
 
     public static readonly Expression<Func<UserSettings, SettingsInput>> Projection = s => new SettingsInput
     {
-        BackupEmail = s.BackupEmail, RowVersion = s.RowVersion
+        ReminderEmail = s.ReminderEmail, BackupEmail = s.BackupEmail, RowVersion = s.RowVersion
     };
 
-    public void ApplyTo(UserSettings settings) =>
-        settings.BackupEmail = string.IsNullOrWhiteSpace(BackupEmail) ? null : BackupEmail.Trim();
+    public void ApplyTo(UserSettings settings)
+    {
+        settings.ReminderEmail = Tidy(ReminderEmail);
+        settings.BackupEmail = Tidy(BackupEmail);
+    }
+
+    private static string? Tidy(string? address) => string.IsNullOrWhiteSpace(address) ? null : address.Trim();
 }

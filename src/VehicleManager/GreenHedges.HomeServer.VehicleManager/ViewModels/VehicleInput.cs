@@ -34,6 +34,22 @@ public class VehicleInput
     [Display(Name = "Purchased date")]
     public DateOnly? PurchasedDate { get; set; }
 
+    [DataType(DataType.Date)]
+    [Display(Name = "MOT due")]
+    public DateOnly? MotDueDate { get; set; }
+
+    [DataType(DataType.Date)]
+    [Display(Name = "Tax due")]
+    public DateOnly? TaxDueDate { get; set; }
+
+    [DataType(DataType.Date)]
+    [Display(Name = "Insurance renewal")]
+    public DateOnly? InsuranceDueDate { get; set; }
+
+    [DataType(DataType.Date)]
+    [Display(Name = "Service due")]
+    public DateOnly? ServiceDueDate { get; set; }
+
     /// <summary>The row's version when the form was loaded, to detect conflicting edits. Never copied to the entity.</summary>
     public byte[] RowVersion { get; set; } = [];
 
@@ -49,6 +65,10 @@ public class VehicleInput
         RegistrationNumber = v.RegistrationNumber,
         RegistrationDate = v.RegistrationDate,
         PurchasedDate = v.PurchasedDate,
+        MotDueDate = v.MotDueDate,
+        TaxDueDate = v.TaxDueDate,
+        InsuranceDueDate = v.InsuranceDueDate,
+        ServiceDueDate = v.ServiceDueDate,
         RowVersion = v.RowVersion
     };
 
@@ -62,5 +82,9 @@ public class VehicleInput
         vehicle.RegistrationNumber = RegistrationNumber;
         vehicle.RegistrationDate = RegistrationDate;
         vehicle.PurchasedDate = PurchasedDate;
+        vehicle.MotDueDate = MotDueDate;
+        vehicle.TaxDueDate = TaxDueDate;
+        vehicle.InsuranceDueDate = InsuranceDueDate;
+        vehicle.ServiceDueDate = ServiceDueDate;
     }
 }

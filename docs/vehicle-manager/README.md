@@ -94,7 +94,8 @@ don't use) for the application in Auth0.
 **Owners** – managed from **Owners** in the navigation bar. Names must be unique, and an owner
 can't be deleted while they still own vehicles.
 
-**Vehicles** – owner, type, make, model, registration number, registration date, purchased date.
+**Vehicles** – owner, type, fuel type, make, model, registration number, registration date, purchased date,
+and when the MOT, tax, insurance and service are next due (see [Reminders](#reminders-mot-tax-insurance-and-service)).
 Registration numbers are normalised to upper case and must be unique (per user). Vehicles that existed before
 owners were added are assigned to an "Unassigned" owner; rename it or reassign the vehicles.
 
@@ -124,11 +125,46 @@ Merging a fuel brand moves its stations to the other brand, combining any with t
 | Pence per mile | total cost ÷ trip miles |
 | Average MPG | total miles ÷ total gallons (weighted, not an average of averages) |
 
-**Dashboard** – one card per vehicle with 12-month MPG, spend, odometer and last fill-up.
-**Vehicle page** – last-12-months / all-time stats, an MPG and fuel-price chart, and the full log.
+**Dashboard** – a **Coming up** list of anything due within 30 days (or overdue), then one card per
+vehicle with its due dates, 12-month MPG, spend, odometer and last fill-up.
+**Vehicle page** – due dates (coloured by how soon they are), last-12-months / all-time stats, an MPG and fuel-price chart, and the full log.
 **Fuel Log page** (`/FuelLog`) – all fill-ups, filterable by vehicle and year.
 **Light / dark mode** – follows your system setting by default; pick Light, Dark or System from the
 theme menu in the navigation bar. The choice is remembered per browser.
+
+## Reminders (MOT, tax, insurance and service)
+
+Each vehicle has four optional due dates: MOT, tax, insurance renewal and service, set on its edit form.
+They show on the vehicle's page and, when due within 30 days or overdue, in the dashboard's **Coming up** list.
+
+**Email reminders** – every morning at 07:00 UK time, each user who has set a reminder email address under
+**Settings** is emailed about anything due in 30 days, and again 7 days before (once each; a date first
+entered closer than that, or already overdue, gets one reminder). Changing a date, e.g. after renewing the
+insurance, starts its reminders afresh.
+
+**MOT and tax lookups** – the MOT and tax dates can be filled in from the DVLA and DVSA: when a vehicle is
+added without them, from **Check MOT and tax** on the vehicle's page, and every morning before the reminders.
+Tax (and the MOT, as a fallback) comes from the DVLA's
+[Vehicle Enquiry Service](https://developer-portal.driver-vehicle-licensing.api.gov.uk/apis/vehicle-enquiry-service/vehicle-enquiry-service-description.html);
+the MOT from the DVSA's [MOT History API](https://documentation.history.mot.api.gov.uk/) (the latest test's
+expiry, or a new vehicle's first MOT date). A vehicle declared off the road (SORN) has no tax date. Both are
+free but need registering, and both are optional: without them, type the dates in.
+
+```bash
+# DVLA Vehicle Enquiry Service: the API key from the DVLA
+dotnet user-secrets set "Dvla:ApiKey" "<api key>"
+
+# DVSA MOT History API: all four from the DVSA's registration email
+dotnet user-secrets set "MotHistory:ClientId" "<client id>"
+dotnet user-secrets set "MotHistory:ClientSecret" "<client secret>"
+dotnet user-secrets set "MotHistory:ApiKey" "<api key>"
+dotnet user-secrets set "MotHistory:TokenUrl" "https://login.microsoftonline.com/<tenant id>/oauth2/v2.0/token"
+```
+
+Elsewhere, use `Dvla__ApiKey` and `MotHistory__…`. The DVSA settings are all or none: the app won't start
+with only some of them. To try the DVLA's test service, also set `Dvla:BaseUrl` to
+`https://uat.driver-vehicle-licensing.api.gov.uk/`. A lookup that fails (or doesn't know the registration)
+leaves the dates as they were, and the vehicle page says why.
 
 ## Importing Fuel2.xlsx
 
@@ -148,7 +184,7 @@ updated spreadsheet to pick up just the new rows.
 
 Under **Manage**:
 
-- **Backup** downloads all your data (owners, vehicles, fuel brands, stations and fill-ups) as a
+- **Backup** downloads all your data (owners, vehicles with their due dates, fuel brands, stations and fill-ups) as a
   compressed JSON file, `vehicle-manager-backup-<date>.json.gz`. Other users' data isn't included.
 - **Restore** replaces **all** your data with a backup's. It accepts the `.json.gz` file or the plain
   `.json` inside it. The file is checked before anything is changed, and the restore runs in one
@@ -170,17 +206,19 @@ dotnet user-secrets set "Resend:From" "Vehicle Manager <backups@example.com>"
 
 The app won't start without them (elsewhere, use `Resend__ApiKey` and `Resend__From`). The schedule
 runs inside the app (Coravel), so the app must be running at 01:00 UTC; if several copies are running
-(e.g. locally and deployed), each one sends.
+(e.g. locally and deployed), each one sends. The same goes for reminders at 07:00 UK time.
 
 ## Project layout
 
 ```
 VehicleManager/
-  Models/        EF Core entities: Owner, Vehicle, FuelEntry, FuelEntryStop, FuelBrand, FuelStation
+  Models/        EF Core entities: Owner, Vehicle, FuelEntry, FuelEntryStop, FuelBrand, FuelStation, UserSettings, SentReminder
   ViewModels/    View (output) and input models used by the pages, with the calculated figures
   Data/          AppDbContext (EF Core + SQL Server), DatabaseMigrator, Migrations/
   Services/      FuelStatsService, FuelImportService (reads .xlsx via ClosedXML), FuelStops, BackupFile + BackupService,
-                 BackupEmailer + ScheduledBackups (nightly emailed backups via Resend, scheduled with Coravel)
+                 BackupEmailer + ScheduledBackups (nightly emailed backups via Resend, scheduled with Coravel),
+                 Reminders + ReminderEmailer + ScheduledReminders (due-date reminders), VehicleLookup + DvlaClient +
+                 MotHistoryClient (MOT and tax dates from the DVLA and DVSA)
   Pages/         Dashboard, Owners/*, Vehicles/*, FuelLog/* (log + fill-up pages), Import/*, Backup/* (backup + restore), Settings/*, FuelBrands/* (and each brand's Stations/*),
                  Account/* (sign in/out)
 VehicleManager.Tests/

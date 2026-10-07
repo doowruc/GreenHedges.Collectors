@@ -1,5 +1,8 @@
 @model VehicleInput
-@{ var owners = (List<SelectListItem>)ViewData["OwnerOptions"]!; }
+@{
+    var owners = (List<SelectListItem>)ViewData["OwnerOptions"]!;
+    var lookupNote = ViewData["LookupNote"] as string;   // which dates are looked up, and from where (VehicleLookup.MorningCheck)
+}
 <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
 <input type="hidden" asp-for="RowVersion" />
 <div class="row g-3">
@@ -49,5 +52,32 @@
         <label asp-for="PurchasedDate" class="form-label"></label>
         <input asp-for="PurchasedDate" class="form-control" />
         <span asp-validation-for="PurchasedDate" class="text-danger small"></span>
+    </div>
+    <div class="col-12">
+        <h2 class="h6 mt-2 mb-0">Due dates</h2>
+        <div class="form-text mt-0">
+            You're emailed a reminder 30 and 7 days before each one, if you've set a reminder address in <a asp-page="/Settings/Index">Settings</a>.
+            @lookupNote
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <label asp-for="MotDueDate" class="form-label"></label>
+        <input asp-for="MotDueDate" class="form-control" />
+        <span asp-validation-for="MotDueDate" class="text-danger small"></span>
+    </div>
+    <div class="col-6 col-md-3">
+        <label asp-for="TaxDueDate" class="form-label"></label>
+        <input asp-for="TaxDueDate" class="form-control" />
+        <span asp-validation-for="TaxDueDate" class="text-danger small"></span>
+    </div>
+    <div class="col-6 col-md-3">
+        <label asp-for="InsuranceDueDate" class="form-label"></label>
+        <input asp-for="InsuranceDueDate" class="form-control" />
+        <span asp-validation-for="InsuranceDueDate" class="text-danger small"></span>
+    </div>
+    <div class="col-6 col-md-3">
+        <label asp-for="ServiceDueDate" class="form-label"></label>
+        <input asp-for="ServiceDueDate" class="form-control" />
+        <span asp-validation-for="ServiceDueDate" class="text-danger small"></span>
     </div>
 </div>

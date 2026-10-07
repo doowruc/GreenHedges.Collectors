@@ -8,9 +8,12 @@ namespace VehicleManager.Pages;
 
 public class IndexModel(AppDbContext db, FuelStatsService stats) : PageModel
 {
-    public record VehicleCard(VehicleView Vehicle, FuelSummary AllTime, FuelSummary Year, FuelEntryView? Last);
+    public record VehicleCard(VehicleView Vehicle, FuelSummary AllTime, FuelSummary Year, FuelEntryView? Last, List<DueDateView> DueDates);
 
     public List<VehicleCard> Cards { get; private set; } = [];
+
+    /// <summary>Due dates within <see cref="Reminders.SoonDays"/> days, or overdue, for every vehicle, soonest first.</summary>
+    public List<DueDateView> ComingUp { get; private set; } = [];
 
     public async Task OnGetAsync()
     {
@@ -24,12 +27,18 @@ public class IndexModel(AppDbContext db, FuelStatsService stats) : PageModel
                 .ToListAsync())
             .ToLookup(f => f.VehicleId);
 
+        var today = Reminders.UkToday();
+        ComingUp = vehicles.SelectMany(v => v.DueDates(today)).Where(d => d.IsSoon)
+            .OrderBy(d => d.Date).ThenBy(d => d.VehicleName).ThenBy(d => d.Kind)
+            .ToList();
+
         var yearAgo = DateOnly.FromDateTime(DateTime.Today.AddYears(-1));
         Cards = vehicles.Select(v => new VehicleCard(
                 v,
                 stats.Summarise(entries[v.Id]),
                 stats.Summarise(entries[v.Id], yearAgo),
-                entries[v.Id].FirstOrDefault()))
+                entries[v.Id].FirstOrDefault(),
+                v.DueDates(today)))
             .OrderByDescending(c => c.Last?.Date)
             .ToList();
     }

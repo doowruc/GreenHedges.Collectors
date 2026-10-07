@@ -43,5 +43,11 @@ public class Vehicle : AuditedEntity, IUserOwned
     public DateOnly? RegistrationDate { get; set; }
     public DateOnly? PurchasedDate { get; set; }
 
+    // --- When things are next due. MOT and tax can be looked up (Services/VehicleLookup); insurance and service are typed in. ---
+    public DateOnly? MotDueDate { get; set; }
+    public DateOnly? TaxDueDate { get; set; }
+    public DateOnly? InsuranceDueDate { get; set; }
+    public DateOnly? ServiceDueDate { get; set; }
+
     public List<FuelEntry> FuelEntries { get; set; } = [];
 }

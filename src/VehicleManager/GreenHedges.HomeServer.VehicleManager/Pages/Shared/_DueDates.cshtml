@@ -1,0 +1,8 @@
+@model List<DueDateView>
+@* A vehicle's due dates as badges, coloured by how soon they are (see DueDateView.BadgeClass). *@
+@foreach (var d in Model)
+{
+    <span class="badge @d.BadgeClass due-date" title="@d.Name due @d.Date.ToString("dd/MM/yyyy")">
+        @d.Name @d.Date.ToString("dd/MM/yyyy") · @d.When
+    </span>
+}

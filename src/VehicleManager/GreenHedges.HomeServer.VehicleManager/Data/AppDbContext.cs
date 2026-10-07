@@ -6,7 +6,8 @@ namespace VehicleManager.Data;
 
 /// <remarks>
 /// Each signed-in user has their own data. Query filters limit every query to the current user's
-/// owners, vehicles, fuel brands and stations, settings, and (through their vehicle) fill-ups and their stops.
+/// owners, vehicles, fuel brands and stations, settings, and (through their vehicle) fill-ups and their stops
+/// and sent reminders.
 /// <see cref="SaveChangesAsync(bool, CancellationToken)"/> stamps new user-owned rows with the
 /// current user's id and fills in every table's audit columns.
 /// With no signed-in user (e.g. at startup) queries return nothing and saving throws. Use
@@ -21,6 +22,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, CurrentUser? c
     public DbSet<FuelBrand> FuelBrands => Set<FuelBrand>();
     public DbSet<FuelStation> FuelStations => Set<FuelStation>();
     public DbSet<UserSettings> UserSettings => Set<UserSettings>();
+    public DbSet<SentReminder> SentReminders => Set<SentReminder>();
 
     /// <summary>Read by the query filters; EF Core evaluates it per query, as a parameter.</summary>
     private string? CurrentUserId => currentUser?.Id;
@@ -53,6 +55,17 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, CurrentUser? c
              .WithOne(f => f.Vehicle)
              .HasForeignKey(f => f.VehicleId)
              .OnDelete(DeleteBehavior.Cascade);
+            e.HasMany<SentReminder>()
+             .WithOne(r => r.Vehicle)
+             .HasForeignKey(r => r.VehicleId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<SentReminder>(e =>
+        {
+            e.HasQueryFilter(r => r.Vehicle!.UserId == CurrentUserId);
+            e.Property(r => r.Kind).HasConversion<string>().HasMaxLength(20);
+            e.HasIndex(r => new { r.VehicleId, r.Kind, r.DueDate, r.DaysBefore }).IsUnique();
         });
 
         modelBuilder.Entity<FuelEntry>(e =>

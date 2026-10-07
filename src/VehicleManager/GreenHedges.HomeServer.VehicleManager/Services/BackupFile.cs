@@ -246,6 +246,10 @@ public sealed record VehicleBackup : BackupRow
     public required string RegistrationNumber { get; set; }
     public DateOnly? RegistrationDate { get; init; }
     public DateOnly? PurchasedDate { get; init; }
+    public DateOnly? MotDueDate { get; init; }
+    public DateOnly? TaxDueDate { get; init; }
+    public DateOnly? InsuranceDueDate { get; init; }
+    public DateOnly? ServiceDueDate { get; init; }
 }
 
 public sealed record FuelBrandBackup : BackupRow

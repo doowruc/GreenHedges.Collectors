@@ -25,6 +25,7 @@ public class BackupService(AppDbContext db)
         {
             Id = v.Id, OwnerId = v.OwnerId, Type = v.Type, FuelType = v.FuelType, Make = v.Make, Model = v.Model,
             RegistrationNumber = v.RegistrationNumber, RegistrationDate = v.RegistrationDate, PurchasedDate = v.PurchasedDate,
+            MotDueDate = v.MotDueDate, TaxDueDate = v.TaxDueDate, InsuranceDueDate = v.InsuranceDueDate, ServiceDueDate = v.ServiceDueDate,
             AddedDate = v.AddedDate, AddedBy = v.AddedBy, ModifiedDate = v.ModifiedDate, ModifiedBy = v.ModifiedBy
         }).ToListAsync(),
         FuelBrands = await db.FuelBrands.OrderBy(b => b.Id).Select(b => new FuelBrandBackup
@@ -64,7 +65,8 @@ public class BackupService(AppDbContext db)
             await using var transaction = await db.Database.BeginTransactionAsync();
 
             // The query filters limit these to the current user's rows. Stops go first, as they
-            // stop their stations being deleted, and fill-ups before their vehicles.
+            // stop their stations being deleted, and fill-ups before their vehicles. Sent reminders
+            // go with their vehicles (FK cascade), so restored due dates are reminded about afresh.
             await db.FuelEntryStops.ExecuteDeleteAsync();
             await db.FuelEntries.ExecuteDeleteAsync();
             await db.Vehicles.ExecuteDeleteAsync();
@@ -88,7 +90,8 @@ public class BackupService(AppDbContext db)
         var vehicles = backup.Vehicles.ToDictionary(v => v.Id, v => Audited(v, new Vehicle
         {
             Owner = owners[v.OwnerId], Type = v.Type, FuelType = v.FuelType, Make = v.Make, Model = v.Model,
-            RegistrationNumber = v.RegistrationNumber, RegistrationDate = v.RegistrationDate, PurchasedDate = v.PurchasedDate
+            RegistrationNumber = v.RegistrationNumber, RegistrationDate = v.RegistrationDate, PurchasedDate = v.PurchasedDate,
+            MotDueDate = v.MotDueDate, TaxDueDate = v.TaxDueDate, InsuranceDueDate = v.InsuranceDueDate, ServiceDueDate = v.ServiceDueDate
         }));
         var brands = backup.FuelBrands.ToDictionary(b => b.Id, b => Audited(b, new FuelBrand { Name = b.Name }));
         var stations = backup.FuelStations.ToDictionary(s => s.Id, s => Audited(s, new FuelStation

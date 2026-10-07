@@ -27,8 +27,9 @@ dotnet test                  # all tests (VehicleManager.Tests); must all pass
 `VehicleManager.Tests` (xUnit) is the main way to verify changes. I can't sign in to the running app for you,
 so test pages through the in-memory host rather than relying on the browser.
 
-- `Unit/` – pure logic, no database (calculations, stats, allow-list, text splitting).
-- `Data/` – EF Core against the real Azure database: per-user isolation, audit columns, concurrency, stops, brands/stations.
+- `Unit/` – pure logic, no database (calculations, stats, allow-list, text splitting, reminders, DVLA/DVSA lookups via the fake).
+- `Data/` – EF Core against the real Azure database: per-user isolation, audit columns, concurrency, stops, brands/stations,
+  scheduled backups and reminders.
 - `Pages/` – the whole app in memory (`Infrastructure/AppFactory`, a `WebApplicationFactory<Program>`). It loads pages,
   follows links and submits forms through `PageClient`, which sends a form's current values like a browser.
   Auth0 is replaced by a test sign-in, as whichever user the client is for; Auth0 and Resend settings and `AllowedEmails` are
@@ -55,15 +56,17 @@ so test pages through the in-memory host rather than relying on the browser.
 ```
 VehicleManager/
   Models/      EF Core entities: Owner, Vehicle, FuelEntry, FuelEntryStop, FuelBrand, FuelStation, UserSettings (storage only),
-               AuditedEntity, IUserOwned, IFuelPlace
+               SentReminder (+ DueDateKind), AuditedEntity, IUserOwned, IFuelPlace
   ViewModels/  What pages use: *View (output, with calculated figures) and *Input (form/import input)
   Data/        AppDbContext (per-user query filters, audit stamping), DatabaseMigrator, ConcurrencyExtensions,
                DesignTimeDbContextFactory, Migrations/
   Services/    FuelStatsService (summaries), FuelImportService (ClosedXML .xlsx import), FuelCalculations,
                CurrentUser, AllowedUsers, ExistingDataClaim, FuelStops (typed names → stops),
                BackupFile (backup JSON format: read/validate/write) + BackupService (create, restore, record),
-               BackupEmailer (emails a backup via Resend), ScheduledBackups (Coravel invocable, nightly)
-  Pages/       Index (dashboard), Owners/*, Vehicles/*, FuelLog/* (log + fill-up pages), Import/*, Backup/* (Index, Restore), Settings/* (user menu), FuelBrands/* (+ Stations/* per brand),
+               BackupEmailer (emails a backup via Resend), ScheduledBackups (Coravel invocable, nightly),
+               Reminders (when to remind; pure) + ReminderEmailer + ScheduledReminders (Coravel, each morning),
+               VehicleLookup (MOT/tax dates) over DvlaClient (DVLA Vehicle Enquiry) and MotHistoryClient (DVSA MOT History)
+  Pages/       Index (dashboard, with a "Coming up" due-dates list), Owners/*, Vehicles/*, FuelLog/* (log + fill-up pages), Import/*, Backup/* (Index, Restore), Settings/* (user menu), FuelBrands/* (+ Stations/* per brand),
                Account/* (Login, Logout, SignedOut), Shared/ (layout + partials)
   wwwroot/     css/site.css, js/color-mode.js, js/period-toggle.js, js/fuel-table.js, js/typeahead.js (dropdown suggestions),
                js/price-chart.js (station price charts)
@@ -125,13 +128,33 @@ VehicleManager/
   `BackupEmailer` emails the `.json.gz` via Resend if the data changed. "Changed" = the backup's `ContentHash()` (SHA-256 of
   the JSON minus `createdDate`) differs from `UserSettings.LastBackupHash`, so deletions count. Only scheduled emails set
   `LastBackupDate`/`LastBackupHash`; downloads and "Email a backup now" (`EmailAsync(scheduled: false)`) don't.
-- `Resend:ApiKey` and `Resend:From` come from user secrets (required at startup, like Auth0's).
+- `Resend:ApiKey` and `Resend:From` come from user secrets (required at startup, like Auth0's). `EmailOptions.From` is
+  used for both backups and reminders.
 - Tests: `AppFactory` swaps `IResend` for `Infrastructure/FakeResend` (records emails; addresses containing "fail" fail)
-  and removes Coravel's hosted service. Never call `ScheduledBackups.Invoke()` in tests: it covers every user, real ones
+  and removes Coravel's hosted service (so neither scheduled backups nor reminders run). Never call `ScheduledBackups.Invoke()` in tests: it covers every user, real ones
   included. Test `BackUpAsync(testUserId)` instead.
 
+**Due dates, reminders and MOT/tax lookups**
+- `Vehicle` has `MotDueDate`, `TaxDueDate`, `InsuranceDueDate`, `ServiceDueDate` (all optional, in the backup).
+  `VehicleView.DueDates(today)` gives the set ones as `DueDateView`s (badge colour, "in 5 days"/"2 days overdue");
+  `Pages/Shared/_DueDates` shows them as badges. "Today" is `Reminders.UkToday()`, not the server's date.
+- Reminders go 30 and 7 days before each date (`Reminders.DaysBefore`); a date first seen inside a threshold gets only
+  the nearest one. `SentReminder` rows (vehicle, kind, due date, days before; cascade with the vehicle; not in the
+  backup) stop repeats, so a changed date gets reminders afresh. Rows are recorded only after Resend accepts the email.
+- `ScheduledReminders` runs at 07:00 UK time for every user with vehicles: `VehicleLookup.RefreshAsync` each vehicle
+  (if a service is configured), then `ReminderEmailer` to `UserSettings.ReminderEmail` (none = no emails).
+  Never call `Invoke()` in tests; test `RunForAsync(testUserId, today)`.
+- Lookups: tax from the DVLA (SORN clears it), MOT from the DVSA (latest test expiry, or `motTestDueDate` for a new
+  vehicle), falling back to the DVLA's `motExpiryDate`. Dates not found are left alone; problems are returned as
+  messages (shown via `TempData["Warning"]`), never thrown. `Dvla:ApiKey` and `MotHistory:ClientId/ClientSecret/ApiKey/TokenUrl`
+  are optional user secrets (DVSA: all or none, else startup throws); without them `VehicleLookup.IsAvailable` is false
+  and the lookup UI is hidden. Messages name only the services set up (`VehicleLookup.ServiceNames`, `LookedUp`,
+  `MorningCheck`): with just the DVSA, only the MOT is looked up. The DVSA token (Entra client credentials, 1 hour) is cached in `MotHistoryTokenCache`.
+- Tests: `AppFactory` sets dummy DVLA/DVSA settings and routes both typed `HttpClient`s to `Infrastructure/FakeVehicleApis`,
+  which answers only for registrations added with `FakeVehicleApis.Add(FakeVehicleApis.NewRegistration(), …)`.
+
 **Authentication (Auth0)**
-- `Auth0:Domain`, `Auth0:ClientId`, `Auth0:ClientSecret`, `AllowedEmails`, `Resend:ApiKey`, `Resend:From` and optional `ExistingDataOwner` come from user secrets (env vars outside Development). Never put them in `appsettings*.json` or commit them. The app throws at startup if any are missing.
+- `Auth0:Domain`, `Auth0:ClientId`, `Auth0:ClientSecret`, `AllowedEmails`, `Resend:ApiKey`, `Resend:From` and optional `ExistingDataOwner`, `Dvla:*`, `MotHistory:*` come from user secrets (env vars outside Development). Never put them in `appsettings*.json` or commit them. The app throws at startup if any required ones are missing.
 - Authorization code flow, scopes `openid profile email`.
 - Allow-list: `AllowedEmails` (user secrets, `;`/`,` separated) via `Services/AllowedUsers.cs`. The `AllowedUser` policy (also the fallback policy, so it covers every endpoint) requires a signed-in user whose `email_verified` email is on the list. Signed-in users who fail it are forbidden → `Account/AccessDenied`. The app throws at startup if the list is missing (fail closed).
 - `[AllowAnonymous]` only on `Account/Login`, `Account/Logout`, `Account/SignedOut`, `Account/AccessDenied`, `Error` and static assets. New pages are protected automatically. The layout shows the nav only when the user passes the `AllowedUser` policy.

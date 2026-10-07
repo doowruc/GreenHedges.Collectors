@@ -4,12 +4,13 @@ Ideas for future features and improvements, roughly in order of how useful they'
 
 ## New features
 
-- [ ] **MOT, tax, insurance and service reminders.** Add due dates for each vehicle (MOT, VED, insurance renewal,
+- [x] **MOT, tax, insurance and service reminders.** Add due dates for each vehicle (MOT, VED, insurance renewal,
       next service). Show what's coming up on the dashboard, and email a reminder about 30 days and 7 days before,
       using the existing Coravel and Resend setup.
-  - [ ] Optional: look up MOT and tax due dates from the registration number using the DVLA Vehicle Enquiry API and
-        the DVSA MOT History API (both free with an API key). MOT history also gives recorded mileages, which could
-        be checked against odometer readings.
+  - [x] Optional: look up MOT and tax due dates from the registration number using the DVLA Vehicle Enquiry API and
+        the DVSA MOT History API (both free with an API key).
+  - [ ] Show MOT history on the vehicle page, and check its recorded mileages against the fill-up odometer readings.
+  - [ ] Service due by mileage as well as date, estimated from the recent miles per month.
 - [ ] **Running costs other than fuel.** One `Expense` table (category, date, cost, odometer, notes, optional
       attachments) for servicing, tyres, repairs, insurance, tax, parking and tolls. This makes pence per mile a true
       total cost of ownership rather than fuel only. Add it to the backup.

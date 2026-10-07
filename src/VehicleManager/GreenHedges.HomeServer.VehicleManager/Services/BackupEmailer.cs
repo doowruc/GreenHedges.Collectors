@@ -4,8 +4,8 @@ using VehicleManager.Data;
 
 namespace VehicleManager.Services;
 
-/// <summary>The address backup emails come from (<c>Resend:From</c>); its domain must be verified in Resend.</summary>
-public sealed record BackupEmailOptions(string From);
+/// <summary>The address backup and reminder emails come from (<c>Resend:From</c>); its domain must be verified in Resend.</summary>
+public sealed record EmailOptions(string From);
 
 public enum BackupEmailResult
 {
@@ -17,7 +17,7 @@ public enum BackupEmailResult
 }
 
 /// <summary>Emails the signed-in user a backup of their data, through Resend, to their backup email address.</summary>
-public class BackupEmailer(AppDbContext db, BackupService backups, IResend resend, BackupEmailOptions options)
+public class BackupEmailer(AppDbContext db, BackupService backups, IResend resend, EmailOptions options)
 {
     private static readonly TimeZoneInfo UkTime = TimeZoneInfo.FindSystemTimeZoneById("Europe/London");
 

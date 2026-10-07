@@ -9,7 +9,7 @@ using VehicleManager.ViewModels;
 
 namespace VehicleManager.Pages.Settings;
 
-/// <summary>The user's settings: where scheduled backups are emailed. Their settings row is added on first save.</summary>
+/// <summary>The user's settings: where reminders and scheduled backups are emailed. Their settings row is added on first save.</summary>
 public class IndexModel(AppDbContext db, BackupEmailer emailer, ILogger<IndexModel> logger) : PageModel
 {
     private static readonly TimeZoneInfo UkTime = TimeZoneInfo.FindSystemTimeZoneById("Europe/London");

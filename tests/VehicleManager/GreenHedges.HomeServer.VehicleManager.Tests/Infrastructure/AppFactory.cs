@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Resend;
 using VehicleManager.Data;
+using VehicleManager.Services;
 
 namespace VehicleManager.Tests.Infrastructure;
 
@@ -19,8 +20,8 @@ namespace VehicleManager.Tests.Infrastructure;
 /// Runs the app in memory against the test database. Auth0 is replaced by a test sign-in: a
 /// request is signed in as the user named in its <see cref="UserHeader"/> (see <see cref="ClientFor"/>),
 /// with an allowed, verified email; a request without it isn't signed in. Email goes to
-/// <see cref="FakeResend"/>, the scheduler doesn't run, and pending migrations aren't applied (the
-/// tests refuse to run until they are).
+/// <see cref="FakeResend"/>, the DVLA and DVSA are <see cref="FakeVehicleApis"/>, the scheduler
+/// doesn't run, and pending migrations aren't applied (the tests refuse to run until they are).
 /// </summary>
 public sealed class AppFactory : WebApplicationFactory<Program>
 {
@@ -37,6 +38,11 @@ public sealed class AppFactory : WebApplicationFactory<Program>
         Environment.SetEnvironmentVariable("Auth0__ClientSecret", "tests");
         Environment.SetEnvironmentVariable("Resend__ApiKey", "tests");
         Environment.SetEnvironmentVariable("Resend__From", "Vehicle Manager <backups@tests.invalid>");
+        Environment.SetEnvironmentVariable("Dvla__ApiKey", FakeVehicleApis.ApiKey);
+        Environment.SetEnvironmentVariable("MotHistory__ClientId", "tests");
+        Environment.SetEnvironmentVariable("MotHistory__ClientSecret", "tests");
+        Environment.SetEnvironmentVariable("MotHistory__ApiKey", FakeVehicleApis.ApiKey);
+        Environment.SetEnvironmentVariable("MotHistory__TokenUrl", FakeVehicleApis.TokenUrl);
 
         // Never apply migrations to the real database from tests: run the app and ask first.
         Environment.SetEnvironmentVariable("MigrateOnStartup", "false");
@@ -54,9 +60,12 @@ public sealed class AppFactory : WebApplicationFactory<Program>
                 o.DefaultScheme = o.DefaultAuthenticateScheme = o.DefaultChallengeScheme = o.DefaultForbidScheme = TestSignIn.SchemeName;
             });
 
-            // Never send real email, and never run the scheduled backups: they'd act on every user's data.
+            // Never send real email, and never run the scheduled backups or reminders: they'd act on every user's data.
             services.RemoveAll<IResend>();
             services.AddSingleton(FakeResend.Create());
+            // Never call the real DVLA or DVSA.
+            services.AddHttpClient<DvlaClient>().ConfigurePrimaryHttpMessageHandler(() => new FakeVehicleApis());
+            services.AddHttpClient<MotHistoryClient>().ConfigurePrimaryHttpMessageHandler(() => new FakeVehicleApis());
             foreach (var scheduler in services.Where(d => d.ServiceType == typeof(IHostedService) &&
                                                           d.ImplementationType?.Namespace?.StartsWith("Coravel") == true).ToList())
                 services.Remove(scheduler);

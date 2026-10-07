@@ -70,10 +70,31 @@ builder.Services.AddResend(options =>
     options.ApiToken = RequiredSetting("Resend:ApiKey");
     options.ThrowExceptions = true;
 });
-builder.Services.AddSingleton(new BackupEmailOptions(RequiredSetting("Resend:From")));
+builder.Services.AddSingleton(new EmailOptions(RequiredSetting("Resend:From")));
 builder.Services.AddScoped<BackupEmailer>();
+builder.Services.AddScoped<ReminderEmailer>();
+
+// MOT and tax lookups (see README). Both are optional: without their settings, those dates are typed in.
+var dvlaOptions = DvlaOptions.From(builder.Configuration.GetSection("Dvla"));
+builder.Services.AddSingleton(dvlaOptions);
+builder.Services.AddHttpClient<DvlaClient>(http =>
+{
+    http.BaseAddress = new Uri(dvlaOptions.BaseUrl);
+    http.Timeout = TimeSpan.FromSeconds(20);
+});
+var motHistoryOptions = MotHistoryOptions.From(builder.Configuration.GetSection("MotHistory"));
+builder.Services.AddSingleton(motHistoryOptions);
+builder.Services.AddSingleton<MotHistoryTokenCache>();
+builder.Services.AddHttpClient<MotHistoryClient>(http =>
+{
+    http.BaseAddress = new Uri(motHistoryOptions.BaseUrl);
+    http.Timeout = TimeSpan.FromSeconds(20);
+});
+builder.Services.AddScoped<VehicleLookup>();
+
 builder.Services.AddScheduler();
 builder.Services.AddTransient<ScheduledBackups>();
+builder.Services.AddTransient<ScheduledReminders>();
 
 var app = builder.Build();
 
@@ -86,12 +107,19 @@ if (app.Configuration.GetValue("MigrateOnStartup", true))
     db.MigrateDatabase(app.Logger);
 }
 
-// Nightly, email each user a backup if their data has changed since their last one.
-app.Services.UseScheduler(scheduler => scheduler
-        .Schedule<ScheduledBackups>()
-        .DailyAt(1, 0)
-        .Zoned(TimeZoneInfo.Utc)
-        .PreventOverlapping(nameof(ScheduledBackups)))
+app.Services.UseScheduler(scheduler =>
+    {
+        // Nightly, email each user a backup if their data has changed since their last one.
+        scheduler.Schedule<ScheduledBackups>()
+            .DailyAt(1, 0)
+            .Zoned(TimeZoneInfo.Utc)
+            .PreventOverlapping(nameof(ScheduledBackups));
+        // Each morning (UK time), update MOT and tax dates and email any reminders due.
+        scheduler.Schedule<ScheduledReminders>()
+            .DailyAt(7, 0)
+            .Zoned(TimeZoneInfo.FindSystemTimeZoneById("Europe/London"))
+            .PreventOverlapping(nameof(ScheduledReminders));
+    })
     .OnError(ex => app.Logger.LogError(ex, "A scheduled task failed"));
 
 if (!app.Environment.IsDevelopment())

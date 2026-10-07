@@ -96,6 +96,13 @@
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         }
+        @if (TempData["Warning"] is string warning)
+        {
+            <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                @warning
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
         @RenderBody()
     </main>
 

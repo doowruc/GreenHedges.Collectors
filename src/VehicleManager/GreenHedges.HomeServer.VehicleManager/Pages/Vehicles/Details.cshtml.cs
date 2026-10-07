@@ -9,13 +9,20 @@ using VehicleManager.Services;
 
 namespace VehicleManager.Pages.Vehicles;
 
-public class DetailsModel(AppDbContext db, FuelStatsService stats) : PageModel
+public class DetailsModel(AppDbContext db, FuelStatsService stats, VehicleLookup lookup) : PageModel
 {
     public VehicleView Vehicle { get; private set; } = new();
     public List<FuelEntryView> Entries { get; private set; } = [];
     public FuelSummary AllTime { get; private set; } = FuelSummary.Empty;
     public FuelSummary LastYear { get; private set; } = FuelSummary.Empty;
     public string ChartJson { get; private set; } = "[]";
+    public List<DueDateView> DueDates { get; private set; } = [];
+
+    /// <summary>The DVLA or DVSA is set up, so MOT (and tax, with the DVLA) can be checked.</summary>
+    public bool CanLookUp => lookup.IsAvailable;
+
+    /// <summary>What a check fills in: "MOT and tax", or just "MOT".</summary>
+    public string LookedUp => lookup.LookedUp;
 
     /// <summary>All vehicles for the switcher; each option's value is that vehicle's details URL.</summary>
     public List<SelectListItem> VehicleOptions { get; private set; } = [];
@@ -25,6 +32,7 @@ public class DetailsModel(AppDbContext db, FuelStatsService stats) : PageModel
         var vehicle = await db.Vehicles.Where(v => v.Id == id).Select(VehicleView.Projection).FirstOrDefaultAsync();
         if (vehicle is null) return NotFound();
         Vehicle = vehicle;
+        DueDates = vehicle.DueDates(Reminders.UkToday());
 
         VehicleOptions = (await db.Vehicles.OrderBy(v => v.Make).ThenBy(v => v.Model)
                 .Select(v => new { v.Id, v.Make, v.Model, v.RegistrationNumber }).ToListAsync())
@@ -51,5 +59,19 @@ public class DetailsModel(AppDbContext db, FuelStatsService stats) : PageModel
             }));
 
         return Page();
+    }
+
+    /// <summary>Checks the MOT and tax due dates with whichever of the DVLA and DVSA are set up, and saves any found.</summary>
+    public async Task<IActionResult> OnPostLookupAsync(int id)
+    {
+        var vehicle = await db.Vehicles.FirstOrDefaultAsync(v => v.Id == id);
+        if (vehicle is null) return NotFound();
+        if (!lookup.IsAvailable) return BadRequest();
+
+        var found = await lookup.RefreshAsync(vehicle);
+        await db.SaveChangesAsync();
+        TempData["Message"] = $"Checked {vehicle.RegistrationNumber} with {lookup.ServiceNames}: {found.Summary}.";
+        if (found.Problems.Count > 0) TempData["Warning"] = string.Join(" ", found.Problems);
+        return RedirectToPage(new { id });
     }
 }

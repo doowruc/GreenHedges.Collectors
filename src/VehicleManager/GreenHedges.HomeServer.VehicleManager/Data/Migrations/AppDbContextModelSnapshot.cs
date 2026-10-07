@@ -291,6 +291,58 @@ namespace VehicleManager.Data.Migrations
                     b.ToTable("Owners");
                 });
 
+            modelBuilder.Entity("VehicleManager.Models.SentReminder", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AddedBy")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<DateTime>("AddedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("DaysBefore")
+                        .HasColumnType("int");
+
+                    b.Property<DateOnly>("DueDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("ModifiedBy")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<DateTime>("ModifiedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("VehicleId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VehicleId", "Kind", "DueDate", "DaysBefore")
+                        .IsUnique();
+
+                    b.ToTable("SentReminders");
+                });
+
             modelBuilder.Entity("VehicleManager.Models.UserSettings", b =>
                 {
                     b.Property<int>("Id")
@@ -325,6 +377,10 @@ namespace VehicleManager.Data.Migrations
 
                     b.Property<DateTime>("ModifiedDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("ReminderEmail")
+                        .HasMaxLength(254)
+                        .HasColumnType("nvarchar(254)");
 
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
@@ -366,6 +422,9 @@ namespace VehicleManager.Data.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<DateOnly?>("InsuranceDueDate")
+                        .HasColumnType("date");
+
                     b.Property<string>("Make")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -383,6 +442,9 @@ namespace VehicleManager.Data.Migrations
 
                     b.Property<DateTime>("ModifiedDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<DateOnly?>("MotDueDate")
+                        .HasColumnType("date");
 
                     b.Property<int>("OwnerId")
                         .HasColumnType("int");
@@ -403,6 +465,12 @@ namespace VehicleManager.Data.Migrations
                         .IsRequired()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
+
+                    b.Property<DateOnly?>("ServiceDueDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly?>("TaxDueDate")
+                        .HasColumnType("date");
 
                     b.Property<string>("Type")
                         .IsRequired()
@@ -463,6 +531,17 @@ namespace VehicleManager.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("FuelBrand");
+                });
+
+            modelBuilder.Entity("VehicleManager.Models.SentReminder", b =>
+                {
+                    b.HasOne("VehicleManager.Models.Vehicle", "Vehicle")
+                        .WithMany()
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Vehicle");
                 });
 
             modelBuilder.Entity("VehicleManager.Models.Vehicle", b =>

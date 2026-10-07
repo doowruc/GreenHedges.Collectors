@@ -2,11 +2,12 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using VehicleManager.Data;
+using VehicleManager.Services;
 using VehicleManager.ViewModels;
 
 namespace VehicleManager.Pages.Vehicles;
 
-public class EditModel(AppDbContext db) : PageModel
+public class EditModel(AppDbContext db, VehicleLookup lookup) : PageModel
 {
     [BindProperty]
     public VehicleInput Vehicle { get; set; } = new();
@@ -17,6 +18,7 @@ public class EditModel(AppDbContext db) : PageModel
         if (vehicle is null) return NotFound();
         Vehicle = vehicle;
         ViewData["OwnerOptions"] = await VehicleRules.OwnerOptionsAsync(db);
+        ViewData["LookupNote"] = lookup.MorningCheck;
         return Page();
     }
 
@@ -29,6 +31,7 @@ public class EditModel(AppDbContext db) : PageModel
         if (!ModelState.IsValid)
         {
             ViewData["OwnerOptions"] = await VehicleRules.OwnerOptionsAsync(db);
+            ViewData["LookupNote"] = lookup.MorningCheck;
             return Page();
         }
 
@@ -42,6 +45,7 @@ public class EditModel(AppDbContext db) : PageModel
             Vehicle.RowVersion = existing.RowVersion;
             ModelState.Remove("Vehicle.RowVersion");
             ViewData["OwnerOptions"] = await VehicleRules.OwnerOptionsAsync(db);
+            ViewData["LookupNote"] = lookup.MorningCheck;
             return Page();
         }
 

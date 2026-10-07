@@ -15,6 +15,25 @@
 }
 else
 {
+    if (Model.ComingUp.Count > 0)
+    {
+        <div class="card shadow-sm mb-3">
+            <div class="card-header bg-body fw-semibold"><i class="bi bi-calendar-event me-2"></i>Coming up</div>
+            <ul class="list-group list-group-flush">
+            @foreach (var d in Model.ComingUp)
+            {
+                <li class="list-group-item d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <span>
+                        <strong>@d.Name</strong> ·
+                        <a asp-page="/Vehicles/Details" asp-route-id="@d.VehicleId" class="text-decoration-none">@d.VehicleName</a>
+                        <span class="reg-plate small ms-1">@d.RegistrationNumber</span>
+                    </span>
+                    <span class="badge @d.BadgeClass">@d.Date.ToString("dd/MM/yyyy") · @d.When</span>
+                </li>
+            }
+            </ul>
+        </div>
+    }
     <partial name="_PeriodToggle" />
 }
 
@@ -31,6 +50,10 @@ else
                 <span class="reg-plate small">@c.Vehicle.RegistrationNumber</span>
             </div>
             <div class="card-body">
+                @if (c.DueDates.Count > 0)
+                {
+                    <div class="d-flex flex-wrap gap-1 mb-3"><partial name="_DueDates" model="c.DueDates" /></div>
+                }
                 @if (c.Last is null)
                 {
                     <p class="text-muted mb-0">No fill-ups yet.</p>
