@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using VehicleManager.Data;
 using VehicleManager.Models;
 using VehicleManager.Services;
@@ -10,7 +11,9 @@ public static class TestData
 {
     public static async Task<Vehicle> AddVehicleAsync(AppDbContext db, string registration = "TEST 1")
     {
-        var vehicle = new Vehicle { Owner = new Owner { Name = "Test Owner" }, Make = "Test", Model = "Car", RegistrationNumber = registration };
+        // Owner names are unique per user, so later vehicles share the first one's owner.
+        var owner = await db.Owners.FirstOrDefaultAsync(o => o.Name == "Test Owner") ?? new Owner { Name = "Test Owner" };
+        var vehicle = new Vehicle { Owner = owner, Make = "Test", Model = "Car", RegistrationNumber = registration };
         db.Vehicles.Add(vehicle);
         await db.SaveChangesAsync();
         return vehicle;

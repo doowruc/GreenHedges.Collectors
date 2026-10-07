@@ -1,17 +1,22 @@
 @model IEnumerable<FuelEntryView>
 @{
     var showVehicle = ViewData["ShowVehicle"] as bool? ?? false;
+    // Sort values for cells whose text doesn't sort as-is, for DataTables (see _FuelTableScripts).
+    static string Sort(decimal? d) => d?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "";
 }
+@* A DataTable when the page includes _FuelTableStyles and _FuelTableScripts. dt-pending shows only the
+   first page of rows until DataTables has loaded, so the table doesn't jump. *@
+<div class="fuel-table dt-pending">
 <div class="table-responsive">
 <table class="table table-sm table-hover table-fuel align-middle mb-0">
     <thead class="table-head">
         <tr>
             <th>Date</th>
-            @if (showVehicle) { <th>Vehicle</th> }
+            @if (showVehicle) { <th data-column="vehicle">Vehicle</th> }
             <th>Fuel Station</th>
             <th class="text-end">Litres</th><th class="text-end">£/Litre</th><th class="text-end">Cost</th>
             <th class="text-end">Trip Miles</th><th class="text-end">Dash MPG</th><th class="text-end">Real MPG</th>
-            <th class="text-end">Range</th><th class="text-end">Odometer</th><th class="text-end">p/Mile</th><th></th>
+            <th class="text-end">Range</th><th class="text-end">Odometer</th><th class="text-end">p/Mile</th><th data-orderable="false" data-searchable="false"></th>
         </tr>
     </thead>
     <tbody>
@@ -19,21 +24,21 @@
     {
         var diff = f.MpgDifference;
         <tr>
-            <td>@f.Date.ToString("dd/MM/yyyy")</td>
+            <td data-order="@f.Date.ToString("yyyy-MM-dd")">@f.Date.ToString("dd/MM/yyyy")</td>
             @if (showVehicle)
             {
                 <td><a asp-page="/Vehicles/Details" asp-route-id="@f.VehicleId">@f.VehicleName</a></td>
             }
             <td>@f.FuelStation</td>
             <td class="text-end">@f.Litres.ToString("0.00")</td>
-            <td class="text-end">
+            <td class="text-end" data-order="@Sort(f.EffectiveCostPerLitre)">
                 @f.EffectiveCostPerLitre.ToString("0.000")
                 @if (f.VoucherPerLitre is > 0) { <i class="bi bi-ticket-perforated text-success" title="@($"Voucher £{f.VoucherPerLitre:0.000}/l off £{f.CostPerLitre:0.000}")"></i> }
             </td>
             <td class="text-end">@f.TotalCost.ToString("C")</td>
             <td class="text-end">@f.TripMiles?.ToString("0.0")</td>
             <td class="text-end">@f.TripAverageMpg?.ToString("0.0")</td>
-            <td class="text-end">
+            <td class="text-end" data-order="@Sort(f.CalculatedMpg)">
                 @f.CalculatedMpg?.ToString("0.0")
                 @if (diff is { } d && Math.Abs(d) >= 0.5m)
                 {
@@ -51,4 +56,5 @@
     }
     </tbody>
 </table>
+</div>
 </div>

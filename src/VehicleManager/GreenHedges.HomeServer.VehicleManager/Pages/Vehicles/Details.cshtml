@@ -40,16 +40,21 @@ else
 
     <div class="card shadow-sm mb-4">
         <div class="card-header bg-body fw-semibold">MPG and fuel price over time</div>
-        <div class="card-body"><canvas id="chart" height="90"></canvas></div>
+        <div class="card-body"><div class="chart-box"><canvas id="chart"></canvas></div></div>
     </div>
 
     <div class="card shadow-sm">
         <div class="card-header bg-body fw-semibold">Fuel Log (@Model.Entries.Count)</div>
-        <partial name="_FuelTable" model="Model.Entries" />
+        <div class="card-body py-2"><partial name="_FuelTable" model="Model.Entries" /></div>
     </div>
 }
 
+@section Styles {
+    @if (Model.Entries.Count > 0) { <partial name="_FuelTableStyles" /> }
+}
+
 @section Scripts {
+    @if (Model.Entries.Count > 0) { <partial name="_FuelTableScripts" /> }
     <script>
         document.getElementById('vehicle-switcher')?.addEventListener('change', e => location.href = e.target.value);
     </script>
@@ -75,6 +80,8 @@ else
                     ]
                 },
                 options: {
+                    // Fill .chart-box's height rather than a fixed width:height ratio, which left it very short on phones.
+                    maintainAspectRatio: false,
                     interaction: { mode: 'index', intersect: false },
                     scales: {
                         y: { title: { display: true, text: 'MPG' } },

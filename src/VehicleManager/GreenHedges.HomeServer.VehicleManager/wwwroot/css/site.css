@@ -10,6 +10,14 @@
 }
 .table-fuel td, .table-fuel th { white-space: nowrap; font-size: .9rem; }
 
+/* Until DataTables has loaded (fuel log tables), show only its first page of rows so the table doesn't jump. */
+.dt-pending .table-fuel tbody tr:nth-child(n+11) { display: none; }   /* 10 = pageLength in fuel-table.js */
+
+/* Fuel log tables sit in a "card-body py-2", like the stat cards. Drop the extra spacing DataTables'
+   Bootstrap rows add (a margin above the first row, and grid gutters at the sides) so the padding matches. */
+.fuel-table .dt-container > .row { --bs-gutter-x: 0; }
+.fuel-table .dt-container > .row:first-child { margin-top: 0 !important; }
+
 /* Tinted table header that works in both themes (Bootstrap's .table-light stays light in dark mode). */
 .table > thead.table-head > tr > th { --bs-table-bg: var(--bs-tertiary-bg); }
 
@@ -19,3 +27,6 @@
 
 .text-optimistic { color: var(--bs-danger-text-emphasis); }
 .text-pessimistic { color: var(--bs-success-text-emphasis); }
+
+/* Chart container: Chart.js fills it (maintainAspectRatio: false), so the chart stays readable on phones. */
+.chart-box { position: relative; height: clamp(16rem, 35vw, 22rem); }

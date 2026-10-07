@@ -46,7 +46,7 @@ so test pages through the in-memory host rather than relying on the browser.
 
 - .NET 10, Razor Pages, EF Core 10 + SQL Server (Azure SQL Database). Connection string `ConnectionStrings:VehicleManager` is in user secrets; there is no local database.
 - Packages: `Microsoft.EntityFrameworkCore.SqlServer`, `Microsoft.EntityFrameworkCore.Design` (PrivateAssets=all), `ClosedXML`, `Auth0.AspNetCore.Authentication`. Keep EF packages and `dotnet-ef` on the same version.
-- Front end: Bootstrap 5.3, Bootstrap Icons and Chart.js 4 from the jsDelivr CDN (no npm/bundler). Small vanilla JS files in `wwwroot/js`.
+- Front end: Bootstrap 5.3, Bootstrap Icons, Chart.js 4 and DataTables 3 (Bootstrap 5 styling, no jQuery; fuel log tables) from the jsDelivr CDN (no npm/bundler). Pages add CSS via the layout's `Styles` section. Small vanilla JS files in `wwwroot/js`.
 - en-GB culture throughout (dd/MM/yyyy, £). MPG uses UK gallons (4.54609 L).
 
 ## Layout
@@ -62,7 +62,7 @@ VehicleManager/
                CurrentUser, AllowedUsers, ExistingDataClaim, FuelStops (typed names → stops)
   Pages/       Index (dashboard), Owners/*, Vehicles/*, FuelLog/* (log + fill-up pages), Import/*, FuelBrands/* (+ Stations/* per brand),
                Account/* (Login, Logout, SignedOut), Shared/ (layout + partials)
-  wwwroot/     css/site.css, js/color-mode.js, js/period-toggle.js
+  wwwroot/     css/site.css, js/color-mode.js, js/period-toggle.js, js/fuel-table.js
 ```
 
 ## Conventions and how things work
@@ -121,11 +121,18 @@ VehicleManager/
 - Preference (Light / Dark / System) is stored in localStorage key `theme`; absent means System, the default. The theme menu is the rightmost item in the navbar. The navbar stays dark in both themes.
 - Everything must work in both themes. Don't use `bg-white`, `table-light` or hard-coded colours. Use `bg-body`, the custom `<thead class="table-head">` and Bootstrap CSS variables in `site.css`.
 - Anything drawing its own colours (e.g. Chart.js) should listen for the `themechange` event and use `window.themeColors()`. See `Pages/Vehicles/Details.cshtml`.
+- Charts: put the canvas in a `<div class="chart-box">` and use `maintainAspectRatio: false`, so the height suits phones as well as desktop (a fixed ratio makes it very short on a phone).
 
 **Stats period toggle ("Last 12 months" / "All time")**
 - Shared partial `Pages/Shared/_PeriodToggle.cshtml` plus `wwwroot/js/period-toggle.js`, used on the dashboard and vehicle details. Reuse it rather than duplicating it.
 - Mark up period-specific content as `<div class="period-stats" data-period="12m">` / `data-period="all"`. A `site.css` rule hides the non-selected one, based on `data-stats-period` on `<html>`.
 - The selection is remembered across pages in the `statsPeriod` cookie (`all`; absent means 12 months). The partial renders the active button server-side from the cookie, and the script runs synchronously right after the buttons, so nothing flickers on load. Keep it that way.
+
+**Fuel log tables (DataTables)**
+- `_FuelTable` (Fuel Log page and each vehicle's page) is a DataTable: sorting, search and paging in the browser; the Fuel Log's vehicle/year filters stay server-side. A page using it adds `<partial name="_FuelTableStyles" />` to its `Styles` section and `<partial name="_FuelTableScripts" />` to `Scripts`; the settings are in `wwwroot/js/fuel-table.js`.
+- Cells whose text doesn't sort as-is carry `data-order` (dates as ISO, Real MPG, £/litre after voucher).
+- Defaults: 10 rows per page; sorted by Date (newest first) then Vehicle (A–Z, found by `<th data-column="vehicle">`, absent on a vehicle's page). The Fuel Log query returns the same order so nothing moves when DataTables starts. If you change the page size, change the `dt-pending` row limit in `site.css` too (a test checks they agree).
+- `dt-pending` on the wrapper shows only the first page of rows until DataTables has loaded (no jump); the script removes it in a `finally`, so the full table still shows if the CDN fails.
 
 **General**
 - Prefer shared partials and small shared scripts over copying markup or JS between pages.

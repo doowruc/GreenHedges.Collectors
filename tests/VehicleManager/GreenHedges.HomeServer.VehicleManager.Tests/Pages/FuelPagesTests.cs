@@ -95,4 +95,62 @@ public class FuelPagesTests(AppFactory app) : DatabaseTest, IClassFixture<AppFac
         Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync("/Fuel")).Status);          // the old addresses are gone
         Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync("/Fuel/Create")).Status);
     }
+
+    [DatabaseFact]
+    public async Task Fuel_log_and_vehicle_page_tables_use_DataTables()
+    {
+        var (client, vehicleId) = await SeedAsync();
+        foreach (var url in new[] { "/FuelLog", $"/Vehicles/Details/{vehicleId}" })
+        {
+            var page = (await client.GetAsync(url)).Html;
+            Assert.Contains("datatables.net@", page);
+            Assert.Contains("dataTables.bootstrap5.min.css", page);
+            Assert.Matches(@"<script src=""/js/fuel-table[^""]*\.js""", page);
+            Assert.Matches(@"<div class=""card-body py-2"">\s*<div class=""fuel-table dt-pending"">", page);   // same padding as the stat cards; first page only until it loads
+            Assert.Matches(@"<td data-order=""2026-01-01"">01/01/2026</td>", page);   // dates sort as dates
+            Assert.Contains("<th data-orderable=\"false\" data-searchable=\"false\"></th>", page);
+        }
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/js/fuel-table.js")).Status);
+    }
+
+    [DatabaseFact]
+    public async Task Vehicle_chart_fills_a_sized_box_rather_than_a_fixed_ratio()
+    {
+        var (client, vehicleId) = await SeedAsync();
+        var page = (await client.GetAsync($"/Vehicles/Details/{vehicleId}")).Html;
+        Assert.Contains("<div class=\"chart-box\"><canvas id=\"chart\"></canvas></div>", page);   // no fixed height
+        Assert.Contains("maintainAspectRatio: false", page);
+    }
+
+    [DatabaseFact]
+    public async Task Fuel_log_lists_newest_first_then_by_vehicle()
+    {
+        var (client, firstVehicleId) = await SeedAsync();   // "Test Car", fill-up on 01/01/2026
+        await using (var db = Db())
+        {
+            // Added second but sorts first by name, on the same date.
+            var alpha = new VehicleManager.Models.Vehicle { OwnerId = db.Vehicles.Single().OwnerId, Make = "Alpha", Model = "Van", RegistrationNumber = "ALPHA 1" };
+            db.Vehicles.Add(alpha);
+            await db.SaveChangesAsync();
+            await TestData.AddFillUpAsync(db, alpha.Id, new DateOnly(2026, 1, 1), ("Beta", "Village"));
+            await TestData.AddFillUpAsync(db, firstVehicleId, new DateOnly(2026, 1, 2), ("Beta", "Village"));
+        }
+        var log = (await client.GetAsync("/FuelLog")).Html;
+        var vehicles = Regex.Matches(log, @"<td data-order=""([\d-]+)"">[^<]*</td>\s*<td><a [^>]*>([^<]+)</a></td>")
+            .Select(m => $"{m.Groups[1].Value} {m.Groups[2].Value}").ToList();
+        Assert.Equal(["2026-01-02 Test Car", "2026-01-01 Alpha Van", "2026-01-01 Test Car"], vehicles);
+        Assert.Contains("<th data-column=\"vehicle\">Vehicle</th>", log);   // how fuel-table.js finds the column to sort by
+        Assert.DoesNotContain("data-column=\"vehicle\"", (await client.GetAsync($"/Vehicles/Details/{firstVehicleId}")).Html);
+    }
+
+    [DatabaseFact]
+    public async Task Page_size_and_the_pending_row_limit_agree()
+    {
+        var (client, _) = await SeedAsync();
+        var script = (await client.GetAsync("/js/fuel-table.js")).Html;
+        var css = (await client.GetAsync((Regex.Match((await client.GetAsync("/FuelLog")).Html, @"href=""(/css/site[^""]*\.css)""").Groups[1].Value))).Html;
+        var pageLength = int.Parse(Regex.Match(script, @"pageLength: (\d+)").Groups[1].Value);
+        Assert.Equal(10, pageLength);
+        Assert.Contains($".dt-pending .table-fuel tbody tr:nth-child(n+{pageLength + 1})", css);
+    }
 }
