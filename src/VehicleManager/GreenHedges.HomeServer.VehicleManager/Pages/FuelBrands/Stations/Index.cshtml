@@ -27,6 +27,7 @@ else
                     <td>@s.Name</td>
                     <td class="text-end">@s.FillUps</td>
                     <td class="text-end text-nowrap">
+                        <a asp-page="Details" asp-route-brandId="@Model.BrandId" asp-route-id="@s.Id" class="btn btn-sm btn-outline-secondary" title="Fill-ups and prices"><i class="bi bi-graph-up"></i></a>
                         <a asp-page="Edit" asp-route-brandId="@Model.BrandId" asp-route-id="@s.Id" class="btn btn-sm btn-outline-secondary" title="Edit"><i class="bi bi-pencil"></i></a>
                         <a asp-page="Merge" asp-route-brandId="@Model.BrandId" asp-route-id="@s.Id" class="btn btn-sm btn-outline-secondary" title="Merge into another"><i class="bi bi-sign-merge-left"></i></a>
                         <a asp-page="Delete" asp-route-brandId="@Model.BrandId" asp-route-id="@s.Id" class="btn btn-sm btn-outline-danger" title="Delete"><i class="bi bi-trash"></i></a>

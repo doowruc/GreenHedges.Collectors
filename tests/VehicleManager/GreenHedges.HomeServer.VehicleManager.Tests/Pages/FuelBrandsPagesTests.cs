@@ -20,7 +20,7 @@ public class FuelBrandsPagesTests(AppFactory app) : DatabaseTest, IClassFixture<
     }
 
     private static List<string> ActionLinks(PageResponse page) =>
-        Regex.Matches(page.Html, "<a [^>]*title=\"(?:Stations|Edit|Merge into another|Delete)\"[^>]*>").Select(m => m.Value).ToList();
+        Regex.Matches(page.Html, "<a [^>]*title=\"(?:Stations|Fill-ups and prices|Edit|Merge into another|Delete)\"[^>]*>").Select(m => m.Value).ToList();
 
     private static async Task AssertAllLinksLoadAsync(PageClient client, PageResponse page)
     {
@@ -50,6 +50,130 @@ public class FuelBrandsPagesTests(AppFactory app) : DatabaseTest, IClassFixture<
 
         var edit = await client.GetAsync(stations.RowLink("Town", "Edit")!);
         Assert.Matches(@"<a href=""/FuelBrands"">Fuel Brands</a>.*<a href=""/FuelBrands/\d+/Stations"">Alpha</a>.*Edit station", Regex.Replace(edit.Html, @"\s+", " "));
+    }
+
+    [DatabaseFact]
+    public async Task A_stations_page_lists_its_fill_ups_and_prices_by_fuel_type()
+    {
+        var client = await SeedAsync();   // the car's Alpha Town fill-up is on 1 Jan
+        await using (var db = Db())
+        {
+            var car = db.Vehicles.Single();
+            var van = await TestData.AddVehicleAsync(db, "VAN 1");
+            van.FuelType = VehicleManager.Models.FuelType.Diesel;
+            await db.SaveChangesAsync();
+            await TestData.AddFillUpAsync(db, van.Id, new DateOnly(2026, 1, 5), ("Alpha", "Town"));
+            var split = await TestData.AddFillUpAsync(db, car.Id, new DateOnly(2026, 1, 6), ("Beta", "Village"), ("Alpha", "Town"));
+            split.CostPerLitre = 1.459m;
+            await db.SaveChangesAsync();
+        }
+        var stations = await client.GetAsync((await client.GetAsync("/FuelBrands")).RowLink("Alpha", "Stations")!);
+        var page = await client.GetAsync(stations.RowLink("Town", "Fill-ups and prices")!);
+        Assert.Equal(HttpStatusCode.OK, page.Status);
+        Assert.Contains("<h1 class=\"h3 mb-0\">Alpha Town</h1>", page.Html);
+
+        // A tab per fuel type; the latest fill-up's (the car's split one, unleaded) is shown first.
+        var html = Regex.Replace(page.Html, @"\s+", " ");
+        Assert.Matches(@"class=""nav-link active""[^>]*data-bs-target=""#fuel-Unleaded""", html);
+        Assert.Matches(@"class=""nav-link ?""[^>]*data-bs-target=""#fuel-Diesel""", html);
+        var unleadedStart = html.IndexOf("id=\"fuel-Unleaded\"");
+        var dieselStart = html.IndexOf("id=\"fuel-Diesel\"");
+        Assert.True(unleadedStart >= 0 && dieselStart > unleadedStart);
+        // Each section's visible rows (not the footer's sizing rows, which are shared between them).
+        static string Rows(string section) => Regex.Match(section, "<tbody>.*?</tbody>", RegexOptions.Singleline).Value;
+        var unleaded = Rows(html[unleadedStart..dieselStart]);
+        var diesel = Rows(html[dieselStart..]);
+        Assert.Contains("class=\"tab-pane show active\"", html[(unleadedStart - 60)..unleadedStart]);
+
+        // Each table has that fuel type's fill-ups here (split ones too), newest first; none from elsewhere.
+        Assert.Matches("06/01/2026.*01/01/2026", unleaded);
+        Assert.DoesNotContain("05/01/2026", unleaded);
+        Assert.Contains("05/01/2026", diesel);
+        Assert.DoesNotContain("01/01/2026", diesel);
+        Assert.DoesNotContain("03/01/2026", page.Html);   // Beta Village only
+        Assert.Contains("/js/fuel-table.", page.Html);
+
+        // The charts plot the pump price, oldest first.
+        var text = WebUtility.HtmlDecode(html);
+        Assert.Contains("""data-price-chart="[{"date":"2026-01-01","price":1.500},{"date":"2026-01-06","price":1.459}]""", text);
+        Assert.Contains("""data-price-chart="[{"date":"2026-01-05","price":1.500}]""", text);
+    }
+
+    [DatabaseFact]
+    public async Task A_fuel_log_link_opens_a_station_at_that_fill_ups_fuel_type()
+    {
+        var client = await SeedAsync();   // the car (unleaded) filled up at Alpha Town on 1 Jan
+        await using (var db = Db())
+        {
+            var van = await TestData.AddVehicleAsync(db, "VAN 1");
+            van.FuelType = VehicleManager.Models.FuelType.Diesel;
+            await db.SaveChangesAsync();
+            await TestData.AddFillUpAsync(db, van.Id, new DateOnly(2025, 12, 1), ("Alpha", "Town"));   // earlier
+        }
+        static string Active(PageResponse page) =>
+            Regex.Match(page.Html, @"class=""nav-link active""[^>]*data-bs-target=""#fuel-(\w+)""").Groups[1].Value;
+
+        var log = (await client.GetAsync("/FuelLog")).Html;
+        var dieselLink = PageResponse.Href(Regex.Match(log, @"<a href=""[^""]*\?fuelType=Diesel"">Alpha Town</a>").Value)!;
+        var unleadedLink = PageResponse.Href(Regex.Match(log, @"<a href=""[^""]*\?fuelType=Unleaded"">Alpha Town</a>").Value)!;
+        Assert.Equal("Diesel", Active(await client.GetAsync(dieselLink)));
+        Assert.Equal("Unleaded", Active(await client.GetAsync(unleadedLink)));
+
+        // Without one, or with one the station hasn't sold, it opens at the latest fill-up's (unleaded).
+        var station = dieselLink.Split('?')[0];
+        Assert.Equal("Unleaded", Active(await client.GetAsync(station)));
+        Assert.Equal("Unleaded", Active(await client.GetAsync(station + "?fuelType=Petrol")));
+
+        // Each tab links to its own URL, which the page puts in the address bar on switching, so a refresh
+        // (or the link) stays on that fuel type rather than the one the page was opened with.
+        var opened = await client.GetAsync(unleadedLink);
+        var dieselTab = PageResponse.Href(Regex.Match(opened.Html, @"<a [^>]*data-bs-target=""#fuel-Diesel""[^>]*>").Value);
+        Assert.Equal(dieselLink, dieselTab);
+        Assert.Equal("Diesel", Active(await client.GetAsync(dieselTab!)));
+        Assert.Contains("history.replaceState", opened.Html);
+    }
+
+    [DatabaseFact]
+    public async Task A_stations_fuel_type_tables_are_sized_alike_so_columns_dont_move_between_tabs()
+    {
+        var client = await SeedAsync();   // "Test Car" (unleaded) at Alpha Town
+        await using (var db = Db())
+        {
+            var van = await TestData.AddVehicleAsync(db, "VAN 1");
+            (van.Make, van.Model, van.FuelType) = ("Volkswagen", "Transporter Kombi", VehicleManager.Models.FuelType.Diesel);
+            await db.SaveChangesAsync();
+            await TestData.AddFillUpAsync(db, van.Id, new DateOnly(2026, 1, 5), ("Alpha", "Town"));
+        }
+        var stations = await client.GetAsync((await client.GetAsync("/FuelBrands")).RowLink("Alpha", "Stations")!);
+        var html = (await client.GetAsync(stations.RowLink("Town", "Fill-ups and prices")!)).Html;
+
+        // Each table's hidden footer holds the widest rows from both fuel types, so its columns are as wide
+        // as the other's: the unleaded table is sized for the diesel van's longer name.
+        var footers = Regex.Matches(html, @"<tfoot class=""column-sizer"" aria-hidden=""true"">(.*?)</tfoot>", RegexOptions.Singleline)
+            .Select(m => m.Groups[1].Value).ToList();
+        Assert.Equal(2, footers.Count);
+        Assert.Equal(footers[0], footers[1]);
+        Assert.Contains(">Volkswagen Transporter Kombi</a>", footers[0]);
+        Assert.Contains(">Test Car</a>", footers[0]);   // every vehicle name, as letters' widths vary
+        var unleadedBody = Regex.Match(html[html.IndexOf("id=\"fuel-Unleaded\"")..], "<tbody>.*?</tbody>", RegexOptions.Singleline).Value;
+        Assert.DoesNotContain("Volkswagen", unleadedBody);
+
+        // DataTables mustn't fix the widths from each table's own rows, and the figures are sized by their number of
+        // characters, so every digit has to be the same width.
+        Assert.Contains("autoWidth: false", (await client.GetAsync("/js/fuel-table.js")).Html);
+        var css = (await client.GetAsync(Regex.Match(html, @"href=""(/css/site[^""]*\.css)""").Groups[1].Value)).Html;
+        Assert.Matches(@"\.table-fuel td, \.table-fuel th \{[^}]*font-variant-numeric: tabular-nums", css);
+    }
+
+    [DatabaseFact]
+    public async Task A_station_with_one_fuel_type_has_no_fuel_type_tabs()
+    {
+        var client = await SeedAsync();
+        var stations = await client.GetAsync((await client.GetAsync("/FuelBrands")).RowLink("Beta", "Stations")!);
+        var page = await client.GetAsync(stations.RowLink("Village", "Fill-ups and prices")!);
+        Assert.DoesNotContain("role=\"tablist\"", page.Html);
+        Assert.Contains("id=\"fuel-Unleaded\"", page.Html);
+        Assert.Contains("03/01/2026", page.Html);
     }
 
     [DatabaseFact]

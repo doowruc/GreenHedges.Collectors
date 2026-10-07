@@ -76,15 +76,22 @@ public class FuelPagesTests(AppFactory app) : DatabaseTest, IClassFixture<AppFac
             FillUp(vehicleId, ("", "village"), ("Gamma", "Hamlet")));
         Assert.Equal(HttpStatusCode.Redirect, saved.Status);
 
-        // Brand and station share one "Fuel Station" column, on the combined log and the vehicle's page.
+        // Brand and station share one "Fuel Station" column, on the combined log and the vehicle's page,
+        // each stop linking to its station's page, opened at the vehicle's fuel type.
+        const string link = @"<a href=""/FuelBrands/\d+/Stations/\d+\?fuelType=Unleaded"">";
         foreach (var url in new[] { "/FuelLog", $"/FuelLog?vehicleId={vehicleId}", $"/Vehicles/Details/{vehicleId}" })
         {
-            var log = (await client.GetAsync(url)).Text;
+            var log = Regex.Replace((await client.GetAsync(url)).Text, @"\s+", " ");
             Assert.Contains("<th>Fuel Station</th>", log);
             Assert.DoesNotContain("<th>Brand</th>", log);
-            Assert.Contains("<td>Beta Village + Gamma Hamlet</td>", log);
-            Assert.Contains("<td>Beta Village</td>", log);   // the seeded single-station fill-up
+            Assert.Matches($"<td> {link}Beta Village</a> \\+ {link}Gamma Hamlet</a> </td>", log);
+            Assert.Matches($"<td> {link}Beta Village</a> </td>", log);   // the seeded single-station fill-up
         }
+
+        var hamlet = PageResponse.Href(Regex.Match((await client.GetAsync("/FuelLog")).Html, "<a [^>]*>Gamma Hamlet</a>").Value)!;
+        var station = await client.GetAsync(hamlet);
+        Assert.Equal(HttpStatusCode.OK, station.Status);
+        Assert.Contains("<h1 class=\"h3 mb-0\">Gamma Hamlet</h1>", station.Html);
     }
 
     [DatabaseFact]
@@ -157,7 +164,8 @@ public class FuelPagesTests(AppFactory app) : DatabaseTest, IClassFixture<AppFac
             await TestData.AddFillUpAsync(db, firstVehicleId, new DateOnly(2026, 1, 2), ("Beta", "Village"));
         }
         var log = (await client.GetAsync("/FuelLog")).Html;
-        var vehicles = Regex.Matches(log, @"<td data-order=""([\d-]+)"">[^<]*</td>\s*<td><a [^>]*>([^<]+)</a></td>")
+        var body = Regex.Match(log, "<tbody>.*</tbody>", RegexOptions.Singleline).Value;   // not the footer's sizing rows
+        var vehicles = Regex.Matches(body, @"<td data-order=""([\d-]+)"">[^<]*</td>\s*<td><a [^>]*>([^<]+)</a></td>")
             .Select(m => $"{m.Groups[1].Value} {m.Groups[2].Value}").ToList();
         Assert.Equal(["2026-01-02 Test Car", "2026-01-01 Alpha Van", "2026-01-01 Test Car"], vehicles);
         Assert.Contains("<th data-column=\"vehicle\">Vehicle</th>", log);   // how fuel-table.js finds the column to sort by

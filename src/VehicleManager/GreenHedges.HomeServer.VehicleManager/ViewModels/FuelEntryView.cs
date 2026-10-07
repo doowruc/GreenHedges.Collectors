@@ -10,6 +10,8 @@ public class FuelEntryView
     public int Id { get; init; }
     public int VehicleId { get; init; }
     public string VehicleName { get; init; } = string.Empty;
+    /// <summary>The vehicle's fuel type, i.e. what this fill-up bought.</summary>
+    public FuelType FuelType { get; init; }
     public DateOnly Date { get; init; }
     public List<FuelStopView> Stops { get; init; } = [];
     public decimal Litres { get; init; }
@@ -25,9 +27,10 @@ public class FuelEntryView
         Id = f.Id,
         VehicleId = f.VehicleId,
         VehicleName = f.Vehicle!.Make + " " + f.Vehicle.Model,
+        FuelType = f.Vehicle.FuelType,
         Date = f.Date,
         Stops = f.Stops.OrderBy(s => s.Sequence)
-            .Select(s => new FuelStopView(s.FuelStation!.FuelBrand!.Name, s.FuelStation.Name))
+            .Select(s => new FuelStopView(s.FuelStation!.FuelBrandId, s.FuelStation.FuelBrand!.Name, s.FuelStationId, s.FuelStation.Name))
             .ToList(),
         Litres = f.Litres,
         CostPerLitre = f.CostPerLitre,
@@ -69,4 +72,5 @@ public class FuelEntryView
         TripMiles is > 0 ? Math.Round(TotalCost / TripMiles.Value, 3) : null;
 }
 
-public record FuelStopView(string Brand, string Station);
+/// <summary>One stop of a fill-up; the ids are for linking to the station's page.</summary>
+public record FuelStopView(int BrandId, string Brand, int StationId, string Station);

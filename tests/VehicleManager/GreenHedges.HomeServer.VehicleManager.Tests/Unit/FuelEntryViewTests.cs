@@ -37,7 +37,7 @@ public class FuelEntryViewTests
     [Fact]
     public void Split_fill_up_shows_brands_and_stations_in_order()
     {
-        var e = new FuelEntryView { Stops = [new("BP", "Oak Lane"), new("Sainsbury's", "Hill Top")] };
+        var e = new FuelEntryView { Stops = [new(1, "BP", 1, "Oak Lane"), new(2, "Sainsbury's", 2, "Hill Top")] };
         Assert.Equal("BP + Sainsbury's", e.Brand);
         Assert.Equal("Oak Lane + Hill Top", e.Station);
         Assert.Equal("BP Oak Lane + Sainsbury's Hill Top", e.FuelStation);
@@ -45,5 +45,5 @@ public class FuelEntryViewTests
 
     [Fact]
     public void Single_stop_fuel_station_is_brand_then_station() =>
-        Assert.Equal("Shell Meadowbank", new FuelEntryView { Stops = [new("Shell", "Meadowbank")] }.FuelStation);
+        Assert.Equal("Shell Meadowbank", new FuelEntryView { Stops = [new(1, "Shell", 1, "Meadowbank")] }.FuelStation);
 }

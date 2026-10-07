@@ -65,7 +65,8 @@ VehicleManager/
                BackupEmailer (emails a backup via Resend), ScheduledBackups (Coravel invocable, nightly)
   Pages/       Index (dashboard), Owners/*, Vehicles/*, FuelLog/* (log + fill-up pages), Import/*, Backup/* (Index, Restore), Settings/* (user menu), FuelBrands/* (+ Stations/* per brand),
                Account/* (Login, Logout, SignedOut), Shared/ (layout + partials)
-  wwwroot/     css/site.css, js/color-mode.js, js/period-toggle.js, js/fuel-table.js, js/typeahead.js (dropdown suggestions)
+  wwwroot/     css/site.css, js/color-mode.js, js/period-toggle.js, js/fuel-table.js, js/typeahead.js (dropdown suggestions),
+               js/price-chart.js (station price charts)
 ```
 
 ## Conventions and how things work
@@ -108,7 +109,7 @@ VehicleManager/
 - A station's brand is fixed, so a rebrand is a new station and history keeps the old brand. Names are case-insensitive: brands are unique per user, stations unique per brand (one location can have stations for several brands).
 - Forms take typed brand + station names. `Services/FuelStops.ValidateAsync` requires both (filling in the brand when only one brand has that station name); `SetStopsAsync` reuses or creates them and updates stops in place (marking the fill-up modified so its RowVersion check applies).
 - Brands with stations, and stations with fill-ups, can't be deleted (FK `Restrict`); merge them instead. Merging a brand moves its stations, combining same-named ones.
-- Fuel brands are managed at `/FuelBrands` (Manage menu); a brand's stations are a sub-page, `/FuelBrands/{brandId}/Stations/...` (`Pages/FuelBrands/Stations`, base `StationPageModel`, which 404s a station not under the brand in the URL). Links and redirects between station pages must pass `brandId`: ASP.NET doesn't carry a route value over to a different page, and the link comes out empty. `FuelPlaceList<T>` (`Pages/FuelBrands/FuelPlaceList.cs`) holds the database logic shared by both, with `FuelBrandList`/`FuelStationList` subclasses.
+- Fuel brands are managed at `/FuelBrands` (Manage menu); a brand's stations are a sub-page, `/FuelBrands/{brandId}/Stations/...` (`Pages/FuelBrands/Stations`, base `StationPageModel`, which 404s a station not under the brand in the URL). Links and redirects between station pages must pass `brandId`: ASP.NET doesn't carry a route value over to a different page, and the link comes out empty. A station's own page (`Stations/Details`, `/FuelBrands/{brandId}/Stations/{id}`) shows its fill-ups and a pump-price chart with a polynomial trend curve, one tab per fuel type (the vehicle's `FuelType`). `_FuelTable` links each stop there with `?fuelType=` of that row's vehicle, which picks the tab (else the latest fill-up's). `FuelPlaceList<T>` (`Pages/FuelBrands/FuelPlaceList.cs`) holds the database logic shared by both, with `FuelBrandList`/`FuelStationList` subclasses.
 - Fuel import de-duplicates on (vehicle, date, litres) so re-importing is safe. ClosedXML reads `CachedValue` so formula cells use Excel's saved results.
 
 **Backup / restore** (`/Backup`, `/Backup/Restore`, under Manage; scheduled backups set up at `/Settings`)
@@ -156,6 +157,12 @@ VehicleManager/
 - Cells whose text doesn't sort as-is carry `data-order` (dates as ISO, Real MPG, £/litre after voucher).
 - Defaults: 10 rows per page; sorted by Date (newest first) then Vehicle (A–Z, found by `<th data-column="vehicle">`, absent on a vehicle's page). The Fuel Log query returns the same order so nothing moves when DataTables starts. If you change the page size, change the `dt-pending` row limit in `site.css` too (a test checks they agree).
 - `dt-pending` on the wrapper shows only the first page of rows until DataTables has loaded (no jump); the script removes it in a `finally`, so the full table still shows if the CDN fails.
+- Column widths stay put while paging, searching or switching tables: `_FuelTable` repeats rows in an invisible,
+  zero-height `<tfoot class="column-sizer">` (`site.css`): the one with the most characters in each figure column (digits
+  are `tabular-nums`, so equal width) and one per distinct vehicle and station name. `fuel-table.js` sets DataTables up
+  without it (DataTables would rework it as column footers) and puts it back, with `autoWidth: false` (DataTables would
+  otherwise fix widths from each table's own rows). A page with several tables passes all their fill-ups in
+  `ViewData["SizeColumnsFrom"]` so they match (the station page's fuel type tabs).
 
 **General**
 - Prefer shared partials and small shared scripts over copying markup or JS between pages.
