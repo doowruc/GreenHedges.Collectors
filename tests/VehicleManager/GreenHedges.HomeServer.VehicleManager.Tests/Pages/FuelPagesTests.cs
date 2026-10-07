@@ -30,7 +30,7 @@ public class FuelPagesTests(AppFactory app) : DatabaseTest, IClassFixture<AppFac
     public async Task Add_fill_up_form_prefills_the_last_station_and_suggests_stations_with_brands()
     {
         var (client, _) = await SeedAsync();
-        var form = await client.GetAsync("/Fuel/Create");
+        var form = await client.GetAsync("/FuelLog/Create");
         Assert.Equal(HttpStatusCode.OK, form.Status);
         Assert.Contains("name=\"Entry.Stops[0].Station\"", form.Html);
         Assert.Matches("name=\"Entry.Stops\\[0\\].Station\"[^>]*value=\"Village\"", form.Html);
@@ -41,7 +41,7 @@ public class FuelPagesTests(AppFactory app) : DatabaseTest, IClassFixture<AppFac
     public async Task A_brand_without_a_station_is_rejected()
     {
         var (client, vehicleId) = await SeedAsync();
-        var saved = await client.PostFormAsync("/Fuel/Create", await client.GetAsync("/Fuel/Create"), FillUp(vehicleId, ("Gamma", "")));
+        var saved = await client.PostFormAsync("/FuelLog/Create", await client.GetAsync("/FuelLog/Create"), FillUp(vehicleId, ("Gamma", "")));
         Assert.Equal(HttpStatusCode.OK, saved.Status);
         Assert.Contains("Enter the station", saved.Errors);
     }
@@ -51,20 +51,26 @@ public class FuelPagesTests(AppFactory app) : DatabaseTest, IClassFixture<AppFac
     {
         var (client, vehicleId) = await SeedAsync();
         // "village" alone: Beta is the only brand with that station, so it's filled in.
-        var saved = await client.PostFormAsync("/Fuel/Create", await client.GetAsync("/Fuel/Create"),
+        var saved = await client.PostFormAsync("/FuelLog/Create", await client.GetAsync("/FuelLog/Create"),
             FillUp(vehicleId, ("", "village"), ("Gamma", "Hamlet")));
         Assert.Equal(HttpStatusCode.Redirect, saved.Status);
 
-        var log = (await client.GetAsync($"/Fuel?vehicleId={vehicleId}")).Text;
-        Assert.Contains("<td>Beta + Gamma</td>", log);
-        Assert.Contains("<td>Village + Hamlet</td>", log);
+        // Brand and station share one "Fuel Station" column, on the combined log and the vehicle's page.
+        foreach (var url in new[] { "/FuelLog", $"/FuelLog?vehicleId={vehicleId}", $"/Vehicles/Details/{vehicleId}" })
+        {
+            var log = (await client.GetAsync(url)).Text;
+            Assert.Contains("<th>Fuel Station</th>", log);
+            Assert.DoesNotContain("<th>Brand</th>", log);
+            Assert.Contains("<td>Beta Village + Gamma Hamlet</td>", log);
+            Assert.Contains("<td>Beta Village</td>", log);   // the seeded single-station fill-up
+        }
     }
 
     [DatabaseFact]
     public async Task Saving_over_someone_elses_change_shows_a_warning()
     {
         var (client, _) = await SeedAsync();
-        var edit = PageResponse.Href(Regex.Match((await client.GetAsync("/Fuel")).Html, "<a [^>]*title=\"Edit\"[^>]*>").Value)!;
+        var edit = PageResponse.Href(Regex.Match((await client.GetAsync("/FuelLog")).Html, "<a [^>]*title=\"Edit\"[^>]*>").Value)!;
         var tab1 = await client.GetAsync(edit);
         var tab2 = await client.GetAsync(edit);
 
@@ -73,5 +79,20 @@ public class FuelPagesTests(AppFactory app) : DatabaseTest, IClassFixture<AppFac
         var stale = await client.PostFormAsync(edit, tab2, new() { ["Entry.Litres"] = "42" });
         Assert.Equal(HttpStatusCode.OK, stale.Status);
         Assert.Contains("Someone changed this fill-up after you opened it", stale.Text);
+    }
+
+    [DatabaseFact]
+    public async Task Fuel_log_and_fill_up_pages_are_under_FuelLog()
+    {
+        var (client, _) = await SeedAsync();
+        var log = await client.GetAsync("/FuelLog");
+        Assert.Equal(HttpStatusCode.OK, log.Status);
+        Assert.Contains("<title>Fuel Log ", log.Html);
+        Assert.Contains("<h1 class=\"h3 mb-0\">Fuel Log</h1>", log.Html);
+        Assert.Matches(@"<a [^>]*href=""/FuelLog/Edit/\d+""", log.Html);
+        Assert.Matches(@"<a [^>]*href=""/FuelLog/Delete/\d+""", log.Html);
+        Assert.Matches(@"<a class=""btn btn-success btn-sm"" href=""/FuelLog/Create"">", log.Html);   // Add fill-up, in the menu bar
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync("/Fuel")).Status);          // the old addresses are gone
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync("/Fuel/Create")).Status);
     }
 }

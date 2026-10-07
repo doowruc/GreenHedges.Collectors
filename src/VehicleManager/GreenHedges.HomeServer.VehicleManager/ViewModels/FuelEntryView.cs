@@ -44,6 +44,9 @@ public class FuelEntryView
     /// <summary>The station, or stations joined with " + " for a split fill-up (same order as <see cref="Brand"/>).</summary>
     public string Station => Join(s => s.Station);
 
+    /// <summary>Brand and station together, e.g. "Shell Meadowbank"; "BP Oak Lane + Shell Meadowbank" for a split fill-up.</summary>
+    public string FuelStation => Join(s => $"{s.Brand} {s.Station}");
+
     private string Join(Func<FuelStopView, string> name) => string.Join(" + ", Stops.Select(name));
 
     // --- Calculated values ---

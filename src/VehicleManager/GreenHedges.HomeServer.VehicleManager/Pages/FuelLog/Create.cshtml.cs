@@ -5,7 +5,7 @@ using VehicleManager.Models;
 using VehicleManager.Services;
 using VehicleManager.ViewModels;
 
-namespace VehicleManager.Pages.Fuel;
+namespace VehicleManager.Pages.FuelLog;
 
 public class CreateModel(AppDbContext db, FuelStops stops) : FuelFormPageModel(db, stops)
 {

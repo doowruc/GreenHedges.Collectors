@@ -6,7 +6,7 @@ using VehicleManager.Data;
 using VehicleManager.Services;
 using VehicleManager.ViewModels;
 
-namespace VehicleManager.Pages.Fuel;
+namespace VehicleManager.Pages.FuelLog;
 
 /// <summary>Shared plumbing for the Create and Edit fill-up pages.</summary>
 public abstract class FuelFormPageModel(AppDbContext db, FuelStops stops) : PageModel

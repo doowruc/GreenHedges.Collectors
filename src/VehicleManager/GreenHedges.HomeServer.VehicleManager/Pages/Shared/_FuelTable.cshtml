@@ -8,10 +8,10 @@
         <tr>
             <th>Date</th>
             @if (showVehicle) { <th>Vehicle</th> }
-            <th>Brand</th><th>Station</th>
-            <th class="text-end">Litres</th><th class="text-end">£/litre</th><th class="text-end">Cost</th>
-            <th class="text-end">Trip miles</th><th class="text-end">Dash MPG</th><th class="text-end">Real MPG</th>
-            <th class="text-end">Range</th><th class="text-end">Odometer</th><th class="text-end">p/mile</th><th></th>
+            <th>Fuel Station</th>
+            <th class="text-end">Litres</th><th class="text-end">£/Litre</th><th class="text-end">Cost</th>
+            <th class="text-end">Trip Miles</th><th class="text-end">Dash MPG</th><th class="text-end">Real MPG</th>
+            <th class="text-end">Range</th><th class="text-end">Odometer</th><th class="text-end">p/Mile</th><th></th>
         </tr>
     </thead>
     <tbody>
@@ -24,8 +24,7 @@
             {
                 <td><a asp-page="/Vehicles/Details" asp-route-id="@f.VehicleId">@f.VehicleName</a></td>
             }
-            <td>@f.Brand</td>
-            <td>@f.Station</td>
+            <td>@f.FuelStation</td>
             <td class="text-end">@f.Litres.ToString("0.00")</td>
             <td class="text-end">
                 @f.EffectiveCostPerLitre.ToString("0.000")
@@ -45,8 +44,8 @@
             <td class="text-end">@f.Odometer?.ToString("N0")</td>
             <td class="text-end">@(f.CostPerMile is { } c ? (c * 100).ToString("0.0") : "")</td>
             <td class="text-end text-nowrap">
-                <a asp-page="/Fuel/Edit" asp-route-id="@f.Id" class="btn btn-sm btn-link p-0 me-2" title="Edit"><i class="bi bi-pencil"></i></a>
-                <a asp-page="/Fuel/Delete" asp-route-id="@f.Id" class="btn btn-sm btn-link p-0 text-danger" title="Delete"><i class="bi bi-trash"></i></a>
+                <a asp-page="/FuelLog/Edit" asp-route-id="@f.Id" class="btn btn-sm btn-link p-0 me-2" title="Edit"><i class="bi bi-pencil"></i></a>
+                <a asp-page="/FuelLog/Delete" asp-route-id="@f.Id" class="btn btn-sm btn-link p-0 text-danger" title="Delete"><i class="bi bi-trash"></i></a>
             </td>
         </tr>
     }

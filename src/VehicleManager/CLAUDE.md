@@ -60,7 +60,7 @@ VehicleManager/
                DesignTimeDbContextFactory, Migrations/
   Services/    FuelStatsService (summaries), FuelImportService (ClosedXML .xlsx import), FuelCalculations,
                CurrentUser, AllowedUsers, ExistingDataClaim, FuelStops (typed names → stops)
-  Pages/       Index (dashboard), Owners/*, Vehicles/*, Fuel/*, Import/*, FuelBrands/* (+ Stations/* per brand),
+  Pages/       Index (dashboard), Owners/*, Vehicles/*, FuelLog/* (log + fill-up pages), Import/*, FuelBrands/* (+ Stations/* per brand),
                Account/* (Login, Logout, SignedOut), Shared/ (layout + partials)
   wwwroot/     css/site.css, js/color-mode.js, js/period-toggle.js
 ```
@@ -114,7 +114,7 @@ VehicleManager/
 - `Account/Login` challenges Auth0 and only accepts local return URLs. `Account/Logout` is POST-only and anonymous (so a denied user can switch account). It signs out of both the cookie and Auth0, returning to `Account/SignedOut`.
 - To test locally without real credentials, set `AllowedEmails` and the `Auth0__*` env vars to dummy values (e.g. `samples.auth0.com`). Pages then redirect to Auth0 but you can't get past sign-in. Don't sign in with a real account from automated tests.
 
-**Routing**: path ids, e.g. `/Vehicles/Details/1`, `/Fuel/Edit/5`.
+**Routing**: path ids, e.g. `/Vehicles/Details/1`, `/FuelLog/Edit/5`.
 
 **Light / dark mode**
 - Bootstrap's `data-bs-theme` on `<html>`, set by `wwwroot/js/color-mode.js`. It's loaded synchronously in `<head>` so there's no flash.

@@ -40,5 +40,10 @@ public class FuelEntryViewTests
         var e = new FuelEntryView { Stops = [new("BP", "Oak Lane"), new("Sainsbury's", "Hill Top")] };
         Assert.Equal("BP + Sainsbury's", e.Brand);
         Assert.Equal("Oak Lane + Hill Top", e.Station);
+        Assert.Equal("BP Oak Lane + Sainsbury's Hill Top", e.FuelStation);
     }
+
+    [Fact]
+    public void Single_stop_fuel_station_is_brand_then_station() =>
+        Assert.Equal("Shell Meadowbank", new FuelEntryView { Stops = [new("Shell", "Meadowbank")] }.FuelStation);
 }

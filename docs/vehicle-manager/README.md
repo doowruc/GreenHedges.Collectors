@@ -98,7 +98,7 @@ can't be deleted while they still own vehicles.
 Registration numbers are normalised to upper case and must be unique (per user). Vehicles that existed before
 owners were added are assigned to an "Unassigned" owner; rename it or reassign the vehicles.
 
-**Fuel log** (per vehicle) – date, fuel brand and station, litres, cost per litre, optional
+**Fuel Log** (per vehicle) – date, fuel brand and station, litres, cost per litre, optional
 voucher discount per litre, and trip computer figures (average MPG, trip miles, range, odometer).
 The form pre-fills the brand and station from your last fill-up and shows the total cost,
 real MPG and odometer change as you type. For a **split fill-up** (topped up at two stations),
@@ -126,7 +126,7 @@ Merging a fuel brand moves its stations to the other brand, combining any with t
 
 **Dashboard** – one card per vehicle with 12-month MPG, spend, odometer and last fill-up.
 **Vehicle page** – last-12-months / all-time stats, an MPG and fuel-price chart, and the full log.
-**Fuel log page** – all fill-ups, filterable by vehicle and year.
+**Fuel Log page** (`/FuelLog`) – all fill-ups, filterable by vehicle and year.
 **Light / dark mode** – follows your system setting by default; pick Light, Dark or System from the
 theme menu in the navigation bar. The choice is remembered per browser.
 
@@ -152,7 +152,7 @@ VehicleManager/
   ViewModels/    View (output) and input models used by the pages, with the calculated figures
   Data/          AppDbContext (EF Core + SQL Server), DatabaseMigrator, Migrations/
   Services/      FuelStatsService, FuelImportService (reads .xlsx via ClosedXML), FuelStops
-  Pages/         Dashboard, Owners/*, Vehicles/*, Fuel/*, Import/*, FuelBrands/* (and each brand's Stations/*),
+  Pages/         Dashboard, Owners/*, Vehicles/*, FuelLog/* (log + fill-up pages), Import/*, FuelBrands/* (and each brand's Stations/*),
                  Account/* (sign in/out)
 VehicleManager.Tests/
   Unit/, Data/, Pages/   unit, database and in-memory page tests; Infrastructure/ holds the helpers

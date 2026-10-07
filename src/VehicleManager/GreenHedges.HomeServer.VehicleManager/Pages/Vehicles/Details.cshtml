@@ -17,7 +17,7 @@
         {
             <select id="vehicle-switcher" class="form-select w-auto" aria-label="Switch vehicle" asp-items="Model.VehicleOptions"></select>
         }
-        <a asp-page="/Fuel/Create" asp-route-vehicleId="@Model.Vehicle.Id" class="btn btn-success"><i class="bi bi-fuel-pump me-1"></i>Add fill-up</a>
+        <a asp-page="/FuelLog/Create" asp-route-vehicleId="@Model.Vehicle.Id" class="btn btn-success"><i class="bi bi-fuel-pump me-1"></i>Add fill-up</a>
         <a asp-page="Edit" asp-route-id="@Model.Vehicle.Id" class="btn btn-outline-secondary">Edit</a>
         <a asp-page="Delete" asp-route-id="@Model.Vehicle.Id" class="btn btn-outline-danger">Delete</a>
     </div>
@@ -26,7 +26,7 @@
 @if (Model.Entries.Count == 0)
 {
     <div class="alert alert-info">
-        No fill-ups recorded yet. <a asp-page="/Fuel/Create" asp-route-vehicleId="@Model.Vehicle.Id">Add one</a>
+        No fill-ups recorded yet. <a asp-page="/FuelLog/Create" asp-route-vehicleId="@Model.Vehicle.Id">Add one</a>
         or <a asp-page="/Import/Index">import from your spreadsheet</a>.
     </div>
 }
@@ -44,7 +44,7 @@ else
     </div>
 
     <div class="card shadow-sm">
-        <div class="card-header bg-body fw-semibold">Fuel log (@Model.Entries.Count)</div>
+        <div class="card-header bg-body fw-semibold">Fuel Log (@Model.Entries.Count)</div>
         <partial name="_FuelTable" model="Model.Entries" />
     </div>
 }

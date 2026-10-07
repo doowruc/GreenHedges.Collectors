@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using VehicleManager.Data;
 using VehicleManager.ViewModels;
 
-namespace VehicleManager.Pages.Fuel;
+namespace VehicleManager.Pages.FuelLog;
 
 public class DeleteModel(AppDbContext db) : PageModel
 {

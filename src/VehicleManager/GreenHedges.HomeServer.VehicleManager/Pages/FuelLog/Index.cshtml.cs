@@ -6,7 +6,7 @@ using VehicleManager.Data;
 using VehicleManager.Services;
 using VehicleManager.ViewModels;
 
-namespace VehicleManager.Pages.Fuel;
+namespace VehicleManager.Pages.FuelLog;
 
 public class IndexModel(AppDbContext db, FuelStatsService stats) : PageModel
 {

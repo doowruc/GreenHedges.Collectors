@@ -18,7 +18,7 @@ else
             <thead class="table-head">
                 <tr>
                     <th>Registration</th><th>Vehicle</th><th>Owner</th><th>Type</th>
-                    <th>Registered</th><th>Purchased</th><th class="text-end">Fill-ups</th><th></th>
+                    <th>Registered</th><th>Purchased</th><th class="text-end">Fill-Ups</th><th></th>
                 </tr>
             </thead>
             <tbody>
@@ -33,7 +33,7 @@ else
                     <td>@v.Vehicle.PurchasedDate?.ToString("dd/MM/yyyy")</td>
                     <td class="text-end">@v.FillUps</td>
                     <td class="text-end text-nowrap">
-                        <a asp-page="/Fuel/Create" asp-route-vehicleId="@v.Vehicle.Id" class="btn btn-sm btn-outline-success" title="Add fill-up"><i class="bi bi-fuel-pump"></i></a>
+                        <a asp-page="/FuelLog/Create" asp-route-vehicleId="@v.Vehicle.Id" class="btn btn-sm btn-outline-success" title="Add fill-up"><i class="bi bi-fuel-pump"></i></a>
                         <a asp-page="Edit" asp-route-id="@v.Vehicle.Id" class="btn btn-sm btn-outline-secondary" title="Edit"><i class="bi bi-pencil"></i></a>
                         <a asp-page="Delete" asp-route-id="@v.Vehicle.Id" class="btn btn-sm btn-outline-danger" title="Delete"><i class="bi bi-trash"></i></a>
                     </td>
