@@ -12,6 +12,10 @@ public class VehicleInput
     [Required]
     public VehicleType Type { get; set; } = VehicleType.Car;
 
+    [Required]
+    [Display(Name = "Fuel type")]
+    public FuelType FuelType { get; set; } = FuelType.Unleaded;
+
     [Required, StringLength(50)]
     public string Make { get; set; } = string.Empty;
 
@@ -39,6 +43,7 @@ public class VehicleInput
     {
         OwnerId = v.OwnerId,
         Type = v.Type,
+        FuelType = v.FuelType,
         Make = v.Make,
         Model = v.Model,
         RegistrationNumber = v.RegistrationNumber,
@@ -51,6 +56,7 @@ public class VehicleInput
     {
         vehicle.OwnerId = OwnerId;
         vehicle.Type = Type;
+        vehicle.FuelType = FuelType;
         vehicle.Make = Make;
         vehicle.Model = Model;
         vehicle.RegistrationNumber = RegistrationNumber;

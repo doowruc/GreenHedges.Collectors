@@ -6,7 +6,7 @@
     <div>
         <h1 class="h3 mb-1">@Model.Vehicle.DisplayName <span class="reg-plate fs-6 align-middle">@Model.Vehicle.RegistrationNumber</span></h1>
         <div class="text-muted small">
-            @Model.Vehicle.Type · Owned by @Model.Vehicle.OwnerName
+            @Model.Vehicle.Type · @Model.Vehicle.FuelType · Owned by @Model.Vehicle.OwnerName
             @if (Model.Vehicle.RegistrationDate is { } rd) { <text> · Registered @rd.ToString("dd MMM yyyy")</text> }
             @if (Model.Vehicle.PurchasedDate is { } pd) { <text> · Purchased @pd.ToString("dd MMM yyyy")</text> }
             @if (Model.AllTime.LatestOdometer is { } odo) { <text> · @odo.ToString("N0") miles</text> }

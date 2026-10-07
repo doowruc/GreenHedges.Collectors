@@ -4,12 +4,14 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Resend;
+using VehicleManager.Data;
 
 namespace VehicleManager.Tests.Infrastructure;
 
@@ -17,7 +19,8 @@ namespace VehicleManager.Tests.Infrastructure;
 /// Runs the app in memory against the test database. Auth0 is replaced by a test sign-in: a
 /// request is signed in as the user named in its <see cref="UserHeader"/> (see <see cref="ClientFor"/>),
 /// with an allowed, verified email; a request without it isn't signed in. Email goes to
-/// <see cref="FakeResend"/>, and the scheduler doesn't run.
+/// <see cref="FakeResend"/>, the scheduler doesn't run, and pending migrations aren't applied (the
+/// tests refuse to run until they are).
 /// </summary>
 public sealed class AppFactory : WebApplicationFactory<Program>
 {
@@ -34,6 +37,9 @@ public sealed class AppFactory : WebApplicationFactory<Program>
         Environment.SetEnvironmentVariable("Auth0__ClientSecret", "tests");
         Environment.SetEnvironmentVariable("Resend__ApiKey", "tests");
         Environment.SetEnvironmentVariable("Resend__From", "Vehicle Manager <backups@tests.invalid>");
+
+        // Never apply migrations to the real database from tests: run the app and ask first.
+        Environment.SetEnvironmentVariable("MigrateOnStartup", "false");
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -55,6 +61,17 @@ public sealed class AppFactory : WebApplicationFactory<Program>
                                                           d.ImplementationType?.Namespace?.StartsWith("Coravel") == true).ToList())
                 services.Remove(scheduler);
         });
+    }
+
+    protected override IHost CreateHost(IHostBuilder builder)
+    {
+        var host = base.CreateHost(builder);
+        using var scope = host.Services.CreateScope();
+        var pending = scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.GetPendingMigrations().ToList();
+        if (pending.Count > 0)
+            throw new InvalidOperationException(
+                $"The database has pending migrations ({string.Join(", ", pending)}). Tests don't apply them: run the app to apply them first.");
+        return host;
     }
 
     /// <summary>A client signed in as <paramref name="userId"/>, or not signed in if null. Doesn't follow redirects.</summary>

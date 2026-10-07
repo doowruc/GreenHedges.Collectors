@@ -18,7 +18,7 @@ public class BackupFileTests
             Version = BackupFile.CurrentVersion,
             CreatedDate = new DateTime(2026, 10, 7, 9, 0, 0, DateTimeKind.Utc),
             Owners = [new() { Id = 1, Name = "Me", AddedDate = Added, AddedBy = "auth0|me" }],
-            Vehicles = [new() { Id = 2, OwnerId = 1, Type = VehicleType.Van, Make = "Ford", Model = "Transit", RegistrationNumber = "AB12 CDE" }],
+            Vehicles = [new() { Id = 2, OwnerId = 1, Type = VehicleType.Van, FuelType = FuelType.Diesel, Make = "Ford", Model = "Transit", RegistrationNumber = "AB12 CDE" }],
             FuelBrands = [new() { Id = 3, Name = "Shell" }, new() { Id = 4, Name = "BP" }],
             FuelStations = [new() { Id = 5, FuelBrandId = 3, Name = "Meadowbank" }, new() { Id = 6, FuelBrandId = 4, Name = "Oak Lane" }],
             FuelEntries = [new() { Id = 7, VehicleId = 2, Date = new DateOnly(2026, 1, 2), Litres = 40.5m, CostPerLitre = 1.459m, Notes = "Split" }],
@@ -59,6 +59,7 @@ public class BackupFileTests
         var json = Json(Sample());
         Assert.Contains("\"addedDate\": \"2025-03-04T10:20:30Z\"", json);
         Assert.Contains("\"type\": \"Van\"", json);
+        Assert.Contains("\"fuelType\": \"Diesel\"", json);
         Assert.Contains("\"date\": \"2026-01-02\"", json);
     }
 
@@ -69,6 +70,20 @@ public class BackupFileTests
     [InlineData("{\"owners\": []}")]
     [InlineData("{\"format\": \"something-else\", \"version\": 1, \"createdDate\": \"2026-01-01T00:00:00Z\"}")]
     public void Rejects_a_file_that_isnt_a_backup(string json) => ReadError(json);
+
+    [Fact]
+    public void Vehicles_in_a_backup_made_before_fuel_types_are_unleaded()
+    {
+        var json = Json(Sample()).Replace("\"fuelType\": \"Diesel\",", "");
+        Assert.DoesNotContain("fuelType", json);
+        Assert.Equal(FuelType.Unleaded, Read(json).Vehicles.Single().FuelType);
+    }
+
+    [Theory]
+    [InlineData("\"Hydrogen\"")]
+    [InlineData("5")]
+    public void Rejects_an_unknown_fuel_type(string value) =>
+        ReadError(Json(Sample()).Replace("\"fuelType\": \"Diesel\"", $"\"fuelType\": {value}"));
 
     [Fact]
     public void Rejects_a_newer_version() =>

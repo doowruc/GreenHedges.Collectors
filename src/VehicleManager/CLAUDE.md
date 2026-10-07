@@ -32,7 +32,8 @@ so test pages through the in-memory host rather than relying on the browser.
 - `Pages/` – the whole app in memory (`Infrastructure/AppFactory`, a `WebApplicationFactory<Program>`). It loads pages,
   follows links and submits forms through `PageClient`, which sends a form's current values like a browser.
   Auth0 is replaced by a test sign-in, as whichever user the client is for; Auth0 and Resend settings and `AllowedEmails` are
-  overridden with dummy values via environment variables.
+  overridden with dummy values via environment variables. It sets `MigrateOnStartup=false`, so tests never apply
+  migrations; they refuse to run while any are pending (run the app to apply them, after asking me).
 - Database tests use the real database, so they must never touch real data. Derive from `DatabaseTest`: each test
   runs as its own throwaway `test|<guid>` user, which the per-user query filters keep apart, and
   `TestDatabase.DeleteUserDataAsync` removes everything it owns afterwards (it refuses any other user id).

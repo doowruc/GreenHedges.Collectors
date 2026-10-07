@@ -11,6 +11,12 @@ public enum VehicleType
     Other
 }
 
+public enum FuelType
+{
+    Unleaded,
+    Diesel
+}
+
 /// <summary>A stored vehicle. Pages use <c>VehicleView</c> / <c>VehicleInput</c> rather than this entity.</summary>
 public class Vehicle : AuditedEntity, IUserOwned
 {
@@ -23,6 +29,7 @@ public class Vehicle : AuditedEntity, IUserOwned
     public Owner? Owner { get; set; }
 
     public VehicleType Type { get; set; } = VehicleType.Car;
+    public FuelType FuelType { get; set; } = FuelType.Unleaded;
 
     [Required, StringLength(50)]
     public string Make { get; set; } = string.Empty;

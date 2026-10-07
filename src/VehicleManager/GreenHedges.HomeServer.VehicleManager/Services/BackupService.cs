@@ -23,7 +23,7 @@ public class BackupService(AppDbContext db)
         }).ToListAsync(),
         Vehicles = await db.Vehicles.OrderBy(v => v.Id).Select(v => new VehicleBackup
         {
-            Id = v.Id, OwnerId = v.OwnerId, Type = v.Type, Make = v.Make, Model = v.Model,
+            Id = v.Id, OwnerId = v.OwnerId, Type = v.Type, FuelType = v.FuelType, Make = v.Make, Model = v.Model,
             RegistrationNumber = v.RegistrationNumber, RegistrationDate = v.RegistrationDate, PurchasedDate = v.PurchasedDate,
             AddedDate = v.AddedDate, AddedBy = v.AddedBy, ModifiedDate = v.ModifiedDate, ModifiedBy = v.ModifiedBy
         }).ToListAsync(),
@@ -87,7 +87,7 @@ public class BackupService(AppDbContext db)
         var owners = backup.Owners.ToDictionary(o => o.Id, o => Audited(o, new Owner { Name = o.Name }));
         var vehicles = backup.Vehicles.ToDictionary(v => v.Id, v => Audited(v, new Vehicle
         {
-            Owner = owners[v.OwnerId], Type = v.Type, Make = v.Make, Model = v.Model,
+            Owner = owners[v.OwnerId], Type = v.Type, FuelType = v.FuelType, Make = v.Make, Model = v.Model,
             RegistrationNumber = v.RegistrationNumber, RegistrationDate = v.RegistrationDate, PurchasedDate = v.PurchasedDate
         }));
         var brands = backup.FuelBrands.ToDictionary(b => b.Id, b => Audited(b, new FuelBrand { Name = b.Name }));

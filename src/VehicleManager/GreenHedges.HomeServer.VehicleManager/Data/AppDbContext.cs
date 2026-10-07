@@ -47,6 +47,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, CurrentUser? c
         {
             e.HasQueryFilter(v => v.UserId == CurrentUserId);
             e.Property(v => v.Type).HasConversion<string>().HasMaxLength(20);
+            e.Property(v => v.FuelType).HasConversion<string>().HasMaxLength(20);
             e.HasIndex(v => new { v.UserId, v.RegistrationNumber }).IsUnique();
             e.HasMany(v => v.FuelEntries)
              .WithOne(f => f.Vehicle)

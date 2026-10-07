@@ -12,6 +12,7 @@ public class BackupServiceTests : DatabaseTest
     private async Task SeedAsync(AppDbContext db)
     {
         var vehicle = await TestData.AddVehicleAsync(db, "BACK 1");
+        vehicle.FuelType = FuelType.Diesel;
         await TestData.AddFillUpAsync(db, vehicle.Id, new DateOnly(2026, 1, 1), ("Shell", "Meadowbank"));
         var split = await TestData.AddFillUpAsync(db, vehicle.Id, new DateOnly(2026, 2, 1), ("BP", "Oak Lane"), ("Shell", "Meadowbank"));
         split.Notes = "Split";
@@ -23,7 +24,7 @@ public class BackupServiceTests : DatabaseTest
     private static async Task<List<string>> ContentsAsync(AppDbContext db) =>
     [
         .. await db.Owners.Select(o => $"owner {o.Name} user={o.UserId} {o.AddedBy} {o.AddedDate:O}").ToListAsync(),
-        .. await db.Vehicles.Select(v => $"vehicle {v.RegistrationNumber} {v.Owner!.Name} {v.Make} {v.Model} user={v.UserId} {v.AddedDate:O}").ToListAsync(),
+        .. await db.Vehicles.Select(v => $"vehicle {v.RegistrationNumber} {v.Owner!.Name} {v.Make} {v.Model} {v.FuelType} user={v.UserId} {v.AddedDate:O}").ToListAsync(),
         .. await db.FuelBrands.Select(b => $"brand {b.Name} user={b.UserId} {b.AddedDate:O} {b.ModifiedDate:O}").ToListAsync(),
         .. await db.FuelStations.Select(s => $"station {s.FuelBrand!.Name}@{s.Name} user={s.UserId}").ToListAsync(),
         .. await db.FuelEntries.Select(f => $"fill-up {f.Vehicle!.RegistrationNumber} {f.Date} {f.Litres} {f.CostPerLitre} {f.Notes} {f.AddedBy}").ToListAsync(),

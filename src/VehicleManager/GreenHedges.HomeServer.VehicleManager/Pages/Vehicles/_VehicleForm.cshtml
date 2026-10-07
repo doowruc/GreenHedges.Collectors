@@ -22,6 +22,10 @@
         <select asp-for="Type" asp-items="Html.GetEnumSelectList<VehicleType>()" class="form-select"></select>
     </div>
     <div class="col-md-4">
+        <label asp-for="FuelType" class="form-label"></label>
+        <select asp-for="FuelType" asp-items="Html.GetEnumSelectList<FuelType>()" class="form-select"></select>
+    </div>
+    <div class="col-md-4">
         <label asp-for="Make" class="form-label"></label>
         <input asp-for="Make" class="form-control" placeholder="e.g. Mercedes" />
         <span asp-validation-for="Make" class="text-danger small"></span>

@@ -150,6 +150,7 @@ public sealed record BackupFile
         {
             if (!ownerIds.Contains(v.OwnerId)) errors.Add($"Vehicle {v.Id}'s owner ({v.OwnerId}) isn't in the backup.");
             if (!Enum.IsDefined(v.Type)) errors.Add($"Vehicle {v.Id}'s type ({v.Type}) isn't a vehicle type.");
+            if (!Enum.IsDefined(v.FuelType)) errors.Add($"Vehicle {v.Id}'s fuel type ({v.FuelType}) isn't a fuel type.");
             Text(v.Make, 50, $"Vehicle {v.Id}'s make", errors);
             Text(v.Model, 50, $"Vehicle {v.Id}'s model", errors);
             Text(v.RegistrationNumber, 15, $"Vehicle {v.Id}'s registration", errors);
@@ -239,6 +240,7 @@ public sealed record VehicleBackup : BackupRow
     public required int Id { get; init; }
     public required int OwnerId { get; init; }
     public VehicleType Type { get; init; }
+    public FuelType FuelType { get; init; } = FuelType.Unleaded;
     public required string Make { get; init; }
     public required string Model { get; init; }
     public required string RegistrationNumber { get; set; }

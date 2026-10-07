@@ -77,9 +77,11 @@ builder.Services.AddTransient<ScheduledBackups>();
 
 var app = builder.Build();
 
-// Create the tables on first run and apply any pending migrations.
-using (var scope = app.Services.CreateScope())
+// Create the tables on first run and apply any pending migrations. The tests turn this off, so
+// only the real app changes the database's schema.
+if (app.Configuration.GetValue("MigrateOnStartup", true))
 {
+    using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.MigrateDatabase(app.Logger);
 }
