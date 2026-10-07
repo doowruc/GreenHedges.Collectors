@@ -28,7 +28,7 @@ else
                         <a asp-page="/Vehicles/Details" asp-route-id="@d.VehicleId" class="text-decoration-none">@d.VehicleName</a>
                         <span class="reg-plate small ms-1">@d.RegistrationNumber</span>
                     </span>
-                    <span class="badge @d.BadgeClass">@d.Date.ToString("dd/MM/yyyy") · @d.When</span>
+                    <span class="badge @d.BadgeClass" title="@d.Detail">@d.DateText · @d.When@if (d.DueMileage is { } miles) { <text> · @miles.ToString("N0") mi</text> }</span>
                 </li>
             }
             </ul>

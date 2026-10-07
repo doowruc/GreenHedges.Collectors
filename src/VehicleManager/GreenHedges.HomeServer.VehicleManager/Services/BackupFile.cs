@@ -154,6 +154,7 @@ public sealed record BackupFile
             Text(v.Make, 50, $"Vehicle {v.Id}'s make", errors);
             Text(v.Model, 50, $"Vehicle {v.Id}'s model", errors);
             Text(v.RegistrationNumber, 15, $"Vehicle {v.Id}'s registration", errors);
+            if (v.ServiceDueMileage is <= 0) errors.Add($"Vehicle {v.Id}'s service due mileage ({v.ServiceDueMileage}) isn't a mileage.");
         }
         Unique(Vehicles, v => v.RegistrationNumber, v => $"There's more than one vehicle registered {v.RegistrationNumber}.", errors);
 
@@ -250,6 +251,7 @@ public sealed record VehicleBackup : BackupRow
     public DateOnly? TaxDueDate { get; init; }
     public DateOnly? InsuranceDueDate { get; init; }
     public DateOnly? ServiceDueDate { get; init; }
+    public int? ServiceDueMileage { get; init; }
 }
 
 public sealed record FuelBrandBackup : BackupRow

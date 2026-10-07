@@ -17,6 +17,7 @@ public class BackupServiceTests : DatabaseTest
         vehicle.TaxDueDate = new DateOnly(2027, 3, 1);
         vehicle.InsuranceDueDate = new DateOnly(2027, 1, 15);
         vehicle.ServiceDueDate = new DateOnly(2027, 6, 30);
+        vehicle.ServiceDueMileage = 45000;
         await TestData.AddFillUpAsync(db, vehicle.Id, new DateOnly(2026, 1, 1), ("Shell", "Meadowbank"));
         var split = await TestData.AddFillUpAsync(db, vehicle.Id, new DateOnly(2026, 2, 1), ("BP", "Oak Lane"), ("Shell", "Meadowbank"));
         split.Notes = "Split";
@@ -29,7 +30,7 @@ public class BackupServiceTests : DatabaseTest
     [
         .. await db.Owners.Select(o => $"owner {o.Name} user={o.UserId} {o.AddedBy} {o.AddedDate:O}").ToListAsync(),
         .. await db.Vehicles.Select(v => $"vehicle {v.RegistrationNumber} {v.Owner!.Name} {v.Make} {v.Model} {v.FuelType} user={v.UserId} {v.AddedDate:O} " +
-                                            $"mot={v.MotDueDate} tax={v.TaxDueDate} insurance={v.InsuranceDueDate} service={v.ServiceDueDate}").ToListAsync(),
+                                            $"mot={v.MotDueDate} tax={v.TaxDueDate} insurance={v.InsuranceDueDate} service={v.ServiceDueDate}/{v.ServiceDueMileage}").ToListAsync(),
         .. await db.FuelBrands.Select(b => $"brand {b.Name} user={b.UserId} {b.AddedDate:O} {b.ModifiedDate:O}").ToListAsync(),
         .. await db.FuelStations.Select(s => $"station {s.FuelBrand!.Name}@{s.Name} user={s.UserId}").ToListAsync(),
         .. await db.FuelEntries.Select(f => $"fill-up {f.Vehicle!.RegistrationNumber} {f.Date} {f.Litres} {f.CostPerLitre} {f.Notes} {f.AddedBy}").ToListAsync(),

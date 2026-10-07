@@ -48,6 +48,8 @@ public class Vehicle : AuditedEntity, IUserOwned
     public DateOnly? TaxDueDate { get; set; }
     public DateOnly? InsuranceDueDate { get; set; }
     public DateOnly? ServiceDueDate { get; set; }
+    /// <summary>The odometer reading the next service is due at; its date is estimated from recent fill-ups (Services/MileageTrend).</summary>
+    public int? ServiceDueMileage { get; set; }
 
     public List<FuelEntry> FuelEntries { get; set; } = [];
 }

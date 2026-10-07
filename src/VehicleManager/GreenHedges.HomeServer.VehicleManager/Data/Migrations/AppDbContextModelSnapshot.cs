@@ -313,6 +313,9 @@ namespace VehicleManager.Data.Migrations
                     b.Property<DateOnly>("DueDate")
                         .HasColumnType("date");
 
+                    b.Property<int?>("DueMileage")
+                        .HasColumnType("int");
+
                     b.Property<string>("Kind")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -337,7 +340,7 @@ namespace VehicleManager.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("VehicleId", "Kind", "DueDate", "DaysBefore")
+                    b.HasIndex("VehicleId", "Kind", "DueDate", "DueMileage", "DaysBefore")
                         .IsUnique();
 
                     b.ToTable("SentReminders");
@@ -468,6 +471,9 @@ namespace VehicleManager.Data.Migrations
 
                     b.Property<DateOnly?>("ServiceDueDate")
                         .HasColumnType("date");
+
+                    b.Property<int?>("ServiceDueMileage")
+                        .HasColumnType("int");
 
                     b.Property<DateOnly?>("TaxDueDate")
                         .HasColumnType("date");

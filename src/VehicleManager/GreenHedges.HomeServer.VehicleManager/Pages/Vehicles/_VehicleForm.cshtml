@@ -80,4 +80,13 @@
         <input asp-for="ServiceDueDate" class="form-control" />
         <span asp-validation-for="ServiceDueDate" class="text-danger small"></span>
     </div>
+    <div class="col-6 col-md-3">
+        <label asp-for="ServiceDueMileage" class="form-label"></label>
+        <input asp-for="ServiceDueMileage" class="form-control" inputmode="numeric" placeholder="e.g. 45000" />
+        <span asp-validation-for="ServiceDueMileage" class="text-danger small"></span>
+    </div>
+    <div class="col-12 col-md-9 form-text align-self-end">
+        A service is due at the date or the mileage, whichever comes first. The mileage's date is estimated from the
+        miles per month in your recent fill-ups.
+    </div>
 </div>

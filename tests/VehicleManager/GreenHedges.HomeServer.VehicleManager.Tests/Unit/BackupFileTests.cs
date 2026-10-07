@@ -86,6 +86,11 @@ public class BackupFileTests
         ReadError(Json(Sample()).Replace("\"fuelType\": \"Diesel\"", $"\"fuelType\": {value}"));
 
     [Fact]
+    public void Rejects_a_service_due_mileage_that_isnt_a_mileage() =>
+        Assert.Contains("Vehicle 2's service due mileage (0) isn't a mileage.",
+            ReadError(Sample(b => b with { Vehicles = [b.Vehicles[0] with { ServiceDueMileage = 0 }] })));
+
+    [Fact]
     public void Rejects_a_newer_version() =>
         Assert.Contains("version 2", ReadError(Sample(b => b with { Version = 2 })));
 

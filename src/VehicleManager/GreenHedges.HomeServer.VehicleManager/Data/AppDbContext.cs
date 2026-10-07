@@ -65,7 +65,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, CurrentUser? c
         {
             e.HasQueryFilter(r => r.Vehicle!.UserId == CurrentUserId);
             e.Property(r => r.Kind).HasConversion<string>().HasMaxLength(20);
-            e.HasIndex(r => new { r.VehicleId, r.Kind, r.DueDate, r.DaysBefore }).IsUnique();
+            // Unfiltered, so date-based reminders (no mileage) are unique too: SQL Server's unique index counts NULLs as equal.
+            e.HasIndex(r => new { r.VehicleId, r.Kind, r.DueDate, r.DueMileage, r.DaysBefore }).IsUnique().HasFilter(null);
         });
 
         modelBuilder.Entity<FuelEntry>(e =>

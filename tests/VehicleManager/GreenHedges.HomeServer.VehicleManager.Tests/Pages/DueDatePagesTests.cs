@@ -57,6 +57,48 @@ public class DueDatePagesTests(AppFactory app) : DatabaseTest, IClassFixture<App
     }
 
     [DatabaseFact]
+    public async Task A_service_due_by_mileage_is_estimated_from_recent_fill_ups()
+    {
+        int id;
+        await using (var db = Db())
+        {
+            id = (await TestData.AddVehicleAsync(db, FakeVehicleApis.NewRegistration())).Id;
+            (await TestData.AddFillUpAsync(db, id, Today.AddDays(-60), ("Shell", "Meadowbank"))).Odometer = 40000;
+            await db.SaveChangesAsync();
+        }
+        var client = app.ClientFor(UserId);
+
+        var edit = await client.GetAsync($"/Vehicles/Edit/{id}");
+        var saved = await client.PostFormAsync($"/Vehicles/Edit/{id}", edit, new() { ["Vehicle.ServiceDueMileage"] = "43000" });
+        Assert.True(saved.Status == HttpStatusCode.Redirect, saved.Errors);
+
+        // One reading isn't enough to estimate from.
+        Assert.Contains("Service due at 43,000 miles (not enough odometer readings to estimate when)", (await client.GetAsync($"/Vehicles/Details/{id}")).Text);
+
+        // 2,000 miles in 60 days, so the last 1,000 take 30 days.
+        await using (var db = Db())
+        {
+            (await TestData.AddFillUpAsync(db, id, Today, ("Shell", "Meadowbank"))).Odometer = 42000;
+            await db.SaveChangesAsync();
+        }
+        var details = await client.GetAsync($"/Vehicles/Details/{id}");
+        Assert.Contains($"Service ≈{Today.AddDays(30):dd/MM/yyyy} · in 30 days · 43,000 mi", details.Text);
+        Assert.Contains("about 1,015 miles a month lately", details.Text);
+        Assert.DoesNotContain("not enough odometer readings", details.Text);
+        Assert.Contains($"≈{Today.AddDays(30):dd/MM/yyyy} · in 30 days · 43,000 mi", (await client.GetAsync("/")).Text);
+    }
+
+    [DatabaseFact]
+    public async Task A_service_due_mileage_must_be_a_mileage()
+    {
+        int id;
+        await using (var db = Db()) id = (await TestData.AddVehicleAsync(db)).Id;
+        var client = app.ClientFor(UserId);
+        var invalid = await client.PostFormAsync($"/Vehicles/Edit/{id}", await client.GetAsync($"/Vehicles/Edit/{id}"), new() { ["Vehicle.ServiceDueMileage"] = "0" });
+        Assert.Contains("Service due mileage must be between 1 and 9999999.", invalid.Errors);
+    }
+
+    [DatabaseFact]
     public async Task Nothing_coming_up_shows_no_list()
     {
         await using (var db = Db()) await TestData.AddVehicleAsync(db);

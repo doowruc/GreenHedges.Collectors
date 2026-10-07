@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using VehicleManager.Models;
+using VehicleManager.Services;
 
 namespace VehicleManager.ViewModels;
 
@@ -17,12 +18,16 @@ public class VehicleView
     public DateOnly? TaxDueDate { get; init; }
     public DateOnly? InsuranceDueDate { get; init; }
     public DateOnly? ServiceDueDate { get; init; }
+    public int? ServiceDueMileage { get; init; }
     public string OwnerName { get; init; } = string.Empty;
 
     public string DisplayName => $"{Make} {Model}".Trim();
 
-    /// <summary>The due dates that are set, soonest first, as of <paramref name="today"/>.</summary>
-    public List<DueDateView> DueDates(DateOnly today) => DueDateView.For(this, today);
+    /// <summary>
+    /// The due dates that are set, soonest first, as of <paramref name="today"/>. A service due by mileage needs
+    /// the vehicle's <paramref name="mileage"/> trend to estimate its date.
+    /// </summary>
+    public List<DueDateView> DueDates(DateOnly today, MileageTrend? mileage = null) => DueDateView.For(this, today, mileage);
 
     public static readonly Expression<Func<Vehicle, VehicleView>> Projection = v => new VehicleView
     {
@@ -38,6 +43,7 @@ public class VehicleView
         TaxDueDate = v.TaxDueDate,
         InsuranceDueDate = v.InsuranceDueDate,
         ServiceDueDate = v.ServiceDueDate,
+        ServiceDueMileage = v.ServiceDueMileage,
         OwnerName = v.Owner!.Name
     };
 }

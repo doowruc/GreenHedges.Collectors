@@ -10,10 +10,15 @@
             @if (Model.Vehicle.RegistrationDate is { } rd) { <text> · Registered @rd.ToString("dd MMM yyyy")</text> }
             @if (Model.Vehicle.PurchasedDate is { } pd) { <text> · Purchased @pd.ToString("dd MMM yyyy")</text> }
             @if (Model.AllTime.LatestOdometer is { } odo) { <text> · @odo.ToString("N0") miles</text> }
+            @if (Model.Mileage is { } trend) { <text> · about @trend.MilesPerMonth.ToString("N0") miles a month lately</text> }
         </div>
         <div class="d-flex flex-wrap align-items-center gap-1 mt-2">
             <partial name="_DueDates" model="Model.DueDates" />
-            @if (Model.DueDates.Count == 0)
+            @if (Model.UnestimatedServiceMileage is { } serviceMiles)
+            {
+                <span class="text-muted small" title="Needs fill-ups with odometer readings at least @MileageTrend.MinDays days apart">Service due at @serviceMiles.ToString("N0") miles (not enough odometer readings to estimate when)</span>
+            }
+            @if (Model.DueDates.Count == 0 && Model.UnestimatedServiceMileage is null)
             {
                 <span class="text-muted small">No MOT, tax, insurance or service dates. <a asp-page="Edit" asp-route-id="@Model.Vehicle.Id">Add them</a>.</span>
             }

@@ -65,6 +65,7 @@ VehicleManager/
                BackupFile (backup JSON format: read/validate/write) + BackupService (create, restore, record),
                BackupEmailer (emails a backup via Resend), ScheduledBackups (Coravel invocable, nightly),
                Reminders (when to remind; pure) + ReminderEmailer + ScheduledReminders (Coravel, each morning),
+               MileageTrend (recent miles per day, for service-by-mileage estimates),
                VehicleLookup (MOT/tax dates) over DvlaClient (DVLA Vehicle Enquiry) and MotHistoryClient (DVSA MOT History)
   Pages/       Index (dashboard, with a "Coming up" due-dates list), Owners/*, Vehicles/*, FuelLog/* (log + fill-up pages), Import/*, Backup/* (Index, Restore), Settings/* (user menu), FuelBrands/* (+ Stations/* per brand),
                Account/* (Login, Logout, SignedOut), Shared/ (layout + partials)
@@ -138,9 +139,15 @@ VehicleManager/
 - `Vehicle` has `MotDueDate`, `TaxDueDate`, `InsuranceDueDate`, `ServiceDueDate` (all optional, in the backup).
   `VehicleView.DueDates(today)` gives the set ones as `DueDateView`s (badge colour, "in 5 days"/"2 days overdue");
   `Pages/Shared/_DueDates` shows them as badges. "Today" is `Reminders.UkToday()`, not the server's date.
+- Service can also be due at `ServiceDueMileage`: whichever of date and mileage comes first. The mileage's date is
+  estimated by `Services/MileageTrend` (miles per day from fill-up odometer readings over the last 6 months, else all
+  of them; null without two readings 28+ days apart), so `DueDates(today, trend)` needs the trend
+  (`MileageTrend.From(entries)` or `ForVehiclesAsync(db)`). An estimate has `DueDateView.DueMileage` set.
 - Reminders go 30 and 7 days before each date (`Reminders.DaysBefore`); a date first seen inside a threshold gets only
-  the nearest one. `SentReminder` rows (vehicle, kind, due date, days before; cascade with the vehicle; not in the
-  backup) stop repeats, so a changed date gets reminders afresh. Rows are recorded only after Resend accepts the email.
+  the nearest one. `SentReminder` rows (vehicle, kind, due date, due mileage, days before; cascade with the vehicle; not
+  in the backup) stop repeats, matched by `ReminderKey`: by date, or for a mileage estimate by the mileage (its date
+  moves with each fill-up). A changed date or mileage gets reminders afresh. Rows are recorded only after Resend
+  accepts the email. The unique index is unfiltered (`HasFilter(null)`), so date-based rows (null mileage) are unique too.
 - `ScheduledReminders` runs at 07:00 UK time for every user with vehicles: `VehicleLookup.RefreshAsync` each vehicle
   (if a service is configured), then `ReminderEmailer` to `UserSettings.ReminderEmail` (none = no emails).
   Never call `Invoke()` in tests; test `RunForAsync(testUserId, today)`.

@@ -50,6 +50,10 @@ public class VehicleInput
     [Display(Name = "Service due")]
     public DateOnly? ServiceDueDate { get; set; }
 
+    [Range(1, 9_999_999)]
+    [Display(Name = "Service due mileage")]
+    public int? ServiceDueMileage { get; set; }
+
     /// <summary>The row's version when the form was loaded, to detect conflicting edits. Never copied to the entity.</summary>
     public byte[] RowVersion { get; set; } = [];
 
@@ -69,6 +73,7 @@ public class VehicleInput
         TaxDueDate = v.TaxDueDate,
         InsuranceDueDate = v.InsuranceDueDate,
         ServiceDueDate = v.ServiceDueDate,
+        ServiceDueMileage = v.ServiceDueMileage,
         RowVersion = v.RowVersion
     };
 
@@ -86,5 +91,6 @@ public class VehicleInput
         vehicle.TaxDueDate = TaxDueDate;
         vehicle.InsuranceDueDate = InsuranceDueDate;
         vehicle.ServiceDueDate = ServiceDueDate;
+        vehicle.ServiceDueMileage = ServiceDueMileage;
     }
 }

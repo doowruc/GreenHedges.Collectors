@@ -26,6 +26,7 @@ public class BackupService(AppDbContext db)
             Id = v.Id, OwnerId = v.OwnerId, Type = v.Type, FuelType = v.FuelType, Make = v.Make, Model = v.Model,
             RegistrationNumber = v.RegistrationNumber, RegistrationDate = v.RegistrationDate, PurchasedDate = v.PurchasedDate,
             MotDueDate = v.MotDueDate, TaxDueDate = v.TaxDueDate, InsuranceDueDate = v.InsuranceDueDate, ServiceDueDate = v.ServiceDueDate,
+            ServiceDueMileage = v.ServiceDueMileage,
             AddedDate = v.AddedDate, AddedBy = v.AddedBy, ModifiedDate = v.ModifiedDate, ModifiedBy = v.ModifiedBy
         }).ToListAsync(),
         FuelBrands = await db.FuelBrands.OrderBy(b => b.Id).Select(b => new FuelBrandBackup
@@ -91,7 +92,8 @@ public class BackupService(AppDbContext db)
         {
             Owner = owners[v.OwnerId], Type = v.Type, FuelType = v.FuelType, Make = v.Make, Model = v.Model,
             RegistrationNumber = v.RegistrationNumber, RegistrationDate = v.RegistrationDate, PurchasedDate = v.PurchasedDate,
-            MotDueDate = v.MotDueDate, TaxDueDate = v.TaxDueDate, InsuranceDueDate = v.InsuranceDueDate, ServiceDueDate = v.ServiceDueDate
+            MotDueDate = v.MotDueDate, TaxDueDate = v.TaxDueDate, InsuranceDueDate = v.InsuranceDueDate, ServiceDueDate = v.ServiceDueDate,
+            ServiceDueMileage = v.ServiceDueMileage
         }));
         var brands = backup.FuelBrands.ToDictionary(b => b.Id, b => Audited(b, new FuelBrand { Name = b.Name }));
         var stations = backup.FuelStations.ToDictionary(s => s.Id, s => Audited(s, new FuelStation

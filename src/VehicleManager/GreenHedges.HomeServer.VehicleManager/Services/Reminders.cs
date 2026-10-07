@@ -4,6 +4,18 @@ using VehicleManager.ViewModels;
 namespace VehicleManager.Services;
 
 /// <summary>
+/// Identifies a reminder, so it's sent once: a due date, or for a service due by mileage, the mileage
+/// (its estimated date moves with each fill-up, so it isn't part of the key).
+/// </summary>
+public sealed record ReminderKey(int VehicleId, DueDateKind Kind, DateOnly? DueDate, int? DueMileage, int DaysBefore)
+{
+    public static ReminderKey For(int vehicleId, DueDateKind kind, DateOnly dueDate, int? dueMileage, int daysBefore) =>
+        new(vehicleId, kind, dueMileage is null ? dueDate : null, dueMileage, daysBefore);
+
+    public static ReminderKey For(DueDateView due, int daysBefore) => For(due.VehicleId, due.Kind, due.Date, due.DueMileage, daysBefore);
+}
+
+/// <summary>
 /// When to remind about a vehicle's due dates: <see cref="DaysBefore"/> days before each one (and once,
 /// if a date is first seen when it's already closer than that, or overdue).
 /// </summary>
@@ -50,17 +62,21 @@ public static class Reminders
     }
 
     /// <summary>The reminders to send today for <paramref name="dueDates"/>, leaving out any already <paramref name="sent"/>.</summary>
-    public static List<(DueDateView Due, int DaysBefore)> ToSend(
-        IEnumerable<DueDateView> dueDates, ISet<(int VehicleId, DueDateKind Kind, DateOnly DueDate, int DaysBefore)> sent) =>
+    public static List<(DueDateView Due, int DaysBefore)> ToSend(IEnumerable<DueDateView> dueDates, ISet<ReminderKey> sent) =>
         dueDates
             .Select(d => (Due: d, DaysBefore: DaysBeforeFor(d.Date, d.Today)))
-            .Where(r => r.DaysBefore is { } days && !sent.Contains((r.Due.VehicleId, r.Due.Kind, r.Due.Date, days)))
+            .Where(r => r.DaysBefore is { } days && !sent.Contains(ReminderKey.For(r.Due, days)))
             .Select(r => (r.Due, r.DaysBefore!.Value))
             .OrderBy(r => r.Due.Date).ThenBy(r => r.Due.VehicleName).ThenBy(r => r.Due.Kind)
             .ToList();
 
-    /// <summary>One line of a reminder email, e.g. "MOT for Ford Focus (AB12 CDE) is due on 06/11/2026 (in 30 days)."</summary>
+    /// <summary>
+    /// One line of a reminder email, e.g. "MOT for Ford Focus (AB12 CDE) is due on 06/11/2026 (in 30 days)." or, by mileage,
+    /// "Service for Ford Focus (AB12 CDE) is due at 45,000 miles, estimated 06/11/2026 (in 30 days) from about 1,050 miles a month."
+    /// </summary>
     public static string Describe(DueDateView due) =>
-        $"{due.Name} for {due.VehicleName} ({due.RegistrationNumber}) " +
-        (due.DaysLeft < 0 ? "was" : "is") + $" due on {due.Date:dd/MM/yyyy} ({due.When}).";
+        $"{due.Name} for {due.VehicleName} ({due.RegistrationNumber}) " + (due.DaysLeft < 0 ? "was" : "is") +
+        (due.DueMileage is { } miles
+            ? $" due at {miles:N0} miles, estimated {due.Date:dd/MM/yyyy} ({due.When}) from about {due.MilesPerMonth:N0} miles a month."
+            : $" due on {due.Date:dd/MM/yyyy} ({due.When}).");
 }

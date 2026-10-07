@@ -91,6 +91,39 @@ public class ScheduledRemindersTests(AppFactory app) : DatabaseTest, IClassFixtu
     }
 
     [DatabaseFact]
+    public async Task A_service_due_by_mileage_is_estimated_from_the_fill_ups_and_reminded_about_once()
+    {
+        var address = FakeResend.NewAddress("remind");
+        await using (var db = Db())
+        {
+            var vehicle = await TestData.AddVehicleAsync(db, FakeVehicleApis.NewRegistration());
+            vehicle.ServiceDueMileage = 43000;
+            (await TestData.AddFillUpAsync(db, vehicle.Id, Today.AddDays(-60), ("Shell", "Meadowbank"))).Odometer = 40000;
+            (await TestData.AddFillUpAsync(db, vehicle.Id, Today, ("Shell", "Meadowbank"))).Odometer = 42000;
+            db.UserSettings.Add(new UserSettings { ReminderEmail = address });
+            await db.SaveChangesAsync();
+        }
+
+        // 2,000 miles in 60 days, so the last 1,000 take 30 days.
+        Assert.Equal(ReminderEmailResult.Sent, (await RunAsync(UserId, Today)).Email);
+        Assert.Contains("Service for Test Car", FakeResend.SentTo(address).Single().TextBody);
+        Assert.Contains("is due at 43,000 miles, estimated 06/11/2026 (in 30 days) from about 1,015 miles a month.", FakeResend.SentTo(address).Single().TextBody);
+
+        // A fill-up moves the estimate, but it's the same service, so no second 30-day reminder.
+        await using (var db = Db())
+        {
+            (await TestData.AddFillUpAsync(db, (await db.Vehicles.SingleAsync()).Id, Today.AddDays(10), ("Shell", "Meadowbank"))).Odometer = 42400;
+            await db.SaveChangesAsync();
+        }
+        Assert.Equal(ReminderEmailResult.NothingDue, (await RunAsync(UserId, Today.AddDays(10))).Email);
+        Assert.Equal(ReminderEmailResult.Sent, (await RunAsync(UserId, Today.AddDays(30))).Email);
+
+        await using var check = Db();
+        var sent = await check.SentReminders.OrderByDescending(r => r.DaysBefore).Select(r => new { r.DueMileage, r.DaysBefore }).ToListAsync();
+        Assert.Equal([(43000, 30), (43000, 7)], sent.Select(r => (r.DueMileage!.Value, r.DaysBefore)));
+    }
+
+    [DatabaseFact]
     public async Task Without_an_address_dates_are_still_looked_up()
     {
         await SetUpAsync();

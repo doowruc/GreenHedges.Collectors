@@ -24,9 +24,11 @@ public class ReminderEmailer(AppDbContext db, IResend resend, EmailOptions optio
         var address = await db.UserSettings.Select(s => s.ReminderEmail).FirstOrDefaultAsync();
         if (address is not { Length: > 0 }) return ReminderEmailResult.NoAddress;
 
-        var dueDates = (await db.Vehicles.Select(VehicleView.Projection).ToListAsync()).SelectMany(v => v.DueDates(today));
-        var sent = (await db.SentReminders.Select(r => new { r.VehicleId, r.Kind, r.DueDate, r.DaysBefore }).ToListAsync())
-            .Select(r => (r.VehicleId, r.Kind, r.DueDate, r.DaysBefore))
+        var mileage = await MileageTrend.ForVehiclesAsync(db);
+        var dueDates = (await db.Vehicles.Select(VehicleView.Projection).ToListAsync())
+            .SelectMany(v => v.DueDates(today, mileage.GetValueOrDefault(v.Id)));
+        var sent = (await db.SentReminders.Select(r => new { r.VehicleId, r.Kind, r.DueDate, r.DueMileage, r.DaysBefore }).ToListAsync())
+            .Select(r => ReminderKey.For(r.VehicleId, r.Kind, r.DueDate, r.DueMileage, r.DaysBefore))
             .ToHashSet();
         var reminders = Reminders.ToSend(dueDates, sent);
         if (reminders.Count == 0) return ReminderEmailResult.NothingDue;
@@ -45,7 +47,7 @@ public class ReminderEmailer(AppDbContext db, IResend resend, EmailOptions optio
 
         db.SentReminders.AddRange(reminders.Select(r => new SentReminder
         {
-            VehicleId = r.Due.VehicleId, Kind = r.Due.Kind, DueDate = r.Due.Date, DaysBefore = r.DaysBefore
+            VehicleId = r.Due.VehicleId, Kind = r.Due.Kind, DueDate = r.Due.Date, DueMileage = r.Due.DueMileage, DaysBefore = r.DaysBefore
         }));
         await db.SaveChangesAsync();
         return ReminderEmailResult.Sent;

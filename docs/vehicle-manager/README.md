@@ -135,7 +135,15 @@ theme menu in the navigation bar. The choice is remembered per browser.
 ## Reminders (MOT, tax, insurance and service)
 
 Each vehicle has four optional due dates: MOT, tax, insurance renewal and service, set on its edit form.
-They show on the vehicle's page and, when due within 30 days or overdue, in the dashboard's **Coming up** list.
+They show on the vehicle's page and dashboard card and, when due within 30 days or overdue, in the dashboard's
+**Coming up** list.
+
+**Service by mileage** – a service can also be due at a mileage, and is due at the date or the mileage, whichever
+comes first. The mileage's date is estimated from the fill-ups' odometer readings: the average miles per day over
+the last 6 months (or all the readings, if the recent ones span less than 28 days). It's shown with "≈", e.g.
+"Service ≈06/11/2026 · in 30 days · 43,000 mi", and moves as you add fill-ups; the vehicle page shows the recent
+miles per month. Without two odometer readings at least 28 days apart there's no estimate yet. Reminders for a
+mileage go once each, however much its estimated date moves.
 
 **Email reminders** – every morning at 07:00 UK time, each user who has set a reminder email address under
 **Settings** is emailed about anything due in 30 days, and again 7 days before (once each; a date first

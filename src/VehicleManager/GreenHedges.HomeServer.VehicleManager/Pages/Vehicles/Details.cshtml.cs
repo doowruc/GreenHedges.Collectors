@@ -17,6 +17,10 @@ public class DetailsModel(AppDbContext db, FuelStatsService stats, VehicleLookup
     public FuelSummary LastYear { get; private set; } = FuelSummary.Empty;
     public string ChartJson { get; private set; } = "[]";
     public List<DueDateView> DueDates { get; private set; } = [];
+    public MileageTrend? Mileage { get; private set; }
+
+    /// <summary>A service due at a mileage whose date can't be estimated yet (too few odometer readings).</summary>
+    public int? UnestimatedServiceMileage { get; private set; }
 
     /// <summary>The DVLA or DVSA is set up, so MOT (and tax, with the DVLA) can be checked.</summary>
     public bool CanLookUp => lookup.IsAvailable;
@@ -32,7 +36,6 @@ public class DetailsModel(AppDbContext db, FuelStatsService stats, VehicleLookup
         var vehicle = await db.Vehicles.Where(v => v.Id == id).Select(VehicleView.Projection).FirstOrDefaultAsync();
         if (vehicle is null) return NotFound();
         Vehicle = vehicle;
-        DueDates = vehicle.DueDates(Reminders.UkToday());
 
         VehicleOptions = (await db.Vehicles.OrderBy(v => v.Make).ThenBy(v => v.Model)
                 .Select(v => new { v.Id, v.Make, v.Model, v.RegistrationNumber }).ToListAsync())
@@ -45,6 +48,10 @@ public class DetailsModel(AppDbContext db, FuelStatsService stats, VehicleLookup
             .OrderByDescending(f => f.Date).ThenByDescending(f => f.Id)
             .Select(FuelEntryView.Projection)
             .ToListAsync();
+
+        Mileage = MileageTrend.From(Entries);
+        DueDates = vehicle.DueDates(Reminders.UkToday(), Mileage);
+        if (Mileage is null) UnestimatedServiceMileage = vehicle.ServiceDueMileage;
 
         AllTime = stats.Summarise(Entries);
         LastYear = stats.Summarise(Entries, DateOnly.FromDateTime(DateTime.Today.AddYears(-1)));

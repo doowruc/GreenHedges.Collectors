@@ -10,7 +10,7 @@ Ideas for future features and improvements, roughly in order of how useful they'
   - [x] Optional: look up MOT and tax due dates from the registration number using the DVLA Vehicle Enquiry API and
         the DVSA MOT History API (both free with an API key).
   - [ ] Show MOT history on the vehicle page, and check its recorded mileages against the fill-up odometer readings.
-  - [ ] Service due by mileage as well as date, estimated from the recent miles per month.
+  - [x] Service due by mileage as well as date, estimated from the recent miles per month.
 - [ ] **Running costs other than fuel.** One `Expense` table (category, date, cost, odometer, notes, optional
       attachments) for servicing, tyres, repairs, insurance, tax, parking and tolls. This makes pence per mile a true
       total cost of ownership rather than fuel only. Add it to the backup.

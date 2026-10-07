@@ -28,7 +28,8 @@ public class IndexModel(AppDbContext db, FuelStatsService stats) : PageModel
             .ToLookup(f => f.VehicleId);
 
         var today = Reminders.UkToday();
-        ComingUp = vehicles.SelectMany(v => v.DueDates(today)).Where(d => d.IsSoon)
+        var dueDates = vehicles.ToDictionary(v => v.Id, v => v.DueDates(today, MileageTrend.From(entries[v.Id])));
+        ComingUp = dueDates.Values.SelectMany(d => d).Where(d => d.IsSoon)
             .OrderBy(d => d.Date).ThenBy(d => d.VehicleName).ThenBy(d => d.Kind)
             .ToList();
 
@@ -38,7 +39,7 @@ public class IndexModel(AppDbContext db, FuelStatsService stats) : PageModel
                 stats.Summarise(entries[v.Id]),
                 stats.Summarise(entries[v.Id], yearAgo),
                 entries[v.Id].FirstOrDefault(),
-                v.DueDates(today)))
+                dueDates[v.Id]))
             .OrderByDescending(c => c.Last?.Date)
             .ToList();
     }
