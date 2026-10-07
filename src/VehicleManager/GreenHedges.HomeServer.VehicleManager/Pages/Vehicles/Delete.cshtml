@@ -10,6 +10,10 @@
     {
         <p class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i>This will also delete its @Model.FillUps fuel record(s).</p>
     }
+    @if (Model.Services > 0)
+    {
+        <p class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i>This will also delete its @Model.Services service record(s).</p>
+    }
     <form method="post">
         <button type="submit" class="btn btn-danger">Delete</button>
         <a asp-page="Details" asp-route-id="@Model.Vehicle.Id" class="btn btn-link">Cancel</a>

@@ -48,4 +48,43 @@ public class VehiclePagesTests(AppFactory app) : DatabaseTest, IClassFixture<App
         await using var check = Db();
         Assert.Equal(FuelType.Unleaded, (await check.Vehicles.SingleAsync()).FuelType);
     }
+
+    [DatabaseFact]
+    public async Task Saving_a_vehicle_over_someone_elses_change_shows_a_warning()
+    {
+        int id;
+        await using (var db = Db()) id = (await TestData.AddVehicleAsync(db)).Id;
+        var client = app.ClientFor(UserId);
+        var url = $"/Vehicles/Edit/{id}";
+        var tab1 = await client.GetAsync(url);
+        var tab2 = await client.GetAsync(url);
+
+        var first = await client.PostFormAsync(url, tab1, new() { ["Vehicle.Model"] = "First" });
+        Assert.True(first.Status == HttpStatusCode.Redirect, first.Errors);
+        var stale = await client.PostFormAsync(url, tab2, new() { ["Vehicle.Model"] = "Second" });
+        Assert.Equal(HttpStatusCode.OK, stale.Status);
+        Assert.Contains("Someone changed this vehicle after you opened it", stale.Text);
+    }
+
+    [DatabaseFact]
+    public async Task Saving_an_owner_over_someone_elses_change_shows_a_warning()
+    {
+        int id;
+        await using (var db = Db())
+        {
+            db.Owners.Add(new Owner { Name = "Me" });
+            await db.SaveChangesAsync();
+            id = (await db.Owners.SingleAsync()).Id;
+        }
+        var client = app.ClientFor(UserId);
+        var url = $"/Owners/Edit/{id}";
+        var tab1 = await client.GetAsync(url);
+        var tab2 = await client.GetAsync(url);
+
+        var first = await client.PostFormAsync(url, tab1, new() { ["Owner.Name"] = "First" });
+        Assert.True(first.Status == HttpStatusCode.Redirect, first.Errors);
+        var stale = await client.PostFormAsync(url, tab2, new() { ["Owner.Name"] = "Second" });
+        Assert.Equal(HttpStatusCode.OK, stale.Status);
+        Assert.Contains("after you opened it", stale.Text);
+    }
 }

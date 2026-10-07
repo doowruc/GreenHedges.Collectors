@@ -133,12 +133,12 @@ public class FuelPagesTests(AppFactory app) : DatabaseTest, IClassFixture<AppFac
             var page = (await client.GetAsync(url)).Html;
             Assert.Contains("datatables.net@", page);
             Assert.Contains("dataTables.bootstrap5.min.css", page);
-            Assert.Matches(@"<script src=""/js/fuel-table[^""]*\.js""", page);
-            Assert.Matches(@"<div class=""card-body py-2"">\s*<div class=""fuel-table dt-pending"">", page);   // same padding as the stat cards; first page only until it loads
+            Assert.Matches(@"<script src=""/js/data-table[^""]*\.js""", page);
+            Assert.Matches(@"<div class=""card-body py-2"">\s*<div class=""data-table dt-pending"" data-noun=""fill-ups"">", page);   // same padding as the stat cards; first page only until it loads
             Assert.Matches(@"<td data-order=""2026-01-01"">01/01/2026</td>", page);   // dates sort as dates
             Assert.Contains("<th data-orderable=\"false\" data-searchable=\"false\"></th>", page);
         }
-        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/js/fuel-table.js")).Status);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/js/data-table.js")).Status);
     }
 
     [DatabaseFact]
@@ -168,7 +168,7 @@ public class FuelPagesTests(AppFactory app) : DatabaseTest, IClassFixture<AppFac
         var vehicles = Regex.Matches(body, @"<td data-order=""([\d-]+)"">[^<]*</td>\s*<td><a [^>]*>([^<]+)</a></td>")
             .Select(m => $"{m.Groups[1].Value} {m.Groups[2].Value}").ToList();
         Assert.Equal(["2026-01-02 Test Car", "2026-01-01 Alpha Van", "2026-01-01 Test Car"], vehicles);
-        Assert.Contains("<th data-column=\"vehicle\">Vehicle</th>", log);   // how fuel-table.js finds the column to sort by
+        Assert.Contains("<th data-column=\"vehicle\">Vehicle</th>", log);   // how data-table.js finds the column to sort by
         Assert.DoesNotContain("data-column=\"vehicle\"", (await client.GetAsync($"/Vehicles/Details/{firstVehicleId}")).Html);
     }
 
@@ -176,11 +176,11 @@ public class FuelPagesTests(AppFactory app) : DatabaseTest, IClassFixture<AppFac
     public async Task Page_size_and_the_pending_row_limit_agree()
     {
         var (client, _) = await SeedAsync();
-        var script = (await client.GetAsync("/js/fuel-table.js")).Html;
+        var script = (await client.GetAsync("/js/data-table.js")).Html;
         var css = (await client.GetAsync((Regex.Match((await client.GetAsync("/FuelLog")).Html, @"href=""(/css/site[^""]*\.css)""").Groups[1].Value))).Html;
         var pageLength = int.Parse(Regex.Match(script, @"pageLength: (\d+)").Groups[1].Value);
         Assert.Equal(10, pageLength);
-        Assert.Contains($".dt-pending .table-fuel tbody tr:nth-child(n+{pageLength + 1})", css);
+        Assert.Contains($".dt-pending .table-data tbody tr:nth-child(n+{pageLength + 1})", css);
     }
 
     [DatabaseFact]

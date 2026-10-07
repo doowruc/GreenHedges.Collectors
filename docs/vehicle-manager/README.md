@@ -95,7 +95,19 @@ don't use) for the application in Auth0.
 can't be deleted while they still own vehicles.
 
 **Vehicles** – owner, type, fuel type, make, model, registration number, registration date, purchased date,
-and when the MOT, tax, insurance and service are next due (see [Reminders](#reminders-mot-tax-insurance-and-service)).
+when the MOT, tax, insurance and service are next due (see [Reminders](#reminders-mot-tax-insurance-and-service)),
+and how often it's serviced (every so many months and/or miles).
+
+**Service history** (per vehicle, on its page) – each service's date, mileage, garage and garage location, and
+whether it was under a previous owner (e.g. from the service book). That's ticked for you when the date is before the
+vehicle's purchased date. The list is sortable and searchable, 10 to a page, and its Notes column has badges: "Previous
+owner", and in red, when a service was later than the interval after the one before it (e.g. "3 months late",
+"5,000 miles over"). The
+form starts from today and the latest odometer reading, and suggests garages (and their locations) used before.
+When you add the vehicle's latest service, the next service's due date and mileage are worked out from it and the
+service interval (e.g. serviced 01/10/2026 at 45,000 miles, every 12 months or 10,000 miles → next due 01/10/2027
+or at 55,000 miles). An interval that isn't set leaves that due value alone. Adding an older service, or deleting
+one, doesn't change them; editing the latest one's date or mileage works them out again.
 Registration numbers are normalised to upper case and must be unique (per user). Vehicles that existed before
 owners were added are assigned to an "Unassigned" owner; rename it or reassign the vehicles.
 
@@ -192,7 +204,7 @@ updated spreadsheet to pick up just the new rows.
 
 Under **Manage**:
 
-- **Backup** downloads all your data (owners, vehicles with their due dates, fuel brands, stations and fill-ups) as a
+- **Backup** downloads all your data (owners, vehicles with their due dates, fuel brands, stations, fill-ups and services) as a
   compressed JSON file, `vehicle-manager-backup-<date>.json.gz`. Other users' data isn't included.
 - **Restore** replaces **all** your data with a backup's. It accepts the `.json.gz` file or the plain
   `.json` inside it. The file is checked before anything is changed, and the restore runs in one
@@ -220,14 +232,14 @@ runs inside the app (Coravel), so the app must be running at 01:00 UTC; if sever
 
 ```
 VehicleManager/
-  Models/        EF Core entities: Owner, Vehicle, FuelEntry, FuelEntryStop, FuelBrand, FuelStation, UserSettings, SentReminder
+  Models/        EF Core entities: Owner, Vehicle, FuelEntry, FuelEntryStop, FuelBrand, FuelStation, ServiceRecord, UserSettings, SentReminder
   ViewModels/    View (output) and input models used by the pages, with the calculated figures
   Data/          AppDbContext (EF Core + SQL Server), DatabaseMigrator, Migrations/
   Services/      FuelStatsService, FuelImportService (reads .xlsx via ClosedXML), FuelStops, BackupFile + BackupService,
                  BackupEmailer + ScheduledBackups (nightly emailed backups via Resend, scheduled with Coravel),
                  Reminders + ReminderEmailer + ScheduledReminders (due-date reminders), VehicleLookup + DvlaClient +
                  MotHistoryClient (MOT and tax dates from the DVLA and DVSA)
-  Pages/         Dashboard, Owners/*, Vehicles/*, FuelLog/* (log + fill-up pages), Import/*, Backup/* (backup + restore), Settings/*, FuelBrands/* (and each brand's Stations/*),
+  Pages/         Dashboard, Owners/*, Vehicles/* (and each vehicle's Services/*), FuelLog/* (log + fill-up pages), Import/*, Backup/* (backup + restore), Settings/*, FuelBrands/* (and each brand's Stations/*),
                  Account/* (sign in/out)
 VehicleManager.Tests/
   Unit/, Data/, Pages/   unit, database and in-memory page tests; Infrastructure/ holds the helpers

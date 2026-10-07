@@ -19,6 +19,8 @@ public class VehicleView
     public DateOnly? InsuranceDueDate { get; init; }
     public DateOnly? ServiceDueDate { get; init; }
     public int? ServiceDueMileage { get; init; }
+    public int? ServiceIntervalMonths { get; init; }
+    public int? ServiceIntervalMiles { get; init; }
     public string OwnerName { get; init; } = string.Empty;
 
     public string DisplayName => $"{Make} {Model}".Trim();
@@ -44,6 +46,8 @@ public class VehicleView
         InsuranceDueDate = v.InsuranceDueDate,
         ServiceDueDate = v.ServiceDueDate,
         ServiceDueMileage = v.ServiceDueMileage,
+        ServiceIntervalMonths = v.ServiceIntervalMonths,
+        ServiceIntervalMiles = v.ServiceIntervalMiles,
         OwnerName = v.Owner!.Name
     };
 }

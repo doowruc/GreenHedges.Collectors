@@ -55,7 +55,7 @@ so test pages through the in-memory host rather than relying on the browser.
 
 ```
 VehicleManager/
-  Models/      EF Core entities: Owner, Vehicle, FuelEntry, FuelEntryStop, FuelBrand, FuelStation, UserSettings (storage only),
+  Models/      EF Core entities: Owner, Vehicle, FuelEntry, FuelEntryStop, FuelBrand, FuelStation, ServiceRecord, UserSettings (storage only),
                SentReminder (+ DueDateKind), AuditedEntity, IUserOwned, IFuelPlace
   ViewModels/  What pages use: *View (output, with calculated figures) and *Input (form/import input)
   Data/        AppDbContext (per-user query filters, audit stamping), DatabaseMigrator, ConcurrencyExtensions,
@@ -65,11 +65,11 @@ VehicleManager/
                BackupFile (backup JSON format: read/validate/write) + BackupService (create, restore, record),
                BackupEmailer (emails a backup via Resend), ScheduledBackups (Coravel invocable, nightly),
                Reminders (when to remind; pure) + ReminderEmailer + ScheduledReminders (Coravel, each morning),
-               MileageTrend (recent miles per day, for service-by-mileage estimates),
+               MileageTrend (recent miles per day, for service-by-mileage estimates), ServiceSchedule (next service from intervals),
                VehicleLookup (MOT/tax dates) over DvlaClient (DVLA Vehicle Enquiry) and MotHistoryClient (DVSA MOT History)
-  Pages/       Index (dashboard, with a "Coming up" due-dates list), Owners/*, Vehicles/*, FuelLog/* (log + fill-up pages), Import/*, Backup/* (Index, Restore), Settings/* (user menu), FuelBrands/* (+ Stations/* per brand),
+  Pages/       Index (dashboard, with a "Coming up" due-dates list), Owners/*, Vehicles/* (+ Services/* per vehicle), FuelLog/* (log + fill-up pages), Import/*, Backup/* (Index, Restore), Settings/* (user menu), FuelBrands/* (+ Stations/* per brand),
                Account/* (Login, Logout, SignedOut), Shared/ (layout + partials)
-  wwwroot/     css/site.css, js/color-mode.js, js/period-toggle.js, js/fuel-table.js, js/typeahead.js (dropdown suggestions),
+  wwwroot/     css/site.css, js/color-mode.js, js/period-toggle.js, js/data-table.js (DataTables setup), js/typeahead.js (dropdown suggestions),
                js/price-chart.js (station price charts)
 ```
 
@@ -135,6 +135,19 @@ VehicleManager/
   and removes Coravel's hosted service (so neither scheduled backups nor reminders run). Never call `ScheduledBackups.Invoke()` in tests: it covers every user, real ones
   included. Test `BackUpAsync(testUserId)` instead.
 
+**Service history**
+- `ServiceRecord` (date, mileage, garage, optional location, `UnderPreviousOwner` (done before the vehicle was the user's;
+  it still counts as the latest service for the next one; ticked by `_ServiceForm`'s script for a date before the
+  vehicle's `PurchasedDate`, and always set for one when a service is added); filter and cascade through its vehicle; in the backup) is
+  managed at `/Vehicles/{vehicleId}/Services/...` (`Pages/Vehicles/Services`, base `ServicePageModel`, which 404s a
+  service not under the vehicle in the URL). Links and redirects between them must pass `vehicleId`, as for stations.
+- `Vehicle.ServiceIntervalMonths`/`ServiceIntervalMiles`: adding the vehicle's latest service (or changing the latest's
+  date or mileage) sets `ServiceDueDate`/`ServiceDueMileage` via `ServiceSchedule.UpdateNextDueAsync`; an unset interval
+  leaves that value alone. Older services and deletes don't change them; other edits don't either, so hand-set values stay.
+- `_ServiceTable`'s Notes column holds the badges: red "N months late"/"N miles over" when a service came after the
+  interval following the one before it (`ServiceSchedule.SetDue` sets `ServiceRecordView.DueDate`/`DueMileage` from the
+  vehicle's current interval; the first service is never late), and "Previous owner".
+
 **Due dates, reminders and MOT/tax lookups**
 - `Vehicle` has `MotDueDate`, `TaxDueDate`, `InsuranceDueDate`, `ServiceDueDate` (all optional, in the backup).
   `VehicleView.DueDates(today)` gives the set ones as `DueDateView`s (badge colour, "in 5 days"/"2 days overdue");
@@ -182,20 +195,30 @@ VehicleManager/
 - Mark up period-specific content as `<div class="period-stats" data-period="12m">` / `data-period="all"`. A `site.css` rule hides the non-selected one, based on `data-stats-period` on `<html>`.
 - The selection is remembered across pages in the `statsPeriod` cookie (`all`; absent means 12 months). The partial renders the active button server-side from the cookie, and the script runs synchronously right after the buttons, so nothing flickers on load. Keep it that way.
 
-**Fuel log tables (DataTables)**
-- `_FuelTable` (Fuel Log page and each vehicle's page) is a DataTable: sorting, search and paging in the browser; the Fuel Log's vehicle/year filters stay server-side. A page using it adds `<partial name="_FuelTableStyles" />` to its `Styles` section and `<partial name="_FuelTableScripts" />` to `Scripts`; the settings are in `wwwroot/js/fuel-table.js`.
+**Tables (DataTables): fuel log and service history**
+- `_FuelTable` (Fuel Log page, each vehicle's page, station pages) and `_ServiceTable` (a vehicle's service history) are
+  DataTables: sorting, search and paging in the browser; the Fuel Log's vehicle/year filters stay server-side. Each is
+  wrapped in `<div class="data-table dt-pending" data-noun="fill-ups">` (the noun words the search box and counts), with
+  `table-data` on the table, inside a `card-body py-2` (`site.css` drops DataTables' extra row margin and gutters so the
+  padding matches the stat cards). A page using them adds `<partial name="_DataTableStyles" />` to its `Styles` section
+  and `<partial name="_DataTableScripts" />` to `Scripts`; the settings are in `wwwroot/js/data-table.js`, shared by both.
+  A new table should follow the same pattern rather than get its own script.
 - Cells whose text doesn't sort as-is carry `data-order` (dates as ISO, Real MPG, £/litre after voucher).
 - Defaults: 10 rows per page; sorted by Date (newest first) then Vehicle (A–Z, found by `<th data-column="vehicle">`, absent on a vehicle's page). The Fuel Log query returns the same order so nothing moves when DataTables starts. If you change the page size, change the `dt-pending` row limit in `site.css` too (a test checks they agree).
 - `dt-pending` on the wrapper shows only the first page of rows until DataTables has loaded (no jump); the script removes it in a `finally`, so the full table still shows if the CDN fails.
-- Column widths stay put while paging, searching or switching tables: `_FuelTable` repeats rows in an invisible,
+- Column widths stay put while paging, searching or switching tables: each table repeats rows in an invisible,
   zero-height `<tfoot class="column-sizer">` (`site.css`): the one with the most characters in each figure column (digits
-  are `tabular-nums`, so equal width) and one per distinct vehicle and station name. `fuel-table.js` sets DataTables up
+  are `tabular-nums`, so equal width) and one per distinct name (vehicle, station, garage). `data-table.js` sets DataTables up
   without it (DataTables would rework it as column footers) and puts it back, with `autoWidth: false` (DataTables would
   otherwise fix widths from each table's own rows). A page with several tables passes all their fill-ups in
-  `ViewData["SizeColumnsFrom"]` so they match (the station page's fuel type tabs).
+  `ViewData["SizeColumnsFrom"]` so they match (the station page's fuel type tabs). Rows stay on one line; on a phone a
+  table scrolls sideways within its card (`table-responsive`), not the page.
 
 **General**
 - Prefer shared partials and small shared scripts over copying markup or JS between pages.
+- A form partial rendered with `for="X"` (`_OwnerForm`, `_VehicleForm`, `_ServiceForm`) must not hold the
+  `asp-validation-summary="ModelOnly"`: its prefix hides page-level errors such as an edit conflict. Put it on the page.
+  It also can't read the page model (its model is the input); pass extras in `ViewData`.
 - Avoid visible flicker on page load: render initial state server-side where possible.
 - Check pages at phone width as well as desktop.
 

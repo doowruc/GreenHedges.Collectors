@@ -18,6 +18,7 @@ public class DetailsModel(AppDbContext db, FuelStatsService stats, VehicleLookup
     public string ChartJson { get; private set; } = "[]";
     public List<DueDateView> DueDates { get; private set; } = [];
     public MileageTrend? Mileage { get; private set; }
+    public List<ServiceRecordView> Services { get; private set; } = [];
 
     /// <summary>A service due at a mileage whose date can't be estimated yet (too few odometer readings).</summary>
     public int? UnestimatedServiceMileage { get; private set; }
@@ -48,6 +49,13 @@ public class DetailsModel(AppDbContext db, FuelStatsService stats, VehicleLookup
             .OrderByDescending(f => f.Date).ThenByDescending(f => f.Id)
             .Select(FuelEntryView.Projection)
             .ToListAsync();
+
+        Services = await db.ServiceRecords
+            .Where(s => s.VehicleId == id)
+            .OrderByDescending(s => s.Date).ThenByDescending(s => s.Id)
+            .Select(ServiceRecordView.Projection)
+            .ToListAsync();
+        ServiceSchedule.SetDue(Services, vehicle.ServiceIntervalMonths, vehicle.ServiceIntervalMiles);
 
         Mileage = MileageTrend.From(Entries);
         DueDates = vehicle.DueDates(Reminders.UkToday(), Mileage);

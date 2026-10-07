@@ -91,6 +91,29 @@ public class BackupFileTests
             ReadError(Sample(b => b with { Vehicles = [b.Vehicles[0] with { ServiceDueMileage = 0 }] })));
 
     [Fact]
+    public void Rejects_a_service_for_a_vehicle_that_isnt_in_the_backup_or_without_a_garage()
+    {
+        var error = ReadError(Sample(b => b with
+        {
+            ServiceRecords = [new() { Id = 8, VehicleId = 99, Date = new DateOnly(2026, 1, 1), Mileage = 1000, Garage = " " }]
+        }));
+        Assert.Contains("Service 8's vehicle (99) isn't in the backup.", error);
+        Assert.Contains("Service 8's garage is missing.", error);
+    }
+
+    [Fact]
+    public void Reads_a_service_and_tidies_its_names()
+    {
+        var backup = Read(Json(Sample(b => b with
+        {
+            ServiceRecords = [new() { Id = 8, VehicleId = 2, Date = new DateOnly(2026, 1, 1), Mileage = 1000, Garage = " Main   Dealer ", GarageLocation = "  " }]
+        })));
+        var service = Assert.Single(backup.ServiceRecords);
+        Assert.Equal(("Main Dealer", (string?)null), (service.Garage, service.GarageLocation));
+        Assert.Equal(1, backup.Counts.Services);
+    }
+
+    [Fact]
     public void Rejects_a_newer_version() =>
         Assert.Contains("version 2", ReadError(Sample(b => b with { Version = 2 })));
 

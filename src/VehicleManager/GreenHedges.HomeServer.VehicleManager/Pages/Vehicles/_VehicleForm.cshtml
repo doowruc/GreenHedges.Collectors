@@ -3,7 +3,6 @@
     var owners = (List<SelectListItem>)ViewData["OwnerOptions"]!;
     var lookupNote = ViewData["LookupNote"] as string;   // which dates are looked up, and from where (VehicleLookup.MorningCheck)
 }
-<div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
 <input type="hidden" asp-for="RowVersion" />
 <div class="row g-3">
     <div class="col-md-4">
@@ -88,5 +87,18 @@
     <div class="col-12 col-md-9 form-text align-self-end">
         A service is due at the date or the mileage, whichever comes first. The mileage's date is estimated from the
         miles per month in your recent fill-ups.
+    </div>
+    <div class="col-6 col-md-3">
+        <label asp-for="ServiceIntervalMonths" class="form-label"></label>
+        <input asp-for="ServiceIntervalMonths" class="form-control" inputmode="numeric" placeholder="e.g. 12" />
+        <span asp-validation-for="ServiceIntervalMonths" class="text-danger small"></span>
+    </div>
+    <div class="col-6 col-md-3">
+        <label asp-for="ServiceIntervalMiles" class="form-label"></label>
+        <input asp-for="ServiceIntervalMiles" class="form-control" inputmode="numeric" placeholder="e.g. 10000" />
+        <span asp-validation-for="ServiceIntervalMiles" class="text-danger small"></span>
+    </div>
+    <div class="col-12 col-md-6 form-text align-self-end">
+        When you add a service, the next one's due date and mileage are worked out from it and these.
     </div>
 </div>

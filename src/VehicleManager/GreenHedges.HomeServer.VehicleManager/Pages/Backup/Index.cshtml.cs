@@ -7,7 +7,7 @@ namespace VehicleManager.Pages.Backup;
 /// <summary>Downloads a backup of everything the user owns, as a compressed JSON file.</summary>
 public class IndexModel(BackupService backups) : PageModel
 {
-    public BackupCounts Counts { get; private set; } = new(0, 0, 0, 0, 0);
+    public BackupCounts Counts { get; private set; } = new(0, 0, 0, 0, 0, 0);
 
     public async Task OnGetAsync() => Counts = await backups.CountAsync();
 

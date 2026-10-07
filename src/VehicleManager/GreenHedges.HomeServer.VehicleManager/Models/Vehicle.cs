@@ -51,5 +51,10 @@ public class Vehicle : AuditedEntity, IUserOwned
     /// <summary>The odometer reading the next service is due at; its date is estimated from recent fill-ups (Services/MileageTrend).</summary>
     public int? ServiceDueMileage { get; set; }
 
+    /// <summary>How often it's serviced. Adding its latest service sets the next one's due date and mileage from these.</summary>
+    public int? ServiceIntervalMonths { get; set; }
+    public int? ServiceIntervalMiles { get; set; }
+
     public List<FuelEntry> FuelEntries { get; set; } = [];
+    public List<ServiceRecord> ServiceRecords { get; set; } = [];
 }

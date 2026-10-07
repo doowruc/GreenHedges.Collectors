@@ -8,29 +8,30 @@
     background: #ffd500; color: #111; border-radius: 4px;
     padding: .1rem .5rem; font-weight: 700; letter-spacing: .05em; white-space: nowrap;
 }
-/* Equal-width digits line the figures up, and let _FuelTable's column sizing go by number of characters. */
-.table-fuel td, .table-fuel th { white-space: nowrap; font-size: .9rem; font-variant-numeric: tabular-nums; }
+/* DataTables tables (_FuelTable, _ServiceTable). Equal-width digits line the figures up, and let the column
+   sizing go by number of characters. */
+.table-data td, .table-data th { white-space: nowrap; font-size: .9rem; font-variant-numeric: tabular-nums; }
 
-/* Until DataTables has loaded (fuel log tables), show only its first page of rows so the table doesn't jump. */
-.dt-pending .table-fuel tbody tr:nth-child(n+11) { display: none; }   /* 10 = pageLength in fuel-table.js */
+/* Until DataTables has loaded, show only its first page of rows so the table doesn't jump. */
+.dt-pending .table-data tbody tr:nth-child(n+11) { display: none; }   /* 10 = pageLength in data-table.js */
 
-/* _FuelTable's footer repeats the widest rows so the columns don't resize as rows come and go (paging,
+/* The tables' footers repeat the widest rows so the columns don't resize as rows come and go (paging,
    searching, or switching between tables). They still take up width, but no height and can't be seen. */
-.table-fuel > tfoot.column-sizer > tr { visibility: hidden; }
-.table-fuel > tfoot.column-sizer > tr > td { border: 0; }
-.table-fuel > tfoot.column-sizer td,
-.table-fuel > tfoot.column-sizer td *,
-.table-fuel > tfoot.column-sizer td *::before {
+.table-data > tfoot.column-sizer > tr { visibility: hidden; }
+.table-data > tfoot.column-sizer > tr > td { border: 0; }
+.table-data > tfoot.column-sizer td,
+.table-data > tfoot.column-sizer td *,
+.table-data > tfoot.column-sizer td *::before {
     line-height: 0 !important; padding-top: 0 !important; padding-bottom: 0 !important;
     border-top-width: 0 !important; border-bottom-width: 0 !important;
 }
-.table-fuel > tfoot.column-sizer td *,
-.table-fuel > tfoot.column-sizer td *::before { vertical-align: top !important; }   /* icons sit a little low otherwise */
+.table-data > tfoot.column-sizer td *,
+.table-data > tfoot.column-sizer td *::before { vertical-align: top !important; }   /* icons sit a little low otherwise */
 
-/* Fuel log tables sit in a "card-body py-2", like the stat cards. Drop the extra spacing DataTables'
+/* DataTables tables sit in a "card-body py-2", like the stat cards. Drop the extra spacing DataTables'
    Bootstrap rows add (a margin above the first row, and grid gutters at the sides) so the padding matches. */
-.fuel-table .dt-container > .row { --bs-gutter-x: 0; }
-.fuel-table .dt-container > .row:first-child { margin-top: 0 !important; }
+.data-table .dt-container > .row { --bs-gutter-x: 0; }
+.data-table .dt-container > .row:first-child { margin-top: 0 !important; }
 
 /* Tinted table header that works in both themes (Bootstrap's .table-light stays light in dark mode). */
 .table > thead.table-head > tr > th { --bs-table-bg: var(--bs-tertiary-bg); }

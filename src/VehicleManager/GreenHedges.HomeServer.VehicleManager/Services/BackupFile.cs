@@ -37,8 +37,9 @@ public sealed record BackupFile
     public List<FuelStationBackup> FuelStations { get; init; } = [];
     public List<FuelEntryBackup> FuelEntries { get; init; } = [];
     public List<FuelEntryStopBackup> FuelEntryStops { get; init; } = [];
+    public List<ServiceRecordBackup> ServiceRecords { get; init; } = [];
 
-    public BackupCounts Counts => new(Owners.Count, Vehicles.Count, FuelBrands.Count, FuelStations.Count, FuelEntries.Count);
+    public BackupCounts Counts => new(Owners.Count, Vehicles.Count, FuelBrands.Count, FuelStations.Count, FuelEntries.Count, ServiceRecords.Count);
 
     /// <summary>The name to save the compressed backup as.</summary>
     public string FileName => $"vehicle-manager-backup-{CreatedDate:yyyy-MM-dd-HHmm}.json.gz";
@@ -130,6 +131,11 @@ public sealed record BackupFile
         foreach (var v in Vehicles) v.RegistrationNumber = VehicleRules.NormaliseReg(v.RegistrationNumber);
         foreach (var b in FuelBrands) b.Name = FuelStops.NormaliseName(b.Name);
         foreach (var s in FuelStations) s.Name = FuelStops.NormaliseName(s.Name);
+        foreach (var s in ServiceRecords)
+        {
+            s.Garage = FuelStops.NormaliseName(s.Garage);
+            s.GarageLocation = string.IsNullOrWhiteSpace(s.GarageLocation) ? null : FuelStops.NormaliseName(s.GarageLocation);
+        }
     }
 
     private List<string> Validate()
@@ -155,6 +161,7 @@ public sealed record BackupFile
             Text(v.Model, 50, $"Vehicle {v.Id}'s model", errors);
             Text(v.RegistrationNumber, 15, $"Vehicle {v.Id}'s registration", errors);
             if (v.ServiceDueMileage is <= 0) errors.Add($"Vehicle {v.Id}'s service due mileage ({v.ServiceDueMileage}) isn't a mileage.");
+            if (v.ServiceIntervalMonths is <= 0 || v.ServiceIntervalMiles is <= 0) errors.Add($"Vehicle {v.Id}'s service interval isn't positive.");
         }
         Unique(Vehicles, v => v.RegistrationNumber, v => $"There's more than one vehicle registered {v.RegistrationNumber}.", errors);
 
@@ -182,7 +189,17 @@ public sealed record BackupFile
         }
         Unique(FuelEntryStops, s => $"{s.FuelEntryId}|{s.Sequence}", s => $"Fill-up {s.FuelEntryId} has more than one stop {s.Sequence}.", errors);
 
-        foreach (var row in new IEnumerable<BackupRow>[] { Owners, Vehicles, FuelBrands, FuelStations, FuelEntries, FuelEntryStops }.SelectMany(r => r))
+        foreach (var s in ServiceRecords)
+        {
+            if (!vehicleIds.Contains(s.VehicleId)) errors.Add($"Service {s.Id}'s vehicle ({s.VehicleId}) isn't in the backup.");
+            if (s.Mileage < 0) errors.Add($"Service {s.Id}'s mileage ({s.Mileage}) is negative.");
+            Text(s.Garage, ServiceRecord.MaxGarageLength, $"Service {s.Id}'s garage", errors);
+            if (s.GarageLocation is { Length: > ServiceRecord.MaxGarageLength })
+                errors.Add($"Service {s.Id}'s garage location is longer than {ServiceRecord.MaxGarageLength} characters.");
+        }
+        UniqueIds(ServiceRecords, s => s.Id, "service", errors);
+
+        foreach (var row in new IEnumerable<BackupRow>[] { Owners, Vehicles, FuelBrands, FuelStations, FuelEntries, FuelEntryStops, ServiceRecords }.SelectMany(r => r))
             if (row.AddedBy.Length > 128 || row.ModifiedBy.Length > 128)
                 errors.Add("An AddedBy or ModifiedBy value is longer than 128 characters.");
 
@@ -252,6 +269,8 @@ public sealed record VehicleBackup : BackupRow
     public DateOnly? InsuranceDueDate { get; init; }
     public DateOnly? ServiceDueDate { get; init; }
     public int? ServiceDueMileage { get; init; }
+    public int? ServiceIntervalMonths { get; init; }
+    public int? ServiceIntervalMiles { get; init; }
 }
 
 public sealed record FuelBrandBackup : BackupRow
@@ -289,10 +308,21 @@ public sealed record FuelEntryStopBackup : BackupRow
     public required int FuelStationId { get; init; }
 }
 
-public sealed record BackupCounts(int Owners, int Vehicles, int FuelBrands, int FuelStations, int FillUps)
+public sealed record ServiceRecordBackup : BackupRow
+{
+    public required int Id { get; init; }
+    public required int VehicleId { get; init; }
+    public required DateOnly Date { get; init; }
+    public required int Mileage { get; init; }
+    public required string Garage { get; set; }
+    public string? GarageLocation { get; set; }
+    public bool UnderPreviousOwner { get; init; }
+}
+
+public sealed record BackupCounts(int Owners, int Vehicles, int FuelBrands, int FuelStations, int FillUps, int Services)
 {
     public override string ToString() =>
-        $"{Owners} owner(s), {Vehicles} vehicle(s), {FuelBrands} fuel brand(s), {FuelStations} station(s) and {FillUps} fill-up(s)";
+        $"{Owners} owner(s), {Vehicles} vehicle(s), {FuelBrands} fuel brand(s), {FuelStations} station(s), {FillUps} fill-up(s) and {Services} service(s)";
 }
 
 /// <summary>A file that can't be restored; the message says why, for showing to the user.</summary>

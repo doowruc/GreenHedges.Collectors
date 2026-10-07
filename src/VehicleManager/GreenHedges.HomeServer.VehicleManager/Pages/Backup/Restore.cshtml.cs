@@ -15,7 +15,7 @@ public class RestoreModel(BackupService backups, ILogger<RestoreModel> logger) :
     [BindProperty] public IFormFile? Upload { get; set; }
     [BindProperty] public bool Confirm { get; set; }
 
-    public BackupCounts Counts { get; private set; } = new(0, 0, 0, 0, 0);
+    public BackupCounts Counts { get; private set; } = new(0, 0, 0, 0, 0, 0);
 
     public async Task OnGetAsync() => Counts = await backups.CountAsync();
 

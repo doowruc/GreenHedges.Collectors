@@ -9,7 +9,7 @@ public class BackupService(AppDbContext db)
 {
     public async Task<BackupCounts> CountAsync() => new(
         await db.Owners.CountAsync(), await db.Vehicles.CountAsync(), await db.FuelBrands.CountAsync(),
-        await db.FuelStations.CountAsync(), await db.FuelEntries.CountAsync());
+        await db.FuelStations.CountAsync(), await db.FuelEntries.CountAsync(), await db.ServiceRecords.CountAsync());
 
     public async Task<BackupFile> CreateAsync() => new()
     {
@@ -26,7 +26,7 @@ public class BackupService(AppDbContext db)
             Id = v.Id, OwnerId = v.OwnerId, Type = v.Type, FuelType = v.FuelType, Make = v.Make, Model = v.Model,
             RegistrationNumber = v.RegistrationNumber, RegistrationDate = v.RegistrationDate, PurchasedDate = v.PurchasedDate,
             MotDueDate = v.MotDueDate, TaxDueDate = v.TaxDueDate, InsuranceDueDate = v.InsuranceDueDate, ServiceDueDate = v.ServiceDueDate,
-            ServiceDueMileage = v.ServiceDueMileage,
+            ServiceDueMileage = v.ServiceDueMileage, ServiceIntervalMonths = v.ServiceIntervalMonths, ServiceIntervalMiles = v.ServiceIntervalMiles,
             AddedDate = v.AddedDate, AddedBy = v.AddedBy, ModifiedDate = v.ModifiedDate, ModifiedBy = v.ModifiedBy
         }).ToListAsync(),
         FuelBrands = await db.FuelBrands.OrderBy(b => b.Id).Select(b => new FuelBrandBackup
@@ -50,6 +50,11 @@ public class BackupService(AppDbContext db)
         {
             FuelEntryId = s.FuelEntryId, Sequence = s.Sequence, FuelStationId = s.FuelStationId,
             AddedDate = s.AddedDate, AddedBy = s.AddedBy, ModifiedDate = s.ModifiedDate, ModifiedBy = s.ModifiedBy
+        }).ToListAsync(),
+        ServiceRecords = await db.ServiceRecords.OrderBy(s => s.Id).Select(s => new ServiceRecordBackup
+        {
+            Id = s.Id, VehicleId = s.VehicleId, Date = s.Date, Mileage = s.Mileage, Garage = s.Garage, GarageLocation = s.GarageLocation, UnderPreviousOwner = s.UnderPreviousOwner,
+            AddedDate = s.AddedDate, AddedBy = s.AddedBy, ModifiedDate = s.ModifiedDate, ModifiedBy = s.ModifiedBy
         }).ToListAsync()
     };
 
@@ -70,6 +75,7 @@ public class BackupService(AppDbContext db)
             // go with their vehicles (FK cascade), so restored due dates are reminded about afresh.
             await db.FuelEntryStops.ExecuteDeleteAsync();
             await db.FuelEntries.ExecuteDeleteAsync();
+            await db.ServiceRecords.ExecuteDeleteAsync();
             await db.Vehicles.ExecuteDeleteAsync();
             await db.Owners.ExecuteDeleteAsync();
             await db.FuelStations.ExecuteDeleteAsync();
@@ -93,7 +99,7 @@ public class BackupService(AppDbContext db)
             Owner = owners[v.OwnerId], Type = v.Type, FuelType = v.FuelType, Make = v.Make, Model = v.Model,
             RegistrationNumber = v.RegistrationNumber, RegistrationDate = v.RegistrationDate, PurchasedDate = v.PurchasedDate,
             MotDueDate = v.MotDueDate, TaxDueDate = v.TaxDueDate, InsuranceDueDate = v.InsuranceDueDate, ServiceDueDate = v.ServiceDueDate,
-            ServiceDueMileage = v.ServiceDueMileage
+            ServiceDueMileage = v.ServiceDueMileage, ServiceIntervalMonths = v.ServiceIntervalMonths, ServiceIntervalMiles = v.ServiceIntervalMiles
         }));
         var brands = backup.FuelBrands.ToDictionary(b => b.Id, b => Audited(b, new FuelBrand { Name = b.Name }));
         var stations = backup.FuelStations.ToDictionary(s => s.Id, s => Audited(s, new FuelStation
@@ -106,6 +112,11 @@ public class BackupService(AppDbContext db)
             VoucherPerLitre = f.VoucherPerLitre, TripAverageMpg = f.TripAverageMpg, TripMiles = f.TripMiles,
             Range = f.Range, Odometer = f.Odometer, Notes = f.Notes
         }));
+        foreach (var s in backup.ServiceRecords)
+            vehicles[s.VehicleId].ServiceRecords.Add(Audited(s, new ServiceRecord
+            {
+                Date = s.Date, Mileage = s.Mileage, Garage = s.Garage, GarageLocation = s.GarageLocation, UnderPreviousOwner = s.UnderPreviousOwner
+            }));
         foreach (var s in backup.FuelEntryStops)
             entries[s.FuelEntryId].Stops.Add(Audited(s, new FuelEntryStop { Sequence = s.Sequence, FuelStation = stations[s.FuelStationId] }));
 

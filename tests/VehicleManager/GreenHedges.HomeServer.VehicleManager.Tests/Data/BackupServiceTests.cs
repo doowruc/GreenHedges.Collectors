@@ -8,7 +8,7 @@ namespace VehicleManager.Tests.Data;
 
 public class BackupServiceTests : DatabaseTest
 {
-    /// <summary>A vehicle with due dates, a single and a split fill-up, and a brand with no stations.</summary>
+    /// <summary>A vehicle with due dates, a service interval and two services, a single and a split fill-up, and a brand with no stations.</summary>
     private async Task SeedAsync(AppDbContext db)
     {
         var vehicle = await TestData.AddVehicleAsync(db, "BACK 1");
@@ -18,6 +18,10 @@ public class BackupServiceTests : DatabaseTest
         vehicle.InsuranceDueDate = new DateOnly(2027, 1, 15);
         vehicle.ServiceDueDate = new DateOnly(2027, 6, 30);
         vehicle.ServiceDueMileage = 45000;
+        vehicle.ServiceIntervalMonths = 12;
+        vehicle.ServiceIntervalMiles = 10000;
+        vehicle.ServiceRecords.Add(new ServiceRecord { Date = new DateOnly(2025, 6, 30), Mileage = 35000, Garage = "Main Dealer", GarageLocation = "Leeds" });
+        vehicle.ServiceRecords.Add(new ServiceRecord { Date = new DateOnly(2024, 6, 1), Mileage = 25000, Garage = "Local Garage", UnderPreviousOwner = true });
         await TestData.AddFillUpAsync(db, vehicle.Id, new DateOnly(2026, 1, 1), ("Shell", "Meadowbank"));
         var split = await TestData.AddFillUpAsync(db, vehicle.Id, new DateOnly(2026, 2, 1), ("BP", "Oak Lane"), ("Shell", "Meadowbank"));
         split.Notes = "Split";
@@ -30,11 +34,12 @@ public class BackupServiceTests : DatabaseTest
     [
         .. await db.Owners.Select(o => $"owner {o.Name} user={o.UserId} {o.AddedBy} {o.AddedDate:O}").ToListAsync(),
         .. await db.Vehicles.Select(v => $"vehicle {v.RegistrationNumber} {v.Owner!.Name} {v.Make} {v.Model} {v.FuelType} user={v.UserId} {v.AddedDate:O} " +
-                                            $"mot={v.MotDueDate} tax={v.TaxDueDate} insurance={v.InsuranceDueDate} service={v.ServiceDueDate}/{v.ServiceDueMileage}").ToListAsync(),
+                                            $"mot={v.MotDueDate} tax={v.TaxDueDate} insurance={v.InsuranceDueDate} service={v.ServiceDueDate}/{v.ServiceDueMileage} every {v.ServiceIntervalMonths}/{v.ServiceIntervalMiles}").ToListAsync(),
         .. await db.FuelBrands.Select(b => $"brand {b.Name} user={b.UserId} {b.AddedDate:O} {b.ModifiedDate:O}").ToListAsync(),
         .. await db.FuelStations.Select(s => $"station {s.FuelBrand!.Name}@{s.Name} user={s.UserId}").ToListAsync(),
         .. await db.FuelEntries.Select(f => $"fill-up {f.Vehicle!.RegistrationNumber} {f.Date} {f.Litres} {f.CostPerLitre} {f.Notes} {f.AddedBy}").ToListAsync(),
-        .. await db.FuelEntryStops.Select(s => $"stop {s.FuelEntry!.Date} {s.Sequence} {s.FuelStation!.FuelBrand!.Name}@{s.FuelStation.Name}").ToListAsync()
+        .. await db.FuelEntryStops.Select(s => $"stop {s.FuelEntry!.Date} {s.Sequence} {s.FuelStation!.FuelBrand!.Name}@{s.FuelStation.Name}").ToListAsync(),
+        .. await db.ServiceRecords.Select(s => $"service {s.Vehicle!.RegistrationNumber} {s.Date} {s.Mileage} {s.Garage} {s.GarageLocation} previous={s.UnderPreviousOwner} {s.AddedBy} {s.AddedDate:O}").ToListAsync()
     ];
 
     private static List<string> Sorted(List<string> list) => [.. list.Order()];
@@ -50,7 +55,7 @@ public class BackupServiceTests : DatabaseTest
             original = Sorted(await ContentsAsync(db));
             backup = await new BackupService(db).CreateAsync();
         }
-        Assert.Equal(new BackupCounts(1, 1, 3, 2, 2), backup.Counts);
+        Assert.Equal(new BackupCounts(1, 1, 3, 2, 2, 2), backup.Counts);
 
         // Change things after the backup.
         await using (var db = Db())
@@ -99,8 +104,8 @@ public class BackupServiceTests : DatabaseTest
         var empty = new BackupFile { Format = BackupFile.FormatName, Version = BackupFile.CurrentVersion, CreatedDate = DateTime.UtcNow };
         await using (var db = Db()) await new BackupService(db).RestoreAsync(empty);
 
-        await using (var db = Db()) Assert.Equal(new BackupCounts(0, 0, 0, 0, 0), await new BackupService(db).CountAsync());
-        await using (var db = TestDatabase.As(other)) Assert.Equal(new BackupCounts(1, 1, 3, 2, 2), await new BackupService(db).CountAsync());
+        await using (var db = Db()) Assert.Equal(new BackupCounts(0, 0, 0, 0, 0, 0), await new BackupService(db).CountAsync());
+        await using (var db = TestDatabase.As(other)) Assert.Equal(new BackupCounts(1, 1, 3, 2, 2, 2), await new BackupService(db).CountAsync());
     }
 
     [DatabaseFact]

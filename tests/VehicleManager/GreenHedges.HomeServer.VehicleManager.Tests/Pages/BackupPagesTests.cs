@@ -17,7 +17,7 @@ public class BackupPagesTests(AppFactory app) : DatabaseTest, IClassFixture<AppF
     private async Task<byte[]> DownloadAsync(PageClient client)
     {
         var page = await client.GetAsync("/Backup");
-        Assert.Contains("1 owner(s), 1 vehicle(s), 1 fuel brand(s), 1 station(s) and 1 fill-up(s)", page.Text);
+        Assert.Contains("1 owner(s), 1 vehicle(s), 1 fuel brand(s), 1 station(s), 1 fill-up(s) and 0 service(s)", page.Text);
         var link = PageResponse.Href(System.Text.RegularExpressions.Regex.Match(page.Html, "<a [^>]*>[^<]*<i [^>]*></i>Download backup</a>").Value)!;
 
         var response = await client.GetResponseAsync(link);

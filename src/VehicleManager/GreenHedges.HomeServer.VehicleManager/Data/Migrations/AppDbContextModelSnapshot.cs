@@ -346,6 +346,64 @@ namespace VehicleManager.Data.Migrations
                     b.ToTable("SentReminders");
                 });
 
+            modelBuilder.Entity("VehicleManager.Models.ServiceRecord", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AddedBy")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<DateTime>("AddedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Garage")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("GarageLocation")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("Mileage")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ModifiedBy")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<DateTime>("ModifiedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<bool>("UnderPreviousOwner")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("VehicleId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VehicleId", "Date");
+
+                    b.ToTable("ServiceRecords");
+                });
+
             modelBuilder.Entity("VehicleManager.Models.UserSettings", b =>
                 {
                     b.Property<int>("Id")
@@ -475,6 +533,12 @@ namespace VehicleManager.Data.Migrations
                     b.Property<int?>("ServiceDueMileage")
                         .HasColumnType("int");
 
+                    b.Property<int?>("ServiceIntervalMiles")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ServiceIntervalMonths")
+                        .HasColumnType("int");
+
                     b.Property<DateOnly?>("TaxDueDate")
                         .HasColumnType("date");
 
@@ -550,6 +614,17 @@ namespace VehicleManager.Data.Migrations
                     b.Navigation("Vehicle");
                 });
 
+            modelBuilder.Entity("VehicleManager.Models.ServiceRecord", b =>
+                {
+                    b.HasOne("VehicleManager.Models.Vehicle", "Vehicle")
+                        .WithMany("ServiceRecords")
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Vehicle");
+                });
+
             modelBuilder.Entity("VehicleManager.Models.Vehicle", b =>
                 {
                     b.HasOne("VehicleManager.Models.Owner", "Owner")
@@ -584,6 +659,8 @@ namespace VehicleManager.Data.Migrations
             modelBuilder.Entity("VehicleManager.Models.Vehicle", b =>
                 {
                     b.Navigation("FuelEntries");
+
+                    b.Navigation("ServiceRecords");
                 });
 #pragma warning restore 612, 618
         }

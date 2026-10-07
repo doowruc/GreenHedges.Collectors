@@ -57,13 +57,13 @@ else
 }
 
 @section Styles {
-    @if (Model.Sections.Count > 0) { <partial name="_FuelTableStyles" /> }
+    @if (Model.Sections.Count > 0) { <partial name="_DataTableStyles" /> }
 }
 
 @section Scripts {
     @if (Model.Sections.Count > 0)
     {
-        <partial name="_FuelTableScripts" />
+        <partial name="_DataTableScripts" />
         <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.js"></script>
         <script src="~/js/price-chart.js" asp-append-version="true"></script>
     }

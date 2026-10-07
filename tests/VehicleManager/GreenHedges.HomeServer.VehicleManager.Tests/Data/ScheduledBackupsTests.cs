@@ -43,7 +43,7 @@ public class ScheduledBackupsTests(AppFactory app) : DatabaseTest, IClassFixture
         Assert.Matches(@"^vehicle-manager-backup-.*\.json\.gz$", attachment.Filename);
         Assert.Equal("application/gzip", attachment.ContentType);
         var backup = BackupFile.Read(new MemoryStream(attachment.Content!.Value.ByteArray!));
-        Assert.Equal(new BackupCounts(1, 1, 1, 1, 1), backup.Counts);
+        Assert.Equal(new BackupCounts(1, 1, 1, 1, 1, 0), backup.Counts);
         Assert.Contains("1 fill-up(s)", email.TextBody);
 
         Assert.Equal(BackupEmailResult.Unchanged, await BackUpAsync(UserId));

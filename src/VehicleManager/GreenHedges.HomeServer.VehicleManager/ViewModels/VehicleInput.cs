@@ -54,6 +54,14 @@ public class VehicleInput
     [Display(Name = "Service due mileage")]
     public int? ServiceDueMileage { get; set; }
 
+    [Range(1, 120)]
+    [Display(Name = "Service every (months)")]
+    public int? ServiceIntervalMonths { get; set; }
+
+    [Range(1, 100_000)]
+    [Display(Name = "Service every (miles)")]
+    public int? ServiceIntervalMiles { get; set; }
+
     /// <summary>The row's version when the form was loaded, to detect conflicting edits. Never copied to the entity.</summary>
     public byte[] RowVersion { get; set; } = [];
 
@@ -74,6 +82,8 @@ public class VehicleInput
         InsuranceDueDate = v.InsuranceDueDate,
         ServiceDueDate = v.ServiceDueDate,
         ServiceDueMileage = v.ServiceDueMileage,
+        ServiceIntervalMonths = v.ServiceIntervalMonths,
+        ServiceIntervalMiles = v.ServiceIntervalMiles,
         RowVersion = v.RowVersion
     };
 
@@ -92,5 +102,7 @@ public class VehicleInput
         vehicle.InsuranceDueDate = InsuranceDueDate;
         vehicle.ServiceDueDate = ServiceDueDate;
         vehicle.ServiceDueMileage = ServiceDueMileage;
+        vehicle.ServiceIntervalMonths = ServiceIntervalMonths;
+        vehicle.ServiceIntervalMiles = ServiceIntervalMiles;
     }
 }

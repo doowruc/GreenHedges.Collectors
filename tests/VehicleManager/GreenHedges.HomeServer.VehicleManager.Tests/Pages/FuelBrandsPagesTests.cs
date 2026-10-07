@@ -91,7 +91,7 @@ public class FuelBrandsPagesTests(AppFactory app) : DatabaseTest, IClassFixture<
         Assert.Contains("05/01/2026", diesel);
         Assert.DoesNotContain("01/01/2026", diesel);
         Assert.DoesNotContain("03/01/2026", page.Html);   // Beta Village only
-        Assert.Contains("/js/fuel-table.", page.Html);
+        Assert.Contains("/js/data-table.", page.Html);
 
         // The charts plot the pump price, oldest first.
         var text = WebUtility.HtmlDecode(html);
@@ -160,9 +160,9 @@ public class FuelBrandsPagesTests(AppFactory app) : DatabaseTest, IClassFixture<
 
         // DataTables mustn't fix the widths from each table's own rows, and the figures are sized by their number of
         // characters, so every digit has to be the same width.
-        Assert.Contains("autoWidth: false", (await client.GetAsync("/js/fuel-table.js")).Html);
+        Assert.Contains("autoWidth: false", (await client.GetAsync("/js/data-table.js")).Html);
         var css = (await client.GetAsync(Regex.Match(html, @"href=""(/css/site[^""]*\.css)""").Groups[1].Value)).Html;
-        Assert.Matches(@"\.table-fuel td, \.table-fuel th \{[^}]*font-variant-numeric: tabular-nums", css);
+        Assert.Matches(@"\.table-data td, \.table-data th \{[^}]*font-variant-numeric: tabular-nums", css);
     }
 
     [DatabaseFact]

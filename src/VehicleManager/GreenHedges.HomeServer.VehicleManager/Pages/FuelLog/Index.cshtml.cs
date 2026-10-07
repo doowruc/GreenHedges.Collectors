@@ -34,7 +34,7 @@ public class IndexModel(AppDbContext db, FuelStatsService stats) : PageModel
 
         if (Year is { } yr) query = query.Where(f => f.Date.Year == yr);
         Entries = await query
-            // Same order DataTables starts with (fuel-table.js): newest first, then by vehicle.
+            // Same order DataTables starts with (data-table.js): newest first, then by vehicle.
             .OrderByDescending(f => f.Date).ThenBy(f => f.Vehicle!.Make).ThenBy(f => f.Vehicle!.Model).ThenByDescending(f => f.Id)
             .Select(FuelEntryView.Projection)
             .ToListAsync();

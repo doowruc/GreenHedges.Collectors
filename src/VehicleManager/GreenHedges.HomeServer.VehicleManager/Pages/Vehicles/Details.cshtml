@@ -67,12 +67,43 @@ else
     </div>
 }
 
+<div class="card shadow-sm mt-4">
+    <div class="card-header bg-body d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div>
+            <span class="fw-semibold">Service history (@Model.Services.Count)</span>
+            <span class="text-muted small ms-2">
+                @if (Model.Vehicle.ServiceIntervalMonths is null && Model.Vehicle.ServiceIntervalMiles is null)
+                {
+                    <text>No service interval. <a asp-page="Edit" asp-route-id="@Model.Vehicle.Id">Set one</a> to have the next service worked out.</text>
+                }
+                else
+                {
+                    <text>Every @string.Join(" or ", new[]
+                    {
+                        Model.Vehicle.ServiceIntervalMonths is { } months ? $"{months} month{(months == 1 ? "" : "s")}" : null,
+                        Model.Vehicle.ServiceIntervalMiles is { } miles ? $"{miles:N0} miles" : null
+                    }.Where(p => p is not null))</text>
+                }
+            </span>
+        </div>
+        <a asp-page="Services/Create" asp-route-vehicleId="@Model.Vehicle.Id" class="btn btn-sm btn-primary"><i class="bi bi-wrench me-1"></i>Add service</a>
+    </div>
+    @if (Model.Services.Count == 0)
+    {
+        <div class="card-body text-muted">No services recorded yet.</div>
+    }
+    else
+    {
+        <div class="card-body py-2"><partial name="_ServiceTable" model="Model.Services" /></div>
+    }
+</div>
+
 @section Styles {
-    @if (Model.Entries.Count > 0) { <partial name="_FuelTableStyles" /> }
+    @if (Model.Entries.Count > 0 || Model.Services.Count > 0) { <partial name="_DataTableStyles" /> }
 }
 
 @section Scripts {
-    @if (Model.Entries.Count > 0) { <partial name="_FuelTableScripts" /> }
+    @if (Model.Entries.Count > 0 || Model.Services.Count > 0) { <partial name="_DataTableScripts" /> }
     <script>
         document.getElementById('vehicle-switcher')?.addEventListener('change', e => location.href = e.target.value);
     </script>
