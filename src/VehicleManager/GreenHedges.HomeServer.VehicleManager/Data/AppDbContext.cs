@@ -6,7 +6,7 @@ namespace VehicleManager.Data;
 
 /// <remarks>
 /// Each signed-in user has their own data. Query filters limit every query to the current user's
-/// owners, vehicles, fuel brands and stations, and (through their vehicle) fill-ups and their stops.
+/// owners, vehicles, fuel brands and stations, settings, and (through their vehicle) fill-ups and their stops.
 /// <see cref="SaveChangesAsync(bool, CancellationToken)"/> stamps new user-owned rows with the
 /// current user's id and fills in every table's audit columns.
 /// With no signed-in user (e.g. at startup) queries return nothing and saving throws. Use
@@ -20,6 +20,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, CurrentUser? c
     public DbSet<FuelEntryStop> FuelEntryStops => Set<FuelEntryStop>();
     public DbSet<FuelBrand> FuelBrands => Set<FuelBrand>();
     public DbSet<FuelStation> FuelStations => Set<FuelStation>();
+    public DbSet<UserSettings> UserSettings => Set<UserSettings>();
 
     /// <summary>Read by the query filters; EF Core evaluates it per query, as a parameter.</summary>
     private string? CurrentUserId => currentUser?.Id;
@@ -93,6 +94,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, CurrentUser? c
              .WithOne(st => st.FuelStation)
              .HasForeignKey(st => st.FuelStationId)
              .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<UserSettings>(e =>
+        {
+            e.HasQueryFilter(s => s.UserId == CurrentUserId);
+            e.HasIndex(s => s.UserId).IsUnique();
         });
     }
 

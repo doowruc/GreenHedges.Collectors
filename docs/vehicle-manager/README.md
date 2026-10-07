@@ -79,7 +79,7 @@ can be removed.
 
 User secrets are only read in Development. Elsewhere, use environment variables
 (`ConnectionStrings__VehicleManager`, `Auth0__Domain`, `Auth0__ClientId`, `Auth0__ClientSecret`,
-`AllowedEmails`, `ExistingDataOwner`). The app won't start
+`AllowedEmails`, `ExistingDataOwner`, `Resend__ApiKey`, `Resend__From`). The app won't start
 without them.
 
 Auth0 posts the sign-in result back to the app, which needs `Secure` cookies. Chrome, Edge and
@@ -155,6 +155,23 @@ Under **Manage**:
   transaction, so if it fails your data is left as it was. Restored rows keep their original audit
   dates and "added by" values, and become yours, so a backup can also be restored into another account.
 
+**Scheduled backups** – every night at 01:00 UTC, each user who has set a backup email address under
+**Settings** (in the account menu, top right) is emailed a backup, as an attachment, if their data has
+changed since the last scheduled backup. Settings also has **Email a backup now**, to check it works;
+like downloading a backup, it doesn't affect the schedule. Leave the address blank to turn scheduled backups off. Settings aren't part of a backup.
+
+Email is sent through [Resend](https://resend.com). Create an API key (sending access is enough) and
+verify the domain you'll send from, then store both in user secrets, from the `VehicleManager` folder:
+
+```bash
+dotnet user-secrets set "Resend:ApiKey" "re_..."
+dotnet user-secrets set "Resend:From" "Vehicle Manager <backups@example.com>"
+```
+
+The app won't start without them (elsewhere, use `Resend__ApiKey` and `Resend__From`). The schedule
+runs inside the app (Coravel), so the app must be running at 01:00 UTC; if several copies are running
+(e.g. locally and deployed), each one sends.
+
 ## Project layout
 
 ```
@@ -162,8 +179,9 @@ VehicleManager/
   Models/        EF Core entities: Owner, Vehicle, FuelEntry, FuelEntryStop, FuelBrand, FuelStation
   ViewModels/    View (output) and input models used by the pages, with the calculated figures
   Data/          AppDbContext (EF Core + SQL Server), DatabaseMigrator, Migrations/
-  Services/      FuelStatsService, FuelImportService (reads .xlsx via ClosedXML), FuelStops, BackupFile + BackupService
-  Pages/         Dashboard, Owners/*, Vehicles/*, FuelLog/* (log + fill-up pages), Import/*, Backup/* (backup + restore), FuelBrands/* (and each brand's Stations/*),
+  Services/      FuelStatsService, FuelImportService (reads .xlsx via ClosedXML), FuelStops, BackupFile + BackupService,
+                 BackupEmailer + ScheduledBackups (nightly emailed backups via Resend, scheduled with Coravel)
+  Pages/         Dashboard, Owners/*, Vehicles/*, FuelLog/* (log + fill-up pages), Import/*, Backup/* (backup + restore), Settings/*, FuelBrands/* (and each brand's Stations/*),
                  Account/* (sign in/out)
 VehicleManager.Tests/
   Unit/, Data/, Pages/   unit, database and in-memory page tests; Infrastructure/ holds the helpers

@@ -31,7 +31,7 @@ so test pages through the in-memory host rather than relying on the browser.
 - `Data/` – EF Core against the real Azure database: per-user isolation, audit columns, concurrency, stops, brands/stations.
 - `Pages/` – the whole app in memory (`Infrastructure/AppFactory`, a `WebApplicationFactory<Program>`). It loads pages,
   follows links and submits forms through `PageClient`, which sends a form's current values like a browser.
-  Auth0 is replaced by a test sign-in, as whichever user the client is for; Auth0 settings and `AllowedEmails` are
+  Auth0 is replaced by a test sign-in, as whichever user the client is for; Auth0 and Resend settings and `AllowedEmails` are
   overridden with dummy values via environment variables.
 - Database tests use the real database, so they must never touch real data. Derive from `DatabaseTest`: each test
   runs as its own throwaway `test|<guid>` user, which the per-user query filters keep apart, and
@@ -45,7 +45,7 @@ so test pages through the in-memory host rather than relying on the browser.
 ## Stack
 
 - .NET 10, Razor Pages, EF Core 10 + SQL Server (Azure SQL Database). Connection string `ConnectionStrings:VehicleManager` is in user secrets; there is no local database.
-- Packages: `Microsoft.EntityFrameworkCore.SqlServer`, `Microsoft.EntityFrameworkCore.Design` (PrivateAssets=all), `ClosedXML`, `Auth0.AspNetCore.Authentication`. Keep EF packages and `dotnet-ef` on the same version.
+- Packages: `Microsoft.EntityFrameworkCore.SqlServer`, `Microsoft.EntityFrameworkCore.Design` (PrivateAssets=all), `ClosedXML`, `Auth0.AspNetCore.Authentication`, `Coravel` (scheduler), `Resend` (email). Keep EF packages and `dotnet-ef` on the same version.
 - Front end: Bootstrap 5.3, Bootstrap Icons, Chart.js 4 and DataTables 3 (Bootstrap 5 styling, no jQuery; fuel log tables) from the jsDelivr CDN (no npm/bundler). Pages add CSS via the layout's `Styles` section. Small vanilla JS files in `wwwroot/js`.
 - en-GB culture throughout (dd/MM/yyyy, £). MPG uses UK gallons (4.54609 L).
 
@@ -53,15 +53,16 @@ so test pages through the in-memory host rather than relying on the browser.
 
 ```
 VehicleManager/
-  Models/      EF Core entities: Owner, Vehicle, FuelEntry, FuelEntryStop, FuelBrand, FuelStation (storage only),
+  Models/      EF Core entities: Owner, Vehicle, FuelEntry, FuelEntryStop, FuelBrand, FuelStation, UserSettings (storage only),
                AuditedEntity, IUserOwned, IFuelPlace
   ViewModels/  What pages use: *View (output, with calculated figures) and *Input (form/import input)
   Data/        AppDbContext (per-user query filters, audit stamping), DatabaseMigrator, ConcurrencyExtensions,
                DesignTimeDbContextFactory, Migrations/
   Services/    FuelStatsService (summaries), FuelImportService (ClosedXML .xlsx import), FuelCalculations,
                CurrentUser, AllowedUsers, ExistingDataClaim, FuelStops (typed names → stops),
-               BackupFile (backup JSON format: read/validate/write) + BackupService (create, restore)
-  Pages/       Index (dashboard), Owners/*, Vehicles/*, FuelLog/* (log + fill-up pages), Import/*, Backup/* (Index, Restore), FuelBrands/* (+ Stations/* per brand),
+               BackupFile (backup JSON format: read/validate/write) + BackupService (create, restore, record),
+               BackupEmailer (emails a backup via Resend), ScheduledBackups (Coravel invocable, nightly)
+  Pages/       Index (dashboard), Owners/*, Vehicles/*, FuelLog/* (log + fill-up pages), Import/*, Backup/* (Index, Restore), Settings/* (user menu), FuelBrands/* (+ Stations/* per brand),
                Account/* (Login, Logout, SignedOut), Shared/ (layout + partials)
   wwwroot/     css/site.css, js/color-mode.js, js/period-toggle.js, js/fuel-table.js
 ```
@@ -86,7 +87,8 @@ VehicleManager/
 - Deletes use `ExecuteDeleteAsync()`. Fill-ups go with their vehicle via the FK cascade.
 - Entities keep only the attributes that shape the schema (`[Required]`, `[StringLength]`). Display names and validation ranges belong on the `*Input` classes.
 - When adding a field, update the entity, its `*View`/`*Input` projections and `ApplyTo`, and the backup
-  (`Services/BackupFile.cs` record + validation, `BackupService` create/restore). A new table needs adding to the backup too.
+  (`Services/BackupFile.cs` record + validation, `BackupService` create/restore). A new data table needs adding to the backup too
+  (`UserSettings` deliberately isn't: restoring shouldn't change where backups go).
 
 **Per-user data**
 - Owners and vehicles implement `IUserOwned` (`UserId` = Auth0 `sub`, via `Services/CurrentUser.cs`). Fill-ups belong to the user who owns their vehicle.
@@ -108,7 +110,7 @@ VehicleManager/
 - Fuel brands are managed at `/FuelBrands` (Manage menu); a brand's stations are a sub-page, `/FuelBrands/{brandId}/Stations/...` (`Pages/FuelBrands/Stations`, base `StationPageModel`, which 404s a station not under the brand in the URL). Links and redirects between station pages must pass `brandId`: ASP.NET doesn't carry a route value over to a different page, and the link comes out empty. `FuelPlaceList<T>` (`Pages/FuelBrands/FuelPlaceList.cs`) holds the database logic shared by both, with `FuelBrandList`/`FuelStationList` subclasses.
 - Fuel import de-duplicates on (vehicle, date, litres) so re-importing is safe. ClosedXML reads `CachedValue` so formula cells use Excel's saved results.
 
-**Backup / restore** (`/Backup`, `/Backup/Restore`, under Manage)
+**Backup / restore** (`/Backup`, `/Backup/Restore`, under Manage; scheduled backups set up at `/Settings`)
 - A backup is gzip-compressed JSON (`BackupFile`): `format`/`version` plus a flat list per table, rows linked by their ids in
   the file. No user id is stored. Restore accepts gzip or plain JSON (detected by the gzip header, not the file name).
 - `BackupFile.Read` validates everything (links, required values, lengths, case-insensitive uniqueness) before any data is
@@ -116,9 +118,18 @@ VehicleManager/
 - `BackupService.RestoreAsync` deletes the user's rows (filtered `ExecuteDelete`) and inserts the backup's in one transaction
   in the execution strategy. It sets `AppDbContext.KeepAuditValues` so restored rows keep their audit values; `UserId` is always
   the current user. Don't use `KeepAuditValues` elsewhere.
+- Scheduled backups: `ScheduledBackups` runs daily at 01:00 UTC (Coravel, `Program.cs`). For each user with a
+  `UserSettings.BackupEmail` it acts as them (`CurrentUser.ActAs`, background work only, in its own DI scope) and
+  `BackupEmailer` emails the `.json.gz` via Resend if the data changed. "Changed" = the backup's `ContentHash()` (SHA-256 of
+  the JSON minus `createdDate`) differs from `UserSettings.LastBackupHash`, so deletions count. Only scheduled emails set
+  `LastBackupDate`/`LastBackupHash`; downloads and "Email a backup now" (`EmailAsync(scheduled: false)`) don't.
+- `Resend:ApiKey` and `Resend:From` come from user secrets (required at startup, like Auth0's).
+- Tests: `AppFactory` swaps `IResend` for `Infrastructure/FakeResend` (records emails; addresses containing "fail" fail)
+  and removes Coravel's hosted service. Never call `ScheduledBackups.Invoke()` in tests: it covers every user, real ones
+  included. Test `BackUpAsync(testUserId)` instead.
 
 **Authentication (Auth0)**
-- `Auth0:Domain`, `Auth0:ClientId`, `Auth0:ClientSecret`, `AllowedEmails` and optional `ExistingDataOwner` come from user secrets (env vars outside Development). Never put them in `appsettings*.json` or commit them. The app throws at startup if any are missing.
+- `Auth0:Domain`, `Auth0:ClientId`, `Auth0:ClientSecret`, `AllowedEmails`, `Resend:ApiKey`, `Resend:From` and optional `ExistingDataOwner` come from user secrets (env vars outside Development). Never put them in `appsettings*.json` or commit them. The app throws at startup if any are missing.
 - Authorization code flow, scopes `openid profile email`.
 - Allow-list: `AllowedEmails` (user secrets, `;`/`,` separated) via `Services/AllowedUsers.cs`. The `AllowedUser` policy (also the fallback policy, so it covers every endpoint) requires a signed-in user whose `email_verified` email is on the list. Signed-in users who fail it are forbidden → `Account/AccessDenied`. The app throws at startup if the list is missing (fail closed).
 - `[AllowAnonymous]` only on `Account/Login`, `Account/Logout`, `Account/SignedOut`, `Account/AccessDenied`, `Error` and static assets. New pages are protected automatically. The layout shows the nav only when the user passes the `AllowedUser` policy.

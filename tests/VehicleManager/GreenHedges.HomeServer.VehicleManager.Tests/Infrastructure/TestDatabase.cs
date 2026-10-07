@@ -43,6 +43,7 @@ public static class TestDatabase
         await db.Owners.IgnoreQueryFilters().Where(o => o.UserId == userId).ExecuteDeleteAsync();
         await db.FuelStations.IgnoreQueryFilters().Where(s => s.UserId == userId).ExecuteDeleteAsync();
         await db.FuelBrands.IgnoreQueryFilters().Where(b => b.UserId == userId).ExecuteDeleteAsync();
+        await db.UserSettings.IgnoreQueryFilters().Where(s => s.UserId == userId).ExecuteDeleteAsync();
     }
 }
 

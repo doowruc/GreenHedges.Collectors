@@ -1,10 +1,12 @@
 using System.Globalization;
 using Auth0.AspNetCore.Authentication;
+using Coravel;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
+using Resend;
 using VehicleManager.Data;
 using VehicleManager.Pages.FuelBrands;
 using VehicleManager.Services;
@@ -62,6 +64,17 @@ builder.Services.AddScoped<FuelStatsService>();
 builder.Services.AddScoped<FuelImportService>();
 builder.Services.AddScoped<BackupService>();
 
+// Backups are emailed through Resend (see README). The sender's domain must be verified in Resend.
+builder.Services.AddResend(options =>
+{
+    options.ApiToken = RequiredSetting("Resend:ApiKey");
+    options.ThrowExceptions = true;
+});
+builder.Services.AddSingleton(new BackupEmailOptions(RequiredSetting("Resend:From")));
+builder.Services.AddScoped<BackupEmailer>();
+builder.Services.AddScheduler();
+builder.Services.AddTransient<ScheduledBackups>();
+
 var app = builder.Build();
 
 // Create the tables on first run and apply any pending migrations.
@@ -70,6 +83,14 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.MigrateDatabase(app.Logger);
 }
+
+// Nightly, email each user a backup if their data has changed since their last one.
+app.Services.UseScheduler(scheduler => scheduler
+        .Schedule<ScheduledBackups>()
+        .DailyAt(1, 0)
+        .Zoned(TimeZoneInfo.Utc)
+        .PreventOverlapping(nameof(ScheduledBackups)))
+    .OnError(ex => app.Logger.LogError(ex, "A scheduled task failed"));
 
 if (!app.Environment.IsDevelopment())
 {

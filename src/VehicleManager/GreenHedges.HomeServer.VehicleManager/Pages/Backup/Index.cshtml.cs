@@ -14,8 +14,6 @@ public class IndexModel(BackupService backups) : PageModel
     public async Task<IActionResult> OnGetDownloadAsync()
     {
         var backup = await backups.CreateAsync();
-        var file = new MemoryStream();
-        await backup.WriteAsync(file);
-        return File(file.ToArray(), "application/gzip", $"vehicle-manager-backup-{backup.CreatedDate:yyyy-MM-dd-HHmm}.json.gz");
+        return File(await backup.ToBytesAsync(), "application/gzip", backup.FileName);
     }
 }

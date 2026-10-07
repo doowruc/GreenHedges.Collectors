@@ -5,15 +5,19 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Resend;
 
 namespace VehicleManager.Tests.Infrastructure;
 
 /// <summary>
 /// Runs the app in memory against the test database. Auth0 is replaced by a test sign-in: a
 /// request is signed in as the user named in its <see cref="UserHeader"/> (see <see cref="ClientFor"/>),
-/// with an allowed, verified email; a request without it isn't signed in.
+/// with an allowed, verified email; a request without it isn't signed in. Email goes to
+/// <see cref="FakeResend"/>, and the scheduler doesn't run.
 /// </summary>
 public sealed class AppFactory : WebApplicationFactory<Program>
 {
@@ -28,6 +32,8 @@ public sealed class AppFactory : WebApplicationFactory<Program>
         Environment.SetEnvironmentVariable("Auth0__Domain", "tests.invalid");
         Environment.SetEnvironmentVariable("Auth0__ClientId", "tests");
         Environment.SetEnvironmentVariable("Auth0__ClientSecret", "tests");
+        Environment.SetEnvironmentVariable("Resend__ApiKey", "tests");
+        Environment.SetEnvironmentVariable("Resend__From", "Vehicle Manager <backups@tests.invalid>");
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -41,6 +47,13 @@ public sealed class AppFactory : WebApplicationFactory<Program>
             {
                 o.DefaultScheme = o.DefaultAuthenticateScheme = o.DefaultChallengeScheme = o.DefaultForbidScheme = TestSignIn.SchemeName;
             });
+
+            // Never send real email, and never run the scheduled backups: they'd act on every user's data.
+            services.RemoveAll<IResend>();
+            services.AddSingleton(FakeResend.Create());
+            foreach (var scheduler in services.Where(d => d.ServiceType == typeof(IHostedService) &&
+                                                          d.ImplementationType?.Namespace?.StartsWith("Coravel") == true).ToList())
+                services.Remove(scheduler);
         });
     }
 
