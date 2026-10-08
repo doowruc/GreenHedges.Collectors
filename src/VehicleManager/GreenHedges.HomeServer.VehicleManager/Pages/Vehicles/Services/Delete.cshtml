@@ -9,6 +9,6 @@
     <p class="text-muted small">The next service's due date and mileage won't change.</p>
     <form method="post">
         <button type="submit" class="btn btn-danger">Delete</button>
-        <a asp-page="/Vehicles/Details" asp-route-id="@Model.VehicleId" class="btn btn-link">Cancel</a>
+        <a asp-page="/Vehicles/Details" asp-route-id="@Model.VehicleId" asp-route-tab="@DetailsModel.ServicesTab" class="btn btn-link">Cancel</a>
     </form>
 </div></div>

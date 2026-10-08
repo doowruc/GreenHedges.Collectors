@@ -35,67 +35,92 @@
         {
             <select id="vehicle-switcher" class="form-select w-auto" aria-label="Switch vehicle" asp-items="Model.VehicleOptions"></select>
         }
-        <a asp-page="/FuelLog/Create" asp-route-vehicleId="@Model.Vehicle.Id" class="btn btn-success"><i class="bi bi-fuel-pump me-1"></i>Add fill-up</a>
         <a asp-page="Edit" asp-route-id="@Model.Vehicle.Id" class="btn btn-outline-secondary">Edit</a>
         <a asp-page="Delete" asp-route-id="@Model.Vehicle.Id" class="btn btn-outline-danger">Delete</a>
     </div>
 </div>
 
-@if (Model.Entries.Count == 0)
-{
-    <div class="alert alert-info">
-        No fill-ups recorded yet. <a asp-page="/FuelLog/Create" asp-route-vehicleId="@Model.Vehicle.Id">Add one</a>
-        or <a asp-page="/Import/Index">import from your spreadsheet</a>.
-    </div>
-}
-else
-{
-    <partial name="_PeriodToggle" />
-    <div class="mb-4">
-        <div class="period-stats" data-period="12m"><partial name="_StatCards" model="Model.LastYear" /></div>
-        <div class="period-stats" data-period="all"><partial name="_StatCards" model="Model.AllTime" /></div>
-    </div>
-
-    <div class="card shadow-sm mb-4">
-        <div class="card-header bg-body fw-semibold">MPG and fuel price over time</div>
-        <div class="card-body"><div class="chart-box"><canvas id="chart"></canvas></div></div>
-    </div>
-
-    <div class="card shadow-sm">
-        <div class="card-header bg-body fw-semibold">Fuel Log (@Model.Entries.Count)</div>
-        <div class="card-body py-2"><partial name="_FuelTable" model="Model.Entries" /></div>
-    </div>
-}
-
-<div class="card shadow-sm mt-4">
-    <div class="card-header bg-body d-flex flex-wrap justify-content-between align-items-center gap-2">
-        <div>
-            <span class="fw-semibold">Service history (@Model.Services.Count)</span>
-            <span class="text-muted small ms-2">
-                @if (Model.Vehicle.ServiceIntervalMonths is null && Model.Vehicle.ServiceIntervalMiles is null)
-                {
-                    <text>No service interval. <a asp-page="Edit" asp-route-id="@Model.Vehicle.Id">Set one</a> to have the next service worked out.</text>
-                }
-                else
-                {
-                    <text>Every @string.Join(" or ", new[]
-                    {
-                        Model.Vehicle.ServiceIntervalMonths is { } months ? $"{months} month{(months == 1 ? "" : "s")}" : null,
-                        Model.Vehicle.ServiceIntervalMiles is { } miles ? $"{miles:N0} miles" : null
-                    }.Where(p => p is not null))</text>
-                }
-            </span>
-        </div>
-        <a asp-page="Services/Create" asp-route-vehicleId="@Model.Vehicle.Id" class="btn btn-sm btn-primary"><i class="bi bi-wrench me-1"></i>Add service</a>
-    </div>
-    @if (Model.Services.Count == 0)
+@{ var fuelActive = Model.Tab == DetailsModel.FuelTab; }
+<ul class="nav nav-tabs mb-3" role="tablist" aria-label="Vehicle details">
+    @* Links to each tab's URL: Bootstrap switches the tab in place, and the script below puts the link in the
+       address bar, so a refresh (or coming back from a service page, with ?tab=services) opens the same tab. *@
+    <li class="nav-item" role="presentation">
+        <a asp-route-id="@Model.Vehicle.Id" asp-route-tab="@DetailsModel.FuelTab" class="nav-link @(fuelActive ? "active" : null)" role="tab"
+           data-bs-toggle="tab" data-bs-target="#tab-fuel" aria-controls="tab-fuel" aria-selected="@(fuelActive ? "true" : "false")">
+            <i class="bi bi-fuel-pump me-1"></i>Fuel <span class="opacity-75">(@Model.Entries.Count)</span>
+        </a>
+    </li>
+    <li class="nav-item" role="presentation">
+        <a asp-route-id="@Model.Vehicle.Id" asp-route-tab="@DetailsModel.ServicesTab" class="nav-link @(fuelActive ? null : "active")" role="tab"
+           data-bs-toggle="tab" data-bs-target="#tab-services" aria-controls="tab-services" aria-selected="@(fuelActive ? "false" : "true")">
+            <i class="bi bi-wrench me-1"></i>Services <span class="opacity-75">(@Model.Services.Count)</span>
+        </a>
+    </li>
+</ul>
+<div class="tab-content">
+<div class="tab-pane @(fuelActive ? "show active" : null)" id="tab-fuel" role="tabpanel">
+    @if (Model.Entries.Count == 0)
     {
-        <div class="card-body text-muted">No services recorded yet.</div>
+        <div class="alert alert-info">
+            No fill-ups recorded yet. <a asp-page="/FuelLog/Create" asp-route-vehicleId="@Model.Vehicle.Id">Add one</a>
+            or <a asp-page="/Import/Index">import from your spreadsheet</a>.
+        </div>
     }
     else
     {
-        <div class="card-body py-2"><partial name="_ServiceTable" model="Model.Services" /></div>
+        <div class="period-toggle-row d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+            <partial name="_PeriodToggle" />
+            @* Just "Add" on a phone, so it fits beside the toggle. *@
+            <a asp-page="/FuelLog/Create" asp-route-vehicleId="@Model.Vehicle.Id" class="btn btn-success" aria-label="Add fill-up"><i class="bi bi-fuel-pump me-1"></i>Add<span class="d-none d-sm-inline"> fill-up</span></a>
+        </div>
+        <div class="mb-4">
+            <div class="period-stats" data-period="12m"><partial name="_StatCards" model="Model.LastYear" /></div>
+            <div class="period-stats" data-period="all"><partial name="_StatCards" model="Model.AllTime" /></div>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-body fw-semibold">MPG and fuel price over time</div>
+            <div class="card-body"><div class="chart-box"><canvas id="chart"></canvas></div></div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-header bg-body fw-semibold">Fuel Log (@Model.Entries.Count)</div>
+            <div class="card-body py-2"><partial name="_FuelTable" model="Model.Entries" /></div>
+        </div>
     }
+</div>
+<div class="tab-pane @(fuelActive ? null : "show active")" id="tab-services" role="tabpanel">
+    <div class="card shadow-sm">
+        <div class="card-header bg-body d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div>
+                <span class="fw-semibold">Service history (@Model.Services.Count)</span>
+                <span class="text-muted small ms-2">
+                    @if (Model.Vehicle.ServiceIntervalMonths is null && Model.Vehicle.ServiceIntervalMiles is null)
+                    {
+                        <text>No service interval. <a asp-page="Edit" asp-route-id="@Model.Vehicle.Id">Set one</a> to have the next service worked out.</text>
+                    }
+                    else
+                    {
+                        <text>Every @string.Join(" or ", new[]
+                        {
+                            Model.Vehicle.ServiceIntervalMonths is { } months ? $"{months} month{(months == 1 ? "" : "s")}" : null,
+                            Model.Vehicle.ServiceIntervalMiles is { } miles ? $"{miles:N0} miles" : null
+                        }.Where(p => p is not null))</text>
+                    }
+                </span>
+            </div>
+            <a asp-page="Services/Create" asp-route-vehicleId="@Model.Vehicle.Id" class="btn btn-sm btn-primary"><i class="bi bi-wrench me-1"></i>Add service</a>
+        </div>
+        @if (Model.Services.Count == 0)
+        {
+            <div class="card-body text-muted">No services recorded yet.</div>
+        }
+        else
+        {
+            <div class="card-body py-2"><partial name="_ServiceTable" model="Model.Services" /></div>
+        }
+    </div>
+</div>
 </div>
 
 @section Styles {
@@ -106,6 +131,10 @@ else
     @if (Model.Entries.Count > 0 || Model.Services.Count > 0) { <partial name="_DataTableScripts" /> }
     <script>
         document.getElementById('vehicle-switcher')?.addEventListener('change', e => location.href = e.target.value);
+        document.querySelectorAll('[data-bs-toggle="tab"]').forEach(tab => tab.addEventListener('shown.bs.tab', () => {
+            // Keep the address bar on the selected tab (replacing, so Back doesn't step through tabs).
+            history.replaceState(history.state, '', tab.href);
+        }));
     </script>
     @if (Model.Entries.Count > 0)
     {

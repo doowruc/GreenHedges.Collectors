@@ -142,6 +142,21 @@ public class FuelPagesTests(AppFactory app) : DatabaseTest, IClassFixture<AppFac
     }
 
     [DatabaseFact]
+    public async Task The_vehicle_pages_Add_fill_up_is_on_the_Fuel_tab_beside_the_period_toggle()
+    {
+        var (client, vehicleId) = await SeedAsync();
+        var page = (await client.GetAsync($"/Vehicles/Details/{vehicleId}")).Html;
+        var main = page[page.IndexOf("<main", StringComparison.Ordinal)..];   // not the menu bar's own Add fill-up
+        var tabs = main.IndexOf("<ul class=\"nav nav-tabs", StringComparison.Ordinal);
+
+        Assert.DoesNotContain("/FuelLog/Create", main[..tabs]);   // gone from the header
+        var row = Regex.Match(main, @"<div class=""period-toggle-row d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2"">(.*?)</div>", RegexOptions.Singleline).Groups[1].Value;
+        Assert.Contains("aria-label=\"Stats period\"", row);
+        Assert.Matches($@"<a class=""btn btn-success"" aria-label=""Add fill-up"" href=""/FuelLog/Create\?vehicleId={vehicleId}""><i class=""bi bi-fuel-pump me-1""></i>Add<span class=""d-none d-sm-inline""> fill-up</span></a>\s*$", row);   // last, so right-aligned
+        Assert.True(main.IndexOf("period-toggle-row", StringComparison.Ordinal) > main.IndexOf("id=\"tab-fuel\"", StringComparison.Ordinal));
+    }
+
+    [DatabaseFact]
     public async Task Vehicle_chart_fills_a_sized_box_rather_than_a_fixed_ratio()
     {
         var (client, vehicleId) = await SeedAsync();

@@ -36,7 +36,9 @@
 /* Tinted table header that works in both themes (Bootstrap's .table-light stays light in dark mode). */
 .table > thead.table-head > tr > th { --bs-table-bg: var(--bs-tertiary-bg); }
 
-/* Period toggle (_PeriodToggle): show only the stats for the selected period. */
+/* Period toggle (_PeriodToggle): show only the stats for the selected period. In a .period-toggle-row (with other
+   controls beside it, e.g. the vehicle page's Add fill-up), the row has the margin instead, so they line up. */
+.period-toggle-row > .nav { margin-bottom: 0 !important; }
 :root:not([data-stats-period="all"]) .period-stats[data-period="all"],
 :root[data-stats-period="all"] .period-stats[data-period="12m"] { display: none !important; }
 

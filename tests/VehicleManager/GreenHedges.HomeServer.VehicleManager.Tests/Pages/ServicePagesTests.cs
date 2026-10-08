@@ -43,7 +43,7 @@ public class ServicePagesTests(AppFactory app) : DatabaseTest, IClassFixture<App
         var client = app.ClientFor(UserId);
 
         var added = await AddServiceAsync(client, id, "2026-10-01", 45000, " Main  Dealer ");
-        Assert.Equal((HttpStatusCode.Redirect, $"/Vehicles/Details/{id}"), (added.Status, added.Location));
+        Assert.Equal((HttpStatusCode.Redirect, $"/Vehicles/Details/{id}?tab=services"), (added.Status, added.Location));
         Assert.Equal((new DateOnly(2027, 10, 1), (int?)55000), await NextDueAsync(id));
 
         var page = await client.GetAsync($"/Vehicles/Details/{id}");
@@ -189,6 +189,46 @@ public class ServicePagesTests(AppFactory app) : DatabaseTest, IClassFixture<App
     }
 
     [DatabaseFact]
+    public async Task Fuel_and_services_are_on_separate_tabs_fuel_first()
+    {
+        var id = await AddVehicleAsync();
+        var client = app.ClientFor(UserId);
+        await AddServiceAsync(client, id, "2026-10-01", 45000);
+
+        var page = (await client.GetAsync($"/Vehicles/Details/{id}")).Html;
+        Assert.Matches(@"<ul class=""nav nav-tabs mb-3"" role=""tablist""", page);
+        Assert.Matches($@"<a class=""nav-link active"" role=""tab"" data-bs-toggle=""tab"" data-bs-target=""#tab-fuel""[^>]*href=""/Vehicles/Details/{id}\?tab=fuel""", page);
+        Assert.Matches($@"<a class=""nav-link\s*"" role=""tab"" data-bs-toggle=""tab"" data-bs-target=""#tab-services""[^>]*href=""/Vehicles/Details/{id}\?tab=services""", page);
+        Assert.Contains("Services <span class=\"opacity-75\">(1)</span>", page);
+        Assert.Contains("<div class=\"tab-pane show active\" id=\"tab-fuel\" role=\"tabpanel\">", page);
+        Assert.Matches(@"<div class=""tab-pane\s*"" id=""tab-services"" role=""tabpanel"">", page);
+
+        // The service history is in its tab, after the fuel tab's content.
+        var services = page.IndexOf("id=\"tab-services\"", StringComparison.Ordinal);
+        Assert.True(page.IndexOf("No fill-ups recorded yet.", StringComparison.Ordinal) < services);
+        Assert.True(page.IndexOf("Service history (1)", StringComparison.Ordinal) > services);
+    }
+
+    [DatabaseFact]
+    public async Task The_services_tab_opens_from_the_address_and_after_saving_a_service()
+    {
+        var id = await AddVehicleAsync();
+        var client = app.ClientFor(UserId);
+
+        var added = await AddServiceAsync(client, id, "2026-10-01", 45000);
+        Assert.Equal($"/Vehicles/Details/{id}?tab=services", added.Location);
+        var page = (await client.GetAsync(added.Location!)).Html;
+        Assert.Matches(@"<div class=""tab-pane\s*"" id=""tab-fuel"" role=""tabpanel"">", page);
+        Assert.Contains("<div class=\"tab-pane show active\" id=\"tab-services\" role=\"tabpanel\">", page);
+        Assert.Matches(@"<a class=""nav-link active"" role=""tab"" data-bs-toggle=""tab"" data-bs-target=""#tab-services""", page);
+
+        // The service pages' Cancel links go back to it too.
+        Assert.Matches($@"<a [^>]*href=""/Vehicles/Details/{id}\?tab=services""[^>]*>Cancel</a>", (await client.GetAsync($"/Vehicles/{id}/Services/Create")).Html);
+        // Anything else opens the fuel tab.
+        Assert.Contains("<div class=\"tab-pane show active\" id=\"tab-fuel\" role=\"tabpanel\">", (await client.GetAsync($"/Vehicles/Details/{id}?tab=nonsense")).Html);
+    }
+
+    [DatabaseFact]
     public async Task An_older_service_doesnt_change_the_next_one()
     {
         var id = await AddVehicleAsync();
@@ -289,7 +329,7 @@ public class ServicePagesTests(AppFactory app) : DatabaseTest, IClassFixture<App
         var text = Regex.Replace(Regex.Replace(confirm.Text, "<[^>]+>", ""), @"\s+", " ");
         Assert.Contains("Delete the service for Test Car on 01/10/2026 at 45,000 miles, by Main Dealer (Leeds)?", text);
         var deleted = await client.PostFormAsync(url, confirm);
-        Assert.Equal((HttpStatusCode.Redirect, $"/Vehicles/Details/{id}"), (deleted.Status, deleted.Location));
+        Assert.Equal((HttpStatusCode.Redirect, $"/Vehicles/Details/{id}?tab=services"), (deleted.Status, deleted.Location));
 
         await using var check = Db();
         Assert.Empty(await check.ServiceRecords.ToListAsync());

@@ -52,5 +52,6 @@ public abstract class ServicePageModel(AppDbContext db) : PageModel
             .ToDictionary(g => g.Key, g => g.Select(u => u.GarageLocation!).Distinct(StringComparer.OrdinalIgnoreCase).Order()));
     }
 
-    protected RedirectToPageResult RedirectToVehicle() => RedirectToPage("/Vehicles/Details", new { id = VehicleId });
+    /// <summary>Back to the vehicle's page, on its Services tab.</summary>
+    protected RedirectToPageResult RedirectToVehicle() => RedirectToPage("/Vehicles/Details", new { id = VehicleId, tab = DetailsModel.ServicesTab });
 }

@@ -32,8 +32,13 @@ public class DetailsModel(AppDbContext db, FuelStatsService stats, VehicleLookup
     /// <summary>All vehicles for the switcher; each option's value is that vehicle's details URL.</summary>
     public List<SelectListItem> VehicleOptions { get; private set; } = [];
 
-    public async Task<IActionResult> OnGetAsync(int id)
+    /// <summary>The tab shown first: fuel (the default) or services, from <c>?tab=</c>.</summary>
+    public string Tab { get; private set; } = FuelTab;
+    public const string FuelTab = "fuel", ServicesTab = "services";
+
+    public async Task<IActionResult> OnGetAsync(int id, string? tab)
     {
+        Tab = tab == ServicesTab ? ServicesTab : FuelTab;
         var vehicle = await db.Vehicles.Where(v => v.Id == id).Select(VehicleView.Projection).FirstOrDefaultAsync();
         if (vehicle is null) return NotFound();
         Vehicle = vehicle;
