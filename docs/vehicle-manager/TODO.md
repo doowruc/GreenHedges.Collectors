@@ -34,7 +34,10 @@ Ideas for future features and improvements, roughly in order of how useful they'
 - [x] **Vehicle page tabs:** Fuel and Services on separate tabs, the active one kept in the address (`?tab=`).
 - [x] **Tidier menus and buttons:** the theme choice is a Theme item in the user menu; Add fill-up moved from the menu
       bar onto the Fuel Log page, the Fuel tab and the dashboard cards (with Add service beside it); small buttons,
-      selects and period toggle throughout.
+      selects and pills (period toggle, station fuel types) throughout.
+- [x] **Back buttons instead of breadcrumbs:** the station list and station page have a Back button in the header (the
+      station page's returns to wherever it was opened from); form pages rely on Cancel. Every form's Cancel and Back
+      is an outlined button rather than a link.
 - [ ] **Odometer sanity checks on the fill-up form:** warn (not error) when the odometer is lower than the previous
       fill-up's, or when trip miles and the odometer difference disagree a lot.
 - [ ] **Prefill the fill-up form** with the last vehicle, station and pump price used, and today's date.
@@ -51,10 +54,37 @@ Ideas for future features and improvements, roughly in order of how useful they'
       after you opened it", because the validation summary was inside the prefixed form partials. Fixed and tested.
 - [x] **Shared DataTables setup:** `data-table.js` and `_DataTableStyles`/`_DataTableScripts` serve both the fuel log
       and the service history, so a new table follows the same pattern.
-- [ ] **Persistent logging.** Logs only go to the console now, so a failed nightly backup (`ScheduledBackups`) or an
-      exception on a page is lost once the terminal closes. Send them somewhere that keeps them: Application
-      Insights or Azure Monitor if hosted in Azure, or Serilog writing rolling files locally. Use structured
-      properties (user id, vehicle id), never emails, tokens or connection strings.
+- [ ] **Develop against a local database again,** instead of the Azure one. It must stay SQL Server, because the
+      model relies on it (`rowversion` concurrency, the unique index that counts NULLs as equal, `date` columns,
+      retry-on-failure). Support all three platforms, with a setup for each:
+  - Windows: SQL Server Express LocalDB (`(localdb)\MSSQLLocalDB`), which comes with Visual Studio or as a small
+    separate install.
+  - Mac and Linux: SQL Server in a container (Docker or Podman, the `mcr.microsoft.com/mssql/server` image; on Apple
+    Silicon it runs under Rosetta in Docker Desktop). Not Azure SQL Edge, which has been retired.
+  - Choose by the `ConnectionStrings:VehicleManager` user secret, as now. Document each setup in the README, maybe
+    with a `compose.yaml` for the container.
+  - Database tests would then run locally too (still as throwaway `test|…` users). Use backup and restore to copy
+    real data between the Azure and local databases.
+- [ ] **Persistent logging, with OpenTelemetry.** Logs only go to the console now, so a failed nightly job
+      (`ScheduledBackups`, `ScheduledReminders`) or a page exception is lost once the terminal closes. Use
+      OpenTelemetry (OTel) for logs, traces and metrics, sent over OTLP, so the destination can change without
+      changing code.
+  - Packages: `OpenTelemetry.Extensions.Hosting`, `OpenTelemetry.Exporter.OpenTelemetryProtocol`, and
+    instrumentation for ASP.NET Core, `HttpClient` (Resend, DVLA, DVSA) and SQL Client / EF Core. Send logs through
+    `builder.Logging.AddOpenTelemetry`, so the existing `ILogger` calls are kept.
+  - Add an `ActivitySource` around the Coravel jobs, so each nightly run is a trace with a span per user.
+  - Destination: [Grafana Cloud's free tier](https://grafana.com/products/cloud/free-tier) (50 GB each of logs and
+    traces a month, 10k metric series, 14 days' retention, free indefinitely). It takes OTLP directly. Configure it with
+    the standard `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_EXPORTER_OTLP_HEADERS` (the stack's token) and
+    `OTEL_SERVICE_NAME`, from user secrets or environment variables as with the other secrets. Get the endpoint and
+    token from the stack's OpenTelemetry setup page.
+  - Locally, the standalone .NET Aspire dashboard container also takes OTLP, for seeing traces without the cloud.
+    Without an endpoint set, keep console logging only.
+  - Grafana's alerting could then cover "Alert on failures" below, e.g. a failed nightly job or no successful backup
+    in 48 hours.
+  - Privacy: this sends data to a third party. Log Auth0 user ids, never emails, registration numbers, tokens or
+    connection strings. Some existing log lines need changing: the DVLA/DVSA lookup warnings (`VehicleLookup`) log the
+    registration, and `ExistingDataClaim` logs the email it gave data to.
 - [ ] **Log more of what matters.** Sign-ins and access-denied attempts (`AllowedUsers`), restores and imports
       (counts of rows), merges of brands/stations, concurrency conflicts in `TrySaveEditAsync`, and unhandled
       exceptions via the `/Error` page with its request id.
