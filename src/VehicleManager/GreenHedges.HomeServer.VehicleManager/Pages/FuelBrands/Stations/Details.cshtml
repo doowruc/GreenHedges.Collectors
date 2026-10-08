@@ -7,12 +7,13 @@
     ViewData["SizeColumnsFrom"] = Model.Sections.SelectMany(s => s.Entries).ToList();
 }
 
-<partial name="_Breadcrumb" model="Model" />
 <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
     <h1 class="h3 mb-0">@Model.BrandName @Model.StationName</h1>
     <div class="d-flex flex-wrap gap-2">
-        <a asp-page="Edit" asp-route-brandId="@Model.BrandId" asp-route-id="@Model.StationId" class="btn btn-outline-secondary">Edit</a>
-        <a asp-page="Merge" asp-route-brandId="@Model.BrandId" asp-route-id="@Model.StationId" class="btn btn-outline-secondary">Merge</a>
+        <a asp-page="Edit" asp-route-brandId="@Model.BrandId" asp-route-id="@Model.StationId" class="btn btn-sm btn-outline-secondary">Edit</a>
+        <a asp-page="Merge" asp-route-brandId="@Model.BrandId" asp-route-id="@Model.StationId" class="btn btn-sm btn-outline-secondary">Merge</a>
+        @* Reached from fuel tables all over the app, so Back returns there; else to the brand's stations. *@
+        <partial name="_BackButton" model='new BackButton(Url.Page("/FuelBrands/Stations/Index", new { brandId = Model.BrandId })!, History: true)' />
     </div>
 </div>
 
@@ -24,7 +25,7 @@ else
 {
     @if (Model.Sections.Count > 1)
     {
-        <ul class="nav nav-pills mb-2" role="tablist" aria-label="Fuel type">
+        <ul class="nav nav-pills nav-pills-sm mb-2" role="tablist" aria-label="Fuel type">
             @foreach (var s in Model.Sections)
             {
                 var active = s.FuelType == Model.Selected;

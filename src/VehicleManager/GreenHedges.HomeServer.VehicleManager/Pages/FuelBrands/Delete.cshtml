@@ -10,14 +10,14 @@
            To get rid of a duplicate, merge it into the right fuel brand instead.</p>
         <a asp-page="Merge" asp-route-id="@Model.Brand.Id" class="btn btn-primary">Merge</a>
         <a asp-page="Stations/Index" asp-route-brandId="@Model.Brand.Id" class="btn btn-outline-secondary">Stations</a>
-        <a asp-page="Index" class="btn btn-link">Back</a>
+        <a asp-page="Index" class="btn btn-outline-secondary">Back</a>
     }
     else
     {
         <p>Are you sure you want to delete <strong>@Model.Brand.Name</strong>?</p>
         <form method="post">
             <button type="submit" class="btn btn-danger">Delete</button>
-            <a asp-page="Index" class="btn btn-link">Cancel</a>
+            <a asp-page="Index" class="btn btn-outline-secondary">Cancel</a>
         </form>
     }
 </div></div>

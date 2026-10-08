@@ -1,0 +1,21 @@
+@model BackButton
+@if (Model.History)
+{
+    <a href="@Model.Href" class="btn btn-sm btn-outline-secondary" data-history-back="true"><i class="bi bi-arrow-left me-1"></i>Back</a>
+    <script>
+        // Back to the previous page if it was another page of this app (not this one, as after a re-shown form); else the link.
+        document.querySelectorAll('[data-history-back]').forEach(link => link.addEventListener('click', e => {
+            try {
+                const from = new URL(document.referrer);
+                if (from.origin === location.origin && from.href !== location.href) {
+                    e.preventDefault();
+                    history.back();
+                }
+            } catch { /* no referrer: follow the link */ }
+        }));
+    </script>
+}
+else
+{
+    <a href="@Model.Href" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Back</a>
+}

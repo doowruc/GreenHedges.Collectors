@@ -43,13 +43,45 @@ public class FuelBrandsPagesTests(AppFactory app) : DatabaseTest, IClassFixture<
         await AssertAllLinksLoadAsync(client, brands);
 
         var stations = await client.GetAsync(brands.RowLink("Alpha", "Stations")!);
-        Assert.Contains("<h1 class=\"h3 mb-3\">Alpha stations</h1>", stations.Html);
+        Assert.Contains("<h1 class=\"h3 mb-0\">Alpha stations</h1>", stations.Html);
         Assert.Contains("<td>Town</td>", stations.Html);
         Assert.DoesNotContain("<td>Village</td>", stations.Html);   // Beta's
         await AssertAllLinksLoadAsync(client, stations);
 
         var edit = await client.GetAsync(stations.RowLink("Town", "Edit")!);
-        Assert.Matches(@"<a href=""/FuelBrands"">Fuel Brands</a>.*<a href=""/FuelBrands/\d+/Stations"">Alpha</a>.*Edit station", Regex.Replace(edit.Html, @"\s+", " "));
+        Assert.Matches(@"<a [^>]*href=""/FuelBrands/\d+/Stations""[^>]*>Cancel</a>", edit.Html);
+    }
+
+    [DatabaseFact]
+    public async Task Station_pages_have_a_Back_button_or_Cancel_instead_of_breadcrumbs()
+    {
+        var client = await SeedAsync();
+        var stationsUrl = (await client.GetAsync("/FuelBrands")).RowLink("Alpha", "Stations")!;
+        var stations = await client.GetAsync(stationsUrl);
+        var stationUrl = stations.RowLink("Town", "Fill-ups and prices")!;
+
+        static string Back(string href) =>
+            $@"<a href=""{Regex.Escape(href)}"" class=""btn btn-sm btn-outline-secondary""><i class=""bi bi-arrow-left me-1""></i>Back</a>";
+        static string Header(string title) => $@"<h1 class=""h3 mb-0"">{Regex.Escape(title)}</h1>\s*";
+
+        // The list goes back to the brands.
+        Assert.Matches(Header("Alpha stations") + Back("/FuelBrands"), stations.Html);
+        // Edit, Merge and Delete have Cancel in their forms instead.
+        foreach (var (action, title) in new[] { ("Edit", "Edit station"), ("Merge", "Merge station"), ("Delete", "Delete station") })
+        {
+            var html = (await client.GetAsync(stations.RowLink("Town", action)!)).Html;
+            Assert.Contains($"<h1 class=\"h3 mb-3\">{title}</h1>", html);
+            Assert.DoesNotContain("bi-arrow-left", html);
+            Assert.Matches($@"<a [^>]*href=""{Regex.Escape(stationsUrl)}""[^>]*>(?:Cancel|Back)</a>", html);   // Back in place of Cancel when a station in use can't be deleted
+        }
+        foreach (var action in new[] { "Edit", "Merge", "Delete" })
+            Assert.DoesNotContain("breadcrumb", (await client.GetAsync(stations.RowLink("Town", action)!)).Html);
+        Assert.DoesNotContain("breadcrumb", stations.Html);
+
+        // The station page's Back, beside Edit and Merge, goes back to wherever it was opened from, else the list.
+        var station = (await client.GetAsync(stationUrl)).Html;
+        Assert.Matches(@">Merge</a>\s*(?:@\*.*?\*@\s*)?<a href=""" + Regex.Escape(stationsUrl) + @""" class=""btn btn-sm btn-outline-secondary"" data-history-back=""true""><i class=""bi bi-arrow-left me-1""></i>Back</a>", station);
+        Assert.Contains("history.back()", station);
     }
 
     [DatabaseFact]
@@ -71,11 +103,16 @@ public class FuelBrandsPagesTests(AppFactory app) : DatabaseTest, IClassFixture<
         var page = await client.GetAsync(stations.RowLink("Town", "Fill-ups and prices")!);
         Assert.Equal(HttpStatusCode.OK, page.Status);
         Assert.Contains("<h1 class=\"h3 mb-0\">Alpha Town</h1>", page.Html);
+        Assert.DoesNotContain("breadcrumb", page.Html);
 
         // A tab per fuel type; the latest fill-up's (the car's split one, unleaded) is shown first.
         var html = Regex.Replace(page.Html, @"\s+", " ");
         Assert.Matches(@"class=""nav-link active""[^>]*data-bs-target=""#fuel-Unleaded""", html);
         Assert.Matches(@"class=""nav-link ?""[^>]*data-bs-target=""#fuel-Diesel""", html);
+        // Small pills and buttons, like the rest of the app's.
+        Assert.Contains("<ul class=\"nav nav-pills nav-pills-sm mb-2\" role=\"tablist\" aria-label=\"Fuel type\">", html);
+        Assert.Matches(@"<a class=""btn btn-sm btn-outline-secondary"" href=""/FuelBrands/\d+/Stations/Edit/\d+"">Edit</a>", html);
+        Assert.Matches(@"<a class=""btn btn-sm btn-outline-secondary"" href=""/FuelBrands/\d+/Stations/Merge/\d+"">Merge</a>", html);
         var unleadedStart = html.IndexOf("id=\"fuel-Unleaded\"");
         var dieselStart = html.IndexOf("id=\"fuel-Diesel\"");
         Assert.True(unleadedStart >= 0 && dieselStart > unleadedStart);

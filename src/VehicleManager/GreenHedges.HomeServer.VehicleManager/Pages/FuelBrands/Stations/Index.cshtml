@@ -2,8 +2,10 @@
 @model VehicleManager.Pages.FuelBrands.Stations.IndexModel
 @{ ViewData["Title"] = $"{Model.BrandName} stations"; }
 
-<partial name="_Breadcrumb" model="Model" />
-<h1 class="h3 mb-3">@Model.BrandName stations</h1>
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+    <h1 class="h3 mb-0">@Model.BrandName stations</h1>
+    <partial name="_BackButton" model='new BackButton(Url.Page("/FuelBrands/Index")!)' />
+</div>
 <p class="text-muted small">
     Stations are added by typing them on a fill-up. Merge duplicates (e.g. a misspelling) into the right one; only unused
     stations can be deleted. If a station was rebranded, record it under the new brand so earlier fill-ups keep the old one.

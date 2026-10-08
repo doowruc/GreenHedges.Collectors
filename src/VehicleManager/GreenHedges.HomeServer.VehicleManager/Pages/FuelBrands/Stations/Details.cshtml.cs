@@ -12,7 +12,6 @@ public class DetailsModel(AppDbContext db, FuelBrandList brands, FuelStationList
 {
     public int StationId { get; private set; }
     public string StationName { get; private set; } = string.Empty;
-    public override string Crumb => StationName;
 
     /// <summary>One per fuel type bought here, in <see cref="FuelType"/> order.</summary>
     public List<FuelTypeSection> Sections { get; private set; } = [];

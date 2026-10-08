@@ -2,7 +2,6 @@
 @model VehicleManager.Pages.FuelBrands.Stations.MergeModel
 @{ ViewData["Title"] = "Merge station"; }
 
-<partial name="_Breadcrumb" model="Model" />
 <h1 class="h3 mb-3">Merge station</h1>
 <div class="card shadow-sm"><div class="card-body">
     @if (Model.Targets.Count == 0)
@@ -29,7 +28,7 @@
             </div>
             <div class="mt-4">
                 <button type="submit" class="btn btn-primary">Merge</button>
-                <a asp-page="Index" asp-route-brandId="@Model.BrandId" class="btn btn-link">Cancel</a>
+                <a asp-page="Index" asp-route-brandId="@Model.BrandId" class="btn btn-outline-secondary">Cancel</a>
             </div>
         </form>
     }

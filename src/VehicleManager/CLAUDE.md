@@ -222,6 +222,10 @@ VehicleManager/
 
 **General**
 - Prefer shared partials and small shared scripts over copying markup or JS between pages.
+- No breadcrumbs: a page below another has a Back button on the right of its header (`Pages/Shared/_BackButton`,
+  model `BackButton(href)`), a plain link to the parent page, unless it's a form with its own Cancel (e.g. station Edit,
+  Merge and Delete). A page reached from several places (the station page)
+  uses `BackButton(href, History: true)`: it goes back to the previous page of this app, else follows the link.
 - A form partial rendered with `for="X"` (`_OwnerForm`, `_VehicleForm`, `_ServiceForm`) must not hold the
   `asp-validation-summary="ModelOnly"`: its prefix hides page-level errors such as an edit conflict. Put it on the page.
   It also can't read the page model (its model is the input); pass extras in `ViewData`.

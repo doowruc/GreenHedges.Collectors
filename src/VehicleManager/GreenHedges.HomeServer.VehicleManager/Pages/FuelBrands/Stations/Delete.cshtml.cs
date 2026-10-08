@@ -4,8 +4,6 @@ namespace VehicleManager.Pages.FuelBrands.Stations;
 
 public class DeleteModel(FuelBrandList brands, FuelStationList stations) : StationPageModel(brands, stations)
 {
-    public override string Crumb => "Delete station";
-
     public FuelPlaceRow Station { get; private set; } = new(0, "", null, null, 0, null);
 
     public async Task<IActionResult> OnGetAsync(int id)

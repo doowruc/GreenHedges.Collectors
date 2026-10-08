@@ -6,8 +6,6 @@ namespace VehicleManager.Pages.FuelBrands.Stations;
 
 public class EditModel(FuelBrandList brands, FuelStationList stations) : StationPageModel(brands, stations)
 {
-    public override string Crumb => "Edit station";
-
     [BindProperty]
     public FuelPlaceInput Place { get; set; } = new();
 

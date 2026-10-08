@@ -15,9 +15,6 @@ public abstract class StationPageModel(FuelBrandList brands, FuelStationList sta
 
     public string BrandName { get; private set; } = string.Empty;
 
-    /// <summary>The last breadcrumb, e.g. "Edit station"; null on the list itself.</summary>
-    public virtual string? Crumb => null;
-
     protected FuelBrandList Brands => brands;
     protected FuelStationList Stations => stations;
 

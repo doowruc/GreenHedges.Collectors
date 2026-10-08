@@ -5,8 +5,6 @@ namespace VehicleManager.Pages.FuelBrands.Stations;
 
 public class MergeModel(FuelBrandList brands, FuelStationList stations) : StationPageModel(brands, stations)
 {
-    public override string Crumb => "Merge station";
-
     public FuelPlaceRow Source { get; private set; } = new(0, "", null, null, 0, null);
 
     /// <summary>Any other station, this brand's first; another brand's station fixes one filed under the wrong brand.</summary>

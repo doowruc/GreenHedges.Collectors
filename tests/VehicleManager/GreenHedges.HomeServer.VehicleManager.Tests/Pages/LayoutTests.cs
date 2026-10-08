@@ -27,6 +27,25 @@ public class LayoutTests(AppFactory app) : DatabaseTest, IClassFixture<AppFactor
     }
 
     [DatabaseFact]
+    public async Task Cancel_and_Back_in_forms_are_buttons_not_links()
+    {
+        int vehicleId;
+        await using (var db = Db()) vehicleId = (await TestData.AddVehicleAsync(db)).Id;
+        var client = app.ClientFor(UserId);
+        foreach (var url in new[]
+                 {
+                     "/Owners/Create", "/Vehicles/Create", $"/Vehicles/Edit/{vehicleId}", $"/Vehicles/Delete/{vehicleId}",
+                     $"/FuelLog/Create?vehicleId={vehicleId}", $"/Vehicles/{vehicleId}/Services/Create"
+                 })
+        {
+            var html = (await client.GetAsync(url)).Html;
+            var links = Regex.Matches(html, @"<a [^>]*>(?:Cancel|Back)</a>").Select(m => m.Value).ToList();
+            Assert.NotEmpty(links);
+            Assert.All(links, link => Assert.Contains("class=\"btn btn-outline-secondary\"", link));
+        }
+    }
+
+    [DatabaseFact]
     public async Task Manage_menu_holds_the_list_pages_and_each_link_loads()
     {
         var client = app.ClientFor(UserId);
