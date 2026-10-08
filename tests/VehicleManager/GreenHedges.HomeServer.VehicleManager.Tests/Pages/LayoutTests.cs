@@ -7,6 +7,26 @@ namespace VehicleManager.Tests.Pages;
 public class LayoutTests(AppFactory app) : DatabaseTest, IClassFixture<AppFactory>
 {
     [DatabaseFact]
+    public async Task The_theme_choice_is_a_submenu_of_the_user_menu()
+    {
+        var page = (await app.ClientFor(UserId).GetAsync("/")).Html;
+        var nav = Regex.Match(page, "<nav .*?</nav>", RegexOptions.Singleline).Value;
+
+        // The account menu stays open for clicks inside, so Theme can expand in place.
+        Assert.Matches(@"data-bs-toggle=""dropdown"" data-bs-auto-close=""outside"" data-bs-display=""static""[^>]*aria-label=""Account""", nav);
+        // Left-aligned on a phone, where the collapsed menu bar puts the button on the left; right-aligned otherwise.
+        Assert.Matches(@"aria-label=""Account""[^>]*>\s*<i class=""bi bi-person-circle""></i>\s*</button>\s*<ul class=""dropdown-menu dropdown-menu-sm-end"">", nav);
+        var account = nav[nav.IndexOf("aria-label=\"Account\"", StringComparison.Ordinal)..];
+        Assert.Matches(@"data-bs-toggle=""collapse""\s+data-bs-target=""#theme-options""[^>]*>\s*<i class=""bi bi-circle-half me-2"" id=""theme-icon""></i>Theme", account);
+        var options = Regex.Match(account, @"<li class=""collapse"" id=""theme-options"">(.*?)</li>\s*<li><hr", RegexOptions.Singleline).Groups[1].Value;
+        Assert.Equal(["light", "dark", "auto"], Regex.Matches(options, @"data-theme-value=""(\w+)""").Select(m => m.Groups[1].Value));
+
+        // Nowhere else: no separate theme button in the menu bar.
+        Assert.Equal(3, Regex.Matches(nav, "data-theme-value=").Count);
+        Assert.DoesNotContain("Colour theme", nav);
+    }
+
+    [DatabaseFact]
     public async Task Manage_menu_holds_the_list_pages_and_each_link_loads()
     {
         var client = app.ClientFor(UserId);

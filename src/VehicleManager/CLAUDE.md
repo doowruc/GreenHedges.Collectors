@@ -188,13 +188,16 @@ VehicleManager/
 
 **Light / dark mode**
 - Bootstrap's `data-bs-theme` on `<html>`, set by `wwwroot/js/color-mode.js`. It's loaded synchronously in `<head>` so there's no flash.
-- Preference (Light / Dark / System) is stored in localStorage key `theme`; absent means System, the default. The theme menu is the rightmost item in the navbar. The navbar stays dark in both themes.
+- Preference (Light / Dark / System) is stored in localStorage key `theme`; absent means System, the default. The theme choice is a Theme item in the user (account) menu that expands in place (a Bootstrap collapse; the
+  dropdown has `data-bs-auto-close="outside"` so it stays open, and `color-mode.js` closes it after a choice). Signed-out
+  pages have no picker, but the stored choice still applies. The navbar stays dark in both themes.
 - Everything must work in both themes. Don't use `bg-white`, `table-light` or hard-coded colours. Use `bg-body`, the custom `<thead class="table-head">` and Bootstrap CSS variables in `site.css`.
 - Anything drawing its own colours (e.g. Chart.js) should listen for the `themechange` event and use `window.themeColors()`. See `Pages/Vehicles/Details.cshtml`.
 - Charts: put the canvas in a `<div class="chart-box">` and use `maintainAspectRatio: false`, so the height suits phones as well as desktop (a fixed ratio makes it very short on a phone).
 
 **Stats period toggle ("Last 12 months" / "All time")**
 - Shared partial `Pages/Shared/_PeriodToggle.cshtml` plus `wwwroot/js/period-toggle.js`, used on the dashboard and vehicle details. Reuse it rather than duplicating it.
+- It's small (`nav-pills-sm` in `site.css`, sized like `btn-sm`), to sit with the small buttons and selects used beside it.
 - Mark up period-specific content as `<div class="period-stats" data-period="12m">` / `data-period="all"`. A `site.css` rule hides the non-selected one, based on `data-stats-period` on `<html>`.
 - The selection is remembered across pages in the `statsPeriod` cookie (`all`; absent means 12 months). The partial renders the active button server-side from the cookie, and the script runs synchronously right after the buttons, so nothing flickers on load. Keep it that way.
 

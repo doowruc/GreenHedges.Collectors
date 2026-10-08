@@ -7,7 +7,7 @@
     // Render the selected button server-side so it doesn't visibly switch when the script runs.
     var period = Context.Request.Cookies["statsPeriod"] == "all" ? "all" : "12m";
 }
-<ul class="nav nav-pills mb-2" role="tablist" aria-label="Stats period">
+<ul class="nav nav-pills nav-pills-sm mb-2" role="tablist" aria-label="Stats period">
     @foreach (var (value, label) in new[] { ("12m", "Last 12 months"), ("all", "All time") })
     {
         <li class="nav-item">

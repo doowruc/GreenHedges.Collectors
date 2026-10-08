@@ -110,6 +110,23 @@ public class FuelPagesTests(AppFactory app) : DatabaseTest, IClassFixture<AppFac
     }
 
     [DatabaseFact]
+    public async Task The_Fuel_Log_has_Add_fill_up_beside_its_filters_for_the_vehicle_shown()
+    {
+        var (client, vehicleId) = await SeedAsync();
+        static string Button(string html) =>
+            Regex.Match(html, @"onchange=""this.form.submit\(\)"">.*?</form>\s*(?:@\*.*?\*@\s*)?(<a [^>]*>.*?</a>)", RegexOptions.Singleline).Groups[1].Value;
+
+        var all = Button((await client.GetAsync("/FuelLog")).Html);
+        Assert.Matches(@"^<a class=""btn btn-sm btn-success text-nowrap"" href=""/FuelLog/Create""><i class=""bi bi-fuel-pump me-1""></i>Add fill-up</a>$", all);
+
+        // Filtered to a vehicle, it starts the form with that vehicle.
+        var one = Button((await client.GetAsync($"/FuelLog?vehicleId={vehicleId}")).Html);
+        Assert.Contains($"href=\"/FuelLog/Create?vehicleId={vehicleId}\"", one);
+        var form = await client.GetAsync($"/FuelLog/Create?vehicleId={vehicleId}");
+        Assert.Matches($@"<option selected=""selected"" value=""{vehicleId}"">", form.Html);
+    }
+
+    [DatabaseFact]
     public async Task Fuel_log_and_fill_up_pages_are_under_FuelLog()
     {
         var (client, _) = await SeedAsync();
@@ -119,7 +136,9 @@ public class FuelPagesTests(AppFactory app) : DatabaseTest, IClassFixture<AppFac
         Assert.Contains("<h1 class=\"h3 mb-0\">Fuel Log</h1>", log.Html);
         Assert.Matches(@"<a [^>]*href=""/FuelLog/Edit/\d+""", log.Html);
         Assert.Matches(@"<a [^>]*href=""/FuelLog/Delete/\d+""", log.Html);
-        Assert.Matches(@"<a class=""btn btn-success btn-sm"" href=""/FuelLog/Create"">", log.Html);   // Add fill-up, in the menu bar
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/FuelLog/Create")).Status);
+        var menuBar = Regex.Match(log.Html, "<nav .*?</nav>", RegexOptions.Singleline).Value;
+        Assert.DoesNotContain("/FuelLog/Create", menuBar);   // Add fill-up is on the dashboard cards and vehicle pages, not the menu bar
         Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync("/Fuel")).Status);          // the old addresses are gone
         Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync("/Fuel/Create")).Status);
     }
@@ -152,8 +171,19 @@ public class FuelPagesTests(AppFactory app) : DatabaseTest, IClassFixture<AppFac
         Assert.DoesNotContain("/FuelLog/Create", main[..tabs]);   // gone from the header
         var row = Regex.Match(main, @"<div class=""period-toggle-row d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2"">(.*?)</div>", RegexOptions.Singleline).Groups[1].Value;
         Assert.Contains("aria-label=\"Stats period\"", row);
-        Assert.Matches($@"<a class=""btn btn-success"" aria-label=""Add fill-up"" href=""/FuelLog/Create\?vehicleId={vehicleId}""><i class=""bi bi-fuel-pump me-1""></i>Add<span class=""d-none d-sm-inline""> fill-up</span></a>\s*$", row);   // last, so right-aligned
+        Assert.Matches($@"<a class=""btn btn-sm btn-success"" href=""/FuelLog/Create\?vehicleId={vehicleId}""><i class=""bi bi-fuel-pump me-1""></i>Add fill-up</a>\s*$", row);   // last, so right-aligned
+        Assert.Contains("<ul class=\"nav nav-pills nav-pills-sm mb-2\" role=\"tablist\" aria-label=\"Stats period\">", row);   // small, like the button
         Assert.True(main.IndexOf("period-toggle-row", StringComparison.Ordinal) > main.IndexOf("id=\"tab-fuel\"", StringComparison.Ordinal));
+    }
+
+    [DatabaseFact]
+    public async Task The_period_toggle_is_small_everywhere_it_is_used()
+    {
+        var (client, vehicleId) = await SeedAsync();
+        foreach (var url in new[] { "/", $"/Vehicles/Details/{vehicleId}" })
+            Assert.Contains("<ul class=\"nav nav-pills nav-pills-sm mb-2\" role=\"tablist\" aria-label=\"Stats period\">", (await client.GetAsync(url)).Html);
+        var css = (await client.GetAsync(Regex.Match((await client.GetAsync("/")).Html, @"href=""(/css/site[^""]*\.css)""").Groups[1].Value)).Html;
+        Assert.Matches(@"\.nav-pills-sm \.nav-link \{[^}]*padding: \.25rem \.5rem; font-size: \.875rem;", css);   // as .btn-sm
     }
 
     [DatabaseFact]

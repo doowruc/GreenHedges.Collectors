@@ -7,6 +7,7 @@
     const storageKey = 'theme';
     const media = window.matchMedia('(prefers-color-scheme: dark)');
     const icons = { light: 'bi-sun-fill', dark: 'bi-moon-stars-fill', auto: 'bi-circle-half' };
+    const names = { light: 'Light', dark: 'Dark', auto: 'System' };
 
     const getPreference = () => {
         try {
@@ -37,8 +38,11 @@
 
     const showActive = () => {
         const preference = getPreference();
+        // The user menu's Theme item shows the current choice.
         const icon = document.getElementById('theme-icon');
-        if (icon) icon.className = `bi ${icons[preference]}`;
+        if (icon) icon.className = `bi ${icons[preference]} me-2`;
+        const name = document.getElementById('theme-name');
+        if (name) name.textContent = names[preference];
 
         document.querySelectorAll('[data-theme-value]').forEach(button => {
             const active = button.dataset.themeValue === preference;
@@ -69,7 +73,20 @@
                 setPreference(button.dataset.themeValue);
                 applyTheme();
                 showActive();
+                // Close the menu it's in, as choosing any other item would (it stays open for clicks inside).
+                const toggle = button.closest('.dropdown')?.querySelector('[data-bs-toggle="dropdown"]');
+                if (toggle && window.bootstrap) bootstrap.Dropdown.getOrCreateInstance(toggle).hide();
             }));
+
+        // Closing the menu folds its Theme options away again (at once, as the menu has gone), so it reopens tidy.
+        const options = document.getElementById('theme-options');
+        options?.closest('.dropdown')?.addEventListener('hidden.bs.dropdown', () => {
+            options.classList.remove('show');
+            document.querySelectorAll('[data-bs-target="#theme-options"]').forEach(button => {
+                button.classList.add('collapsed');
+                button.setAttribute('aria-expanded', 'false');
+            });
+        });
     });
 
     // Current Chart.js-friendly colours, read from Bootstrap's CSS variables.

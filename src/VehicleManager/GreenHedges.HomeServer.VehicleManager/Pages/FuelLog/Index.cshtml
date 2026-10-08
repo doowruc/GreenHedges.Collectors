@@ -6,14 +6,18 @@
 
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
     <h1 class="h3 mb-0">Fuel Log</h1>
-    <form method="get" class="d-flex gap-2">
-        <select name="vehicleId" asp-items="Model.VehicleOptions" class="form-select form-select-sm" onchange="this.form.submit()">
-            <option value="">All vehicles</option>
-        </select>
-        <select name="year" asp-items="Model.YearOptions" class="form-select form-select-sm" onchange="this.form.submit()">
-            <option value="">All years</option>
-        </select>
-    </form>
+    <div class="d-flex flex-wrap align-items-center gap-2">
+        <form method="get" class="d-flex gap-2">
+            <select name="vehicleId" asp-items="Model.VehicleOptions" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
+                <option value="">All vehicles</option>
+            </select>
+            <select name="year" asp-items="Model.YearOptions" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
+                <option value="">All years</option>
+            </select>
+        </form>
+        @* For the vehicle the log is showing, if it's showing one. *@
+        <a asp-page="Create" asp-route-vehicleId="@Model.VehicleId" class="btn btn-sm btn-success text-nowrap"><i class="bi bi-fuel-pump me-1"></i>Add fill-up</a>
+    </div>
 </div>
 
 <div class="mb-4"><partial name="_StatCards" model="Model.Summary" /></div>

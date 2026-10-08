@@ -77,6 +77,7 @@ else
             </div>
             <div class="card-footer bg-body">
                 <a asp-page="/FuelLog/Create" asp-route-vehicleId="@c.Vehicle.Id" class="btn btn-sm btn-success"><i class="bi bi-fuel-pump me-1"></i>Add fill-up</a>
+                <a asp-page="/Vehicles/Services/Create" asp-route-vehicleId="@c.Vehicle.Id" class="btn btn-sm btn-primary"><i class="bi bi-wrench me-1"></i>Add service</a>
                 <a asp-page="/Vehicles/Details" asp-route-id="@c.Vehicle.Id" class="btn btn-sm btn-outline-secondary">Details</a>
             </div>
         </div>

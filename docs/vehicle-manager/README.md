@@ -143,7 +143,7 @@ vehicle with its due dates, 12-month MPG, spend, odometer and last fill-up.
 **Services** (the service history). The address bar follows the tab (`?tab=services`), so a refresh stays on it.
 **Fuel Log page** (`/FuelLog`) – all fill-ups, filterable by vehicle and year.
 **Light / dark mode** – follows your system setting by default; pick Light, Dark or System from the
-theme menu in the navigation bar. The choice is remembered per browser.
+account menu (top right) under **Theme**. The choice is remembered per browser.
 
 ## Reminders (MOT, tax, insurance and service)
 

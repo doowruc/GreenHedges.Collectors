@@ -36,6 +36,12 @@
 /* Tinted table header that works in both themes (Bootstrap's .table-light stays light in dark mode). */
 .table > thead.table-head > tr > th { --bs-table-bg: var(--bs-tertiary-bg); }
 
+/* Small pills, sized like .btn-sm so they sit with small buttons and selects (Bootstrap has no small pills).
+   The transparent border matches a button's, so they're the same height. */
+.nav-pills-sm .nav-link {
+    padding: .25rem .5rem; font-size: .875rem; border: 1px solid transparent; border-radius: var(--bs-border-radius-sm);
+}
+
 /* Period toggle (_PeriodToggle): show only the stats for the selected period. In a .period-toggle-row (with other
    controls beside it, e.g. the vehicle page's Add fill-up), the row has the margin instead, so they line up. */
 .period-toggle-row > .nav { margin-bottom: 0 !important; }

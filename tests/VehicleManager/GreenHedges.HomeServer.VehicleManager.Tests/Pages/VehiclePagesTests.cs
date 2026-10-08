@@ -87,4 +87,19 @@ public class VehiclePagesTests(AppFactory app) : DatabaseTest, IClassFixture<App
         Assert.Equal(HttpStatusCode.OK, stale.Status);
         Assert.Contains("after you opened it", stale.Text);
     }
+
+    [DatabaseFact]
+    public async Task The_vehicle_pages_header_controls_are_small_like_the_Fuel_Logs()
+    {
+        int id;
+        await using (var db = Db())
+        {
+            id = (await TestData.AddVehicleAsync(db, "SMALL 1")).Id;
+            await TestData.AddVehicleAsync(db, "SMALL 2");   // so the vehicle switcher shows
+        }
+        var page = (await app.ClientFor(UserId).GetAsync($"/Vehicles/Details/{id}")).Html;
+        Assert.Contains("<select id=\"vehicle-switcher\" class=\"form-select form-select-sm w-auto\"", page);
+        Assert.Matches($@"<a class=""btn btn-sm btn-outline-secondary"" href=""/Vehicles/Edit/{id}"">Edit</a>", page);
+        Assert.Matches($@"<a class=""btn btn-sm btn-outline-danger"" href=""/Vehicles/Delete/{id}"">Delete</a>", page);
+    }
 }

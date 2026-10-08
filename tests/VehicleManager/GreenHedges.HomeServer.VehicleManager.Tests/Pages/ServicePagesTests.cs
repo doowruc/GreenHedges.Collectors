@@ -229,6 +229,28 @@ public class ServicePagesTests(AppFactory app) : DatabaseTest, IClassFixture<App
     }
 
     [DatabaseFact]
+    public async Task Each_dashboard_card_has_Add_fill_up_and_Add_service()
+    {
+        var id = await AddVehicleAsync();
+        var client = app.ClientFor(UserId);
+        var footer = Regex.Match((await client.GetAsync("/")).Html, @"<div class=""card-footer bg-body"">(.*?)</div>", RegexOptions.Singleline).Groups[1].Value;
+        Assert.Matches($@"href=""/FuelLog/Create\?vehicleId={id}""[^>]*>.*Add fill-up</a>\s*<a class=""btn btn-sm btn-primary"" href=""/Vehicles/{id}/Services/Create""><i class=""bi bi-wrench me-1""></i>Add service</a>", footer);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync($"/Vehicles/{id}/Services/Create")).Status);
+    }
+
+    [DatabaseFact]
+    public async Task Add_service_is_above_the_service_history_card_right_aligned()
+    {
+        var id = await AddVehicleAsync();
+        var page = (await app.ClientFor(UserId).GetAsync($"/Vehicles/Details/{id}")).Html;
+        var tab = page[page.IndexOf("id=\"tab-services\"", StringComparison.Ordinal)..];
+        Assert.Matches($@"^[^>]*>\s*(?:@\*.*?\*@\s*)?<div class=""d-flex justify-content-end mb-2"">\s*<a class=""btn btn-sm btn-primary"" href=""/Vehicles/{id}/Services/Create""><i class=""bi bi-wrench me-1""></i>Add service</a>\s*</div>\s*<div class=""card shadow-sm"">", tab);
+        var header = Regex.Match(tab, @"<div class=""card-header bg-body"">(.*?)</div>", RegexOptions.Singleline).Groups[1].Value;
+        Assert.Contains("Service history (0)", header);
+        Assert.DoesNotContain("Services/Create", header);
+    }
+
+    [DatabaseFact]
     public async Task An_older_service_doesnt_change_the_next_one()
     {
         var id = await AddVehicleAsync();

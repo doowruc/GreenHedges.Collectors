@@ -33,10 +33,10 @@
     <div class="d-flex flex-wrap align-items-center gap-2">
         @if (Model.VehicleOptions.Count > 1)
         {
-            <select id="vehicle-switcher" class="form-select w-auto" aria-label="Switch vehicle" asp-items="Model.VehicleOptions"></select>
+            <select id="vehicle-switcher" class="form-select form-select-sm w-auto" aria-label="Switch vehicle" asp-items="Model.VehicleOptions"></select>
         }
-        <a asp-page="Edit" asp-route-id="@Model.Vehicle.Id" class="btn btn-outline-secondary">Edit</a>
-        <a asp-page="Delete" asp-route-id="@Model.Vehicle.Id" class="btn btn-outline-danger">Delete</a>
+        <a asp-page="Edit" asp-route-id="@Model.Vehicle.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
+        <a asp-page="Delete" asp-route-id="@Model.Vehicle.Id" class="btn btn-sm btn-outline-danger">Delete</a>
     </div>
 </div>
 
@@ -70,8 +70,7 @@
     {
         <div class="period-toggle-row d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
             <partial name="_PeriodToggle" />
-            @* Just "Add" on a phone, so it fits beside the toggle. *@
-            <a asp-page="/FuelLog/Create" asp-route-vehicleId="@Model.Vehicle.Id" class="btn btn-success" aria-label="Add fill-up"><i class="bi bi-fuel-pump me-1"></i>Add<span class="d-none d-sm-inline"> fill-up</span></a>
+            <a asp-page="/FuelLog/Create" asp-route-vehicleId="@Model.Vehicle.Id" class="btn btn-sm btn-success"><i class="bi bi-fuel-pump me-1"></i>Add fill-up</a>
         </div>
         <div class="mb-4">
             <div class="period-stats" data-period="12m"><partial name="_StatCards" model="Model.LastYear" /></div>
@@ -90,26 +89,27 @@
     }
 </div>
 <div class="tab-pane @(fuelActive ? null : "show active")" id="tab-services" role="tabpanel">
+    @* Above the card, right-aligned, like the Fuel tab's Add fill-up. *@
+    <div class="d-flex justify-content-end mb-2">
+        <a asp-page="Services/Create" asp-route-vehicleId="@Model.Vehicle.Id" class="btn btn-sm btn-primary"><i class="bi bi-wrench me-1"></i>Add service</a>
+    </div>
     <div class="card shadow-sm">
-        <div class="card-header bg-body d-flex flex-wrap justify-content-between align-items-center gap-2">
-            <div>
-                <span class="fw-semibold">Service history (@Model.Services.Count)</span>
-                <span class="text-muted small ms-2">
-                    @if (Model.Vehicle.ServiceIntervalMonths is null && Model.Vehicle.ServiceIntervalMiles is null)
+        <div class="card-header bg-body">
+            <span class="fw-semibold">Service history (@Model.Services.Count)</span>
+            <span class="text-muted small ms-2">
+                @if (Model.Vehicle.ServiceIntervalMonths is null && Model.Vehicle.ServiceIntervalMiles is null)
+                {
+                    <text>No service interval. <a asp-page="Edit" asp-route-id="@Model.Vehicle.Id">Set one</a> to have the next service worked out.</text>
+                }
+                else
+                {
+                    <text>Every @string.Join(" or ", new[]
                     {
-                        <text>No service interval. <a asp-page="Edit" asp-route-id="@Model.Vehicle.Id">Set one</a> to have the next service worked out.</text>
-                    }
-                    else
-                    {
-                        <text>Every @string.Join(" or ", new[]
-                        {
-                            Model.Vehicle.ServiceIntervalMonths is { } months ? $"{months} month{(months == 1 ? "" : "s")}" : null,
-                            Model.Vehicle.ServiceIntervalMiles is { } miles ? $"{miles:N0} miles" : null
-                        }.Where(p => p is not null))</text>
-                    }
-                </span>
-            </div>
-            <a asp-page="Services/Create" asp-route-vehicleId="@Model.Vehicle.Id" class="btn btn-sm btn-primary"><i class="bi bi-wrench me-1"></i>Add service</a>
+                        Model.Vehicle.ServiceIntervalMonths is { } months ? $"{months} month{(months == 1 ? "" : "s")}" : null,
+                        Model.Vehicle.ServiceIntervalMiles is { } miles ? $"{miles:N0} miles" : null
+                    }.Where(p => p is not null))</text>
+                }
+            </span>
         </div>
         @if (Model.Services.Count == 0)
         {
