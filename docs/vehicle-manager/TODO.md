@@ -8,12 +8,20 @@ Ideas for future features and improvements, roughly in order of how useful they'
       next service). Show what's coming up on the dashboard, and email a reminder about 30 days and 7 days before,
       using the existing Coravel and Resend setup.
   - [x] Optional: look up MOT and tax due dates from the registration number using the DVLA Vehicle Enquiry API and
-        the DVSA MOT History API (both free with an API key).
+        the DVSA MOT History API (both free with an API key). Each is optional; messages name only the ones set up.
+    - [ ] Register for the DVSA MOT History API and add its four `MotHistory:*` settings.
+    - [ ] Register for the DVLA Vehicle Enquiry Service once it reopens (registration was closed in October 2026)
+          and add `Dvla:ApiKey`, so tax dates are looked up too.
   - [ ] Show MOT history on the vehicle page, and check its recorded mileages against the fill-up odometer readings.
   - [x] Service due by mileage as well as date, estimated from the recent miles per month.
+- [x] **Service history** for each vehicle: date, mileage, garage and location, and whether it was under a previous
+      owner (ticked automatically for dates before the purchase date). A service interval (months and/or miles) on the
+      vehicle sets the next service's due date and mileage when its latest service is added. The history is a
+      DataTable with red badges for services later than the interval after the one before.
 - [ ] **Running costs other than fuel.** One `Expense` table (category, date, cost, odometer, notes, optional
       attachments) for servicing, tyres, repairs, insurance, tax, parking and tolls. This makes pence per mile a true
       total cost of ownership rather than fuel only. Add it to the backup.
+  - [ ] Start with a cost on each service record, now that there's a service history.
 - [ ] **Vehicle lifecycle: sold/disposed date and an "active" flag.** Hide sold vehicles from the dashboard and the
       fill-up vehicle dropdown, but keep their history. Optionally record purchase and sale price to show depreciation.
 - [ ] **Partial fill-ups.** A "full tank" flag on `FuelEntry`, so real MPG is worked out from one full fill to the
@@ -23,6 +31,10 @@ Ideas for future features and improvements, roughly in order of how useful they'
 
 ## Smaller improvements
 
+- [x] **Vehicle page tabs:** Fuel and Services on separate tabs, the active one kept in the address (`?tab=`).
+- [x] **Tidier menus and buttons:** the theme choice is a Theme item in the user menu; Add fill-up moved from the menu
+      bar onto the Fuel Log page, the Fuel tab and the dashboard cards (with Add service beside it); small buttons,
+      selects and period toggle throughout.
 - [ ] **Odometer sanity checks on the fill-up form:** warn (not error) when the odometer is lower than the previous
       fill-up's, or when trip miles and the odometer difference disagree a lot.
 - [ ] **Prefill the fill-up form** with the last vehicle, station and pump price used, and today's date.
@@ -35,6 +47,10 @@ Ideas for future features and improvements, roughly in order of how useful they'
 
 ## Technical improvements
 
+- [x] **Edit conflict warnings now show on every edit page:** the vehicle and owner pages hid "someone changed this
+      after you opened it", because the validation summary was inside the prefixed form partials. Fixed and tested.
+- [x] **Shared DataTables setup:** `data-table.js` and `_DataTableStyles`/`_DataTableScripts` serve both the fuel log
+      and the service history, so a new table follows the same pattern.
 - [ ] **Persistent logging.** Logs only go to the console now, so a failed nightly backup (`ScheduledBackups`) or an
       exception on a page is lost once the terminal closes. Send them somewhere that keeps them: Application
       Insights or Azure Monitor if hosted in Azure, or Serilog writing rolling files locally. Use structured
