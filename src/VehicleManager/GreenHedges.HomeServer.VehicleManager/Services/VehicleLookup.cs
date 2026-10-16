@@ -1,10 +1,25 @@
 using System.Text.Json;
+using VehicleManager.Data;
 using VehicleManager.Models;
 
 namespace VehicleManager.Services;
 
-/// <summary>What a lookup found. Dates it didn't find are null; <see cref="Problems"/> says why, for showing to the user.</summary>
-public sealed record VehicleLookupResult(DateOnly? MotDueDate, DateOnly? TaxDueDate, bool IsSorn, IReadOnlyList<string> Problems)
+/// <summary>What a lookup checks: the MOT, the tax, or both.</summary>
+[Flags]
+public enum LookupParts
+{
+    Mot = 1,
+    Tax = 2,
+    All = Mot | Tax
+}
+
+/// <summary>
+/// What a lookup found. Dates it didn't find (or wasn't asked for) are null; <see cref="Problems"/> says why, for showing to the user.
+/// <see cref="MotTests"/> is the DVSA's MOT history (empty for a vehicle too new for an MOT), or null if the DVSA wasn't asked or didn't answer.
+/// <see cref="CheckedWith"/> names the services asked, e.g. "the DVSA".
+/// </summary>
+public sealed record VehicleLookupResult(DateOnly? MotDueDate, DateOnly? TaxDueDate, bool IsSorn, IReadOnlyList<string> Problems,
+    IReadOnlyList<MotHistoryTest>? MotTests = null, LookupParts Checked = LookupParts.All, string CheckedWith = "")
 {
     /// <summary>E.g. "MOT due 06/11/2026, tax due 01/03/2027".</summary>
     public string Summary
@@ -15,7 +30,13 @@ public sealed record VehicleLookupResult(DateOnly? MotDueDate, DateOnly? TaxDueD
             if (MotDueDate is { } mot) found.Add($"MOT due {mot:dd/MM/yyyy}");
             if (TaxDueDate is { } tax) found.Add($"tax due {tax:dd/MM/yyyy}");
             if (IsSorn) found.Add("declared off the road (SORN), so no tax is due");
-            return found.Count == 0 ? "no MOT or tax dates found" : string.Join(", ", found);
+            if (found.Count > 0) return string.Join(", ", found);
+            return Checked switch
+            {
+                LookupParts.Mot => "no MOT date found",
+                LookupParts.Tax => "no tax date found",
+                _ => "no MOT or tax dates found"
+            };
         }
     }
 }
@@ -23,12 +44,18 @@ public sealed record VehicleLookupResult(DateOnly? MotDueDate, DateOnly? TaxDueD
 /// <summary>
 /// Looks up when a vehicle's MOT and tax are due: tax (and MOT, as a fallback) from the DVLA, MOT from
 /// the DVSA's MOT history. Each is optional (see <see cref="DvlaOptions"/>, <see cref="MotHistoryOptions"/>),
-/// and one failing doesn't stop the other.
+/// and one failing doesn't stop the other. Refreshing a vehicle also brings its stored MOT tests up to date.
 /// </summary>
-public class VehicleLookup(DvlaClient dvla, DvlaOptions dvlaOptions, MotHistoryClient motHistory, MotHistoryOptions motOptions, ILogger<VehicleLookup> logger)
+public class VehicleLookup(AppDbContext db, DvlaClient dvla, DvlaOptions dvlaOptions, MotHistoryClient motHistory, MotHistoryOptions motOptions, ILogger<VehicleLookup> logger)
 {
     /// <summary>At least one of the services is set up.</summary>
     public bool IsAvailable => dvlaOptions.IsConfigured || motOptions.IsConfigured;
+
+    /// <summary>The DVLA is set up, so lookups fill in the tax date too.</summary>
+    public bool HasTax => dvlaOptions.IsConfigured;
+
+    /// <summary>The DVSA is set up, so lookups bring in each vehicle's MOT history.</summary>
+    public bool HasMotHistory => motOptions.IsConfigured;
 
     /// <summary>The services that are set up, for messages: "the DVLA and DVSA", "the DVLA" or "the DVSA".</summary>
     public string ServiceNames => (dvlaOptions.IsConfigured, motOptions.IsConfigured) switch
@@ -50,39 +77,57 @@ public class VehicleLookup(DvlaClient dvla, DvlaOptions dvlaOptions, MotHistoryC
     /// <summary>A registration as the services take it: no spaces.</summary>
     public static string Compact(string registration) => registration.Replace(" ", "").ToUpperInvariant();
 
-    public async Task<VehicleLookupResult> LookUpAsync(string registration)
+    /// <summary>
+    /// Looks up the MOT, the tax, or both. The tax comes from the DVLA; the MOT from the DVSA, with the DVLA's as a
+    /// fallback when both are checked (or the DVLA is all there is), so checking just the MOT asks only one service.
+    /// </summary>
+    public async Task<VehicleLookupResult> LookUpAsync(string registration, LookupParts parts = LookupParts.All)
     {
         var problems = new List<string>();
+        var mot = parts.HasFlag(LookupParts.Mot);
+        var tax = parts.HasFlag(LookupParts.Tax);
+        var askDvla = dvlaOptions.IsConfigured && (tax || !motOptions.IsConfigured);
+        var askDvsa = motOptions.IsConfigured && mot;
 
         DvlaVehicle? fromDvla = null;
-        if (dvlaOptions.IsConfigured)
+        if (askDvla)
         {
             fromDvla = await TryAsync("DVLA", registration, () => dvla.GetAsync(registration), problems);
             if (fromDvla is null && problems.Count == 0) problems.Add($"The DVLA has no vehicle registered {registration}.");
         }
 
         MotHistoryVehicle? fromDvsa = null;
-        if (motOptions.IsConfigured)
+        if (askDvsa)
         {
             var before = problems.Count;
             fromDvsa = await TryAsync("DVSA", registration, () => motHistory.GetAsync(registration), problems);
             if (fromDvsa is null && problems.Count == before) problems.Add($"The DVSA has no MOT record for {registration}.");
         }
 
-        var sorn = fromDvla?.IsSorn == true;
-        return new(fromDvsa?.MotDueDate ?? fromDvla?.MotExpiryDate, sorn ? null : fromDvla?.TaxDueDate, sorn, problems);
+        var sorn = tax && fromDvla?.IsSorn == true;
+        var checkedWith = (askDvla, askDvsa) switch
+        {
+            (true, true) => "the DVLA and DVSA",
+            (true, false) => "the DVLA",
+            (false, true) => "the DVSA",
+            _ => ""
+        };
+        return new(mot ? fromDvsa?.MotDueDate ?? fromDvla?.MotExpiryDate : null, tax && !sorn ? fromDvla?.TaxDueDate : null, sorn, problems,
+            fromDvsa is null ? null : fromDvsa.MotTests ?? [], parts, checkedWith);
     }
 
     /// <summary>
-    /// Looks up a vehicle and copies the dates found onto it (without saving). Dates that weren't found
-    /// are left as they are, except that a vehicle declared off the road has no tax due.
+    /// Looks up a vehicle and copies the dates found onto it, and the DVSA's MOT history to its stored tests
+    /// (without saving). Dates that weren't found are left as they are, except that a vehicle declared off the
+    /// road has no tax due; without an answer from the DVSA, so are the stored tests. Only <paramref name="parts"/> are checked.
     /// </summary>
-    public async Task<VehicleLookupResult> RefreshAsync(Vehicle vehicle)
+    public async Task<VehicleLookupResult> RefreshAsync(Vehicle vehicle, LookupParts parts = LookupParts.All)
     {
-        var result = await LookUpAsync(vehicle.RegistrationNumber);
+        var result = await LookUpAsync(vehicle.RegistrationNumber, parts);
         if (result.MotDueDate is { } mot) vehicle.MotDueDate = mot;
         if (result.TaxDueDate is { } tax) vehicle.TaxDueDate = tax;
         if (result.IsSorn) vehicle.TaxDueDate = null;
+        if (result.MotTests is { } tests) await MotTests.SyncAsync(db, vehicle, tests);
         return result;
     }
 

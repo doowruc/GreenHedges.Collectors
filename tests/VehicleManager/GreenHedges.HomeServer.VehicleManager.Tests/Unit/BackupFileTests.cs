@@ -114,6 +114,33 @@ public class BackupFileTests
     }
 
     [Fact]
+    public void Reads_MOT_tests_with_their_defects()
+    {
+        var backup = Read(Json(Sample(b => b with
+        {
+            MotTests = [new() { Id = 9, VehicleId = 2, CompletedDate = Added, Passed = true, Odometer = 30000, MotTestNumber = "123456789012" }],
+            MotDefects = [new() { MotTestId = 9, Sequence = 1, Type = "ADVISORY", Text = "Tyre worn" }]
+        })));
+        Assert.Equal((9, "Tyre worn"), (Assert.Single(backup.MotTests).Id, Assert.Single(backup.MotDefects).Text));
+    }
+
+    [Fact]
+    public void Rejects_MOT_tests_and_defects_that_dont_link_up()
+    {
+        var error = ReadError(Sample(b => b with
+        {
+            MotTests = [new() { Id = 9, VehicleId = 99, CompletedDate = Added, Odometer = -1 }],
+            MotDefects = [new() { MotTestId = 98, Sequence = 1, Text = "Tyre worn" }, new() { MotTestId = 9, Sequence = 1, Text = " " },
+                          new() { MotTestId = 9, Sequence = 1, Text = "Again" }]
+        }));
+        Assert.Contains("MOT test 9's vehicle (99) isn't in the backup.", error);
+        Assert.Contains("MOT test 9's odometer reading (-1) is negative.", error);
+        Assert.Contains("A defect's MOT test (98) isn't in the backup.", error);
+        Assert.Contains("MOT test 9's defect 1 is missing.", error);
+        Assert.Contains("MOT test 9 has more than one defect 1.", error);
+    }
+
+    [Fact]
     public void Rejects_a_newer_version() =>
         Assert.Contains("version 2", ReadError(Sample(b => b with { Version = 2 })));
 

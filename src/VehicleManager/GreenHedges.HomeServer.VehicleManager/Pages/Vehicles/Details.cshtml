@@ -22,10 +22,16 @@
             {
                 <span class="text-muted small">No MOT, tax, insurance or service dates. <a asp-page="Edit" asp-route-id="@Model.Vehicle.Id">Add them</a>.</span>
             }
-            @if (Model.CanLookUp)
+            @foreach (var (check, label) in new[]
             {
-                <form method="post" asp-page-handler="Lookup" asp-route-id="@Model.Vehicle.Id" class="d-inline">
-                    <button type="submit" class="btn btn-link btn-sm py-0"><i class="bi bi-arrow-repeat me-1"></i>Check @Model.LookedUp</button>
+                (Model.ShowHeaderMotCheck ? DetailsModel.CheckMot : null, "MOT"),
+                (Model.ShowHeaderTaxCheck ? DetailsModel.CheckTax : null, "tax")
+            }.Where(c => c.Item1 is not null))
+            {
+                <form method="post" asp-page-handler="Lookup" asp-route-id="@Model.Vehicle.Id" asp-route-check="@check" class="d-inline">
+                    @* Kept on the selected tab by the script below, so the page comes back to it. *@
+                    <input type="hidden" name="tab" value="@Model.Tab" class="lookup-tab" />
+                    <button type="submit" class="btn btn-link btn-sm py-0"><i class="bi bi-arrow-repeat me-1"></i>Check @label</button>
                 </form>
             }
         </div>
@@ -40,25 +46,30 @@
     </div>
 </div>
 
-@{ var fuelActive = Model.Tab == DetailsModel.FuelTab; }
+@{
+    bool IsActive(string tab) => Model.Tab == tab;
+    string? PaneClass(string tab) => IsActive(tab) ? "show active" : null;
+}
 <ul class="nav nav-tabs mb-3" role="tablist" aria-label="Vehicle details">
     @* Links to each tab's URL: Bootstrap switches the tab in place, and the script below puts the link in the
        address bar, so a refresh (or coming back from a service page, with ?tab=services) opens the same tab. *@
-    <li class="nav-item" role="presentation">
-        <a asp-route-id="@Model.Vehicle.Id" asp-route-tab="@DetailsModel.FuelTab" class="nav-link @(fuelActive ? "active" : null)" role="tab"
-           data-bs-toggle="tab" data-bs-target="#tab-fuel" aria-controls="tab-fuel" aria-selected="@(fuelActive ? "true" : "false")">
-            <i class="bi bi-fuel-pump me-1"></i>Fuel <span class="opacity-75">(@Model.Entries.Count)</span>
-        </a>
-    </li>
-    <li class="nav-item" role="presentation">
-        <a asp-route-id="@Model.Vehicle.Id" asp-route-tab="@DetailsModel.ServicesTab" class="nav-link @(fuelActive ? null : "active")" role="tab"
-           data-bs-toggle="tab" data-bs-target="#tab-services" aria-controls="tab-services" aria-selected="@(fuelActive ? "false" : "true")">
-            <i class="bi bi-wrench me-1"></i>Services <span class="opacity-75">(@Model.Services.Count)</span>
-        </a>
-    </li>
+    @foreach (var (tab, icon, name, count) in new[]
+    {
+        (DetailsModel.FuelTab, "bi-fuel-pump", "Fuel", Model.Entries.Count),
+        (DetailsModel.ServicesTab, "bi-wrench", "Services", Model.Services.Count),
+        (DetailsModel.MotTab, "bi-clipboard-check", "MOT", Model.MotTests.Count)
+    }.Where(t => t.Item1 != DetailsModel.MotTab || Model.ShowMotTab))
+    {
+        <li class="nav-item" role="presentation">
+            <a asp-route-id="@Model.Vehicle.Id" asp-route-tab="@tab" class="nav-link @(IsActive(tab) ? "active" : null)" role="tab"
+               data-bs-toggle="tab" data-bs-target="#tab-@tab" aria-controls="tab-@tab" aria-selected="@(IsActive(tab) ? "true" : "false")" data-tab="@tab">
+                <i class="bi @icon me-1"></i>@name <span class="opacity-75">(@count)</span>
+            </a>
+        </li>
+    }
 </ul>
 <div class="tab-content">
-<div class="tab-pane @(fuelActive ? "show active" : null)" id="tab-fuel" role="tabpanel">
+<div class="tab-pane @PaneClass(DetailsModel.FuelTab)" id="tab-fuel" role="tabpanel">
     @if (Model.Entries.Count == 0)
     {
         <div class="alert alert-info">
@@ -88,7 +99,7 @@
         </div>
     }
 </div>
-<div class="tab-pane @(fuelActive ? null : "show active")" id="tab-services" role="tabpanel">
+<div class="tab-pane @PaneClass(DetailsModel.ServicesTab)" id="tab-services" role="tabpanel">
     @* Above the card, right-aligned, like the Fuel tab's Add fill-up. *@
     <div class="d-flex justify-content-end mb-2">
         <a asp-page="Services/Create" asp-route-vehicleId="@Model.Vehicle.Id" class="btn btn-sm btn-primary"><i class="bi bi-wrench me-1"></i>Add service</a>
@@ -121,6 +132,61 @@
         }
     </div>
 </div>
+@if (Model.ShowMotTab)
+{
+    <div class="tab-pane @PaneClass(DetailsModel.MotTab)" id="tab-mot" role="tabpanel">
+        @* Like the other tabs: the period toggle on the left (with tests to show), the tab's action on the right. *@
+        @if (Model.MotTests.Count > 0 || Model.CanLookUp)
+        {
+            <div class="period-toggle-row d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                @if (Model.MotTests.Count > 0) { <partial name="_PeriodToggle" /> } else { <span></span> }
+                @if (Model.CanLookUp)
+                {
+                    <form method="post" asp-page-handler="Lookup" asp-route-id="@Model.Vehicle.Id" asp-route-check="@DetailsModel.CheckMot">
+                        <input type="hidden" name="tab" value="@DetailsModel.MotTab" />
+                        <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-arrow-repeat me-1"></i>Check MOT</button>
+                    </form>
+                }
+            </div>
+        }
+        <div class="card shadow-sm">
+            <div class="card-header bg-body">
+                <span class="fw-semibold">MOT history
+                    @if (Model.MotTests.Count > 0)
+                    {
+                        <span class="period-stats" data-period="12m">(@Model.MotTestsLastYear.Count)</span><span class="period-stats" data-period="all">(@Model.MotTests.Count)</span>
+                    }
+                    else { <text>(0)</text> }
+                </span>
+                <span class="text-muted small ms-2">
+                    @if (Model.HasMotHistory) { <text>From the DVSA, updated each morning and when you check the MOT.</text> }
+                    else { <text>From the DVSA, when it was set up.</text> }
+                </span>
+            </div>
+            @if (Model.MotTests.Count == 0)
+            {
+                <div class="card-body text-muted">No MOT tests yet.@if (Model.HasMotHistory) { <text> <b>Check MOT</b> fetches them from the DVSA.</text> }</div>
+            }
+            else
+            {
+                var motViewData = new ViewDataDictionary(ViewData) { ["Registration"] = Model.Vehicle.RegistrationNumber };
+                <div class="period-stats" data-period="12m">
+                    @if (Model.MotTestsLastYear.Count == 0)
+                    {
+                        <div class="card-body text-muted">No MOT tests in the last 12 months.</div>
+                    }
+                    else
+                    {
+                        <partial name="_MotTests" model="Model.MotTestsLastYear" view-data="motViewData" />
+                    }
+                </div>
+                <div class="period-stats" data-period="all">
+                    <partial name="_MotTests" model="Model.MotTests" view-data="motViewData" />
+                </div>
+            }
+        </div>
+    </div>
+}
 </div>
 
 @section Styles {
@@ -134,6 +200,7 @@
         document.querySelectorAll('[data-bs-toggle="tab"]').forEach(tab => tab.addEventListener('shown.bs.tab', () => {
             // Keep the address bar on the selected tab (replacing, so Back doesn't step through tabs).
             history.replaceState(history.state, '', tab.href);
+            document.querySelectorAll('.lookup-tab').forEach(input => input.value = tab.dataset.tab);
         }));
     </script>
     @if (Model.Entries.Count > 0)

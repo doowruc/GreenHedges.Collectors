@@ -55,6 +55,18 @@ public class BackupService(AppDbContext db)
         {
             Id = s.Id, VehicleId = s.VehicleId, Date = s.Date, Mileage = s.Mileage, Garage = s.Garage, GarageLocation = s.GarageLocation, UnderPreviousOwner = s.UnderPreviousOwner,
             AddedDate = s.AddedDate, AddedBy = s.AddedBy, ModifiedDate = s.ModifiedDate, ModifiedBy = s.ModifiedBy
+        }).ToListAsync(),
+        MotTests = await db.MotTests.OrderBy(t => t.Id).Select(t => new MotTestBackup
+        {
+            Id = t.Id, VehicleId = t.VehicleId, CompletedDate = t.CompletedDate, Passed = t.Passed, ExpiryDate = t.ExpiryDate,
+            Odometer = t.Odometer, OdometerInKilometres = t.OdometerInKilometres, MotTestNumber = t.MotTestNumber,
+            RegistrationAtTest = t.RegistrationAtTest, DataSource = t.DataSource,
+            AddedDate = t.AddedDate, AddedBy = t.AddedBy, ModifiedDate = t.ModifiedDate, ModifiedBy = t.ModifiedBy
+        }).ToListAsync(),
+        MotDefects = await db.MotDefects.OrderBy(d => d.MotTestId).ThenBy(d => d.Sequence).Select(d => new MotDefectBackup
+        {
+            MotTestId = d.MotTestId, Sequence = d.Sequence, Type = d.Type, Text = d.Text, Dangerous = d.Dangerous,
+            AddedDate = d.AddedDate, AddedBy = d.AddedBy, ModifiedDate = d.ModifiedDate, ModifiedBy = d.ModifiedBy
         }).ToListAsync()
     };
 
@@ -71,8 +83,8 @@ public class BackupService(AppDbContext db)
             await using var transaction = await db.Database.BeginTransactionAsync();
 
             // The query filters limit these to the current user's rows. Stops go first, as they
-            // stop their stations being deleted, and fill-ups before their vehicles. Sent reminders
-            // go with their vehicles (FK cascade), so restored due dates are reminded about afresh.
+            // stop their stations being deleted, and fill-ups before their vehicles. Sent reminders and
+            // MOT tests (with their defects) go with their vehicles (FK cascade), so restored due dates are reminded about afresh.
             await db.FuelEntryStops.ExecuteDeleteAsync();
             await db.FuelEntries.ExecuteDeleteAsync();
             await db.ServiceRecords.ExecuteDeleteAsync();
@@ -117,6 +129,16 @@ public class BackupService(AppDbContext db)
             {
                 Date = s.Date, Mileage = s.Mileage, Garage = s.Garage, GarageLocation = s.GarageLocation, UnderPreviousOwner = s.UnderPreviousOwner
             }));
+        var motTests = backup.MotTests.ToDictionary(t => t.Id, t => Audited(t, new MotTest
+        {
+            CompletedDate = t.CompletedDate, Passed = t.Passed, ExpiryDate = t.ExpiryDate, Odometer = t.Odometer,
+            OdometerInKilometres = t.OdometerInKilometres, MotTestNumber = t.MotTestNumber,
+            RegistrationAtTest = t.RegistrationAtTest, DataSource = t.DataSource
+        }));
+        foreach (var t in backup.MotTests)
+            vehicles[t.VehicleId].MotTests.Add(motTests[t.Id]);
+        foreach (var d in backup.MotDefects)
+            motTests[d.MotTestId].Defects.Add(Audited(d, new MotDefect { Sequence = d.Sequence, Type = d.Type, Text = d.Text, Dangerous = d.Dangerous }));
         foreach (var s in backup.FuelEntryStops)
             entries[s.FuelEntryId].Stops.Add(Audited(s, new FuelEntryStop { Sequence = s.Sequence, FuelStation = stations[s.FuelStationId] }));
 

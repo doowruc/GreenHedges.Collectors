@@ -38,6 +38,8 @@ public sealed record BackupFile
     public List<FuelEntryBackup> FuelEntries { get; init; } = [];
     public List<FuelEntryStopBackup> FuelEntryStops { get; init; } = [];
     public List<ServiceRecordBackup> ServiceRecords { get; init; } = [];
+    public List<MotTestBackup> MotTests { get; init; } = [];
+    public List<MotDefectBackup> MotDefects { get; init; } = [];
 
     public BackupCounts Counts => new(Owners.Count, Vehicles.Count, FuelBrands.Count, FuelStations.Count, FuelEntries.Count, ServiceRecords.Count);
 
@@ -199,7 +201,25 @@ public sealed record BackupFile
         }
         UniqueIds(ServiceRecords, s => s.Id, "service", errors);
 
-        foreach (var row in new IEnumerable<BackupRow>[] { Owners, Vehicles, FuelBrands, FuelStations, FuelEntries, FuelEntryStops, ServiceRecords }.SelectMany(r => r))
+        var motTestIds = UniqueIds(MotTests, t => t.Id, "MOT test", errors);
+        foreach (var t in MotTests)
+        {
+            if (!vehicleIds.Contains(t.VehicleId)) errors.Add($"MOT test {t.Id}'s vehicle ({t.VehicleId}) isn't in the backup.");
+            if (t.Odometer < 0) errors.Add($"MOT test {t.Id}'s odometer reading ({t.Odometer}) is negative.");
+            if (t.MotTestNumber is { Length: > MotTest.MaxTestNumberLength } || t.RegistrationAtTest is { Length: > 15 } ||
+                t.DataSource is { Length: > MotTest.MaxDataSourceLength })
+                errors.Add($"MOT test {t.Id} has a test number, registration or data source that's too long.");
+        }
+
+        foreach (var d in MotDefects)
+        {
+            if (!motTestIds.Contains(d.MotTestId)) errors.Add($"A defect's MOT test ({d.MotTestId}) isn't in the backup.");
+            Text(d.Text, MotDefect.MaxTextLength, $"MOT test {d.MotTestId}'s defect {d.Sequence}", errors);
+            if (d.Type is { Length: > MotDefect.MaxTypeLength }) errors.Add($"MOT test {d.MotTestId}'s defect {d.Sequence} has a type longer than {MotDefect.MaxTypeLength} characters.");
+        }
+        Unique(MotDefects, d => $"{d.MotTestId}|{d.Sequence}", d => $"MOT test {d.MotTestId} has more than one defect {d.Sequence}.", errors);
+
+        foreach (var row in new IEnumerable<BackupRow>[] { Owners, Vehicles, FuelBrands, FuelStations, FuelEntries, FuelEntryStops, ServiceRecords, MotTests, MotDefects }.SelectMany(r => r))
             if (row.AddedBy.Length > 128 || row.ModifiedBy.Length > 128)
                 errors.Add("An AddedBy or ModifiedBy value is longer than 128 characters.");
 
@@ -317,6 +337,30 @@ public sealed record ServiceRecordBackup : BackupRow
     public required string Garage { get; set; }
     public string? GarageLocation { get; set; }
     public bool UnderPreviousOwner { get; init; }
+}
+
+/// <summary>An MOT test from the DVSA's history (see <see cref="MotTest"/>).</summary>
+public sealed record MotTestBackup : BackupRow
+{
+    public required int Id { get; init; }
+    public required int VehicleId { get; init; }
+    public required DateTime CompletedDate { get; init; }
+    public bool Passed { get; init; }
+    public DateOnly? ExpiryDate { get; init; }
+    public int? Odometer { get; init; }
+    public bool OdometerInKilometres { get; init; }
+    public string? MotTestNumber { get; init; }
+    public string? RegistrationAtTest { get; init; }
+    public string? DataSource { get; init; }
+}
+
+public sealed record MotDefectBackup : BackupRow
+{
+    public required int MotTestId { get; init; }
+    public required int Sequence { get; init; }
+    public string? Type { get; init; }
+    public required string Text { get; init; }
+    public bool Dangerous { get; init; }
 }
 
 public sealed record BackupCounts(int Owners, int Vehicles, int FuelBrands, int FuelStations, int FillUps, int Services)

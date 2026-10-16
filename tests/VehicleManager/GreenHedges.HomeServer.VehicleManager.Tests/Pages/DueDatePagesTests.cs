@@ -159,7 +159,8 @@ public class DueDatePagesTests(AppFactory app) : DatabaseTest, IClassFixture<App
         var client = app.ClientFor(UserId);
 
         var page = await client.GetAsync($"/Vehicles/Details/{id}");
-        Assert.Contains("Check MOT and tax", page.Text);
+        Assert.Contains("Check MOT", page.Text);
+        Assert.Contains("Check tax", page.Text);
         var checkedPage = await client.PostFormAsync($"/Vehicles/Details/{id}?handler=Lookup", page);
         Assert.Equal((HttpStatusCode.Redirect, $"/Vehicles/Details/{id}"), (checkedPage.Status, checkedPage.Location));
 

@@ -243,6 +243,129 @@ namespace VehicleManager.Data.Migrations
                     b.ToTable("FuelStations");
                 });
 
+            modelBuilder.Entity("VehicleManager.Models.MotDefect", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AddedBy")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<DateTime>("AddedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("Dangerous")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("ModifiedBy")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<DateTime>("ModifiedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("MotTestId")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("Sequence")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("Type")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MotTestId", "Sequence")
+                        .IsUnique();
+
+                    b.ToTable("MotDefects");
+                });
+
+            modelBuilder.Entity("VehicleManager.Models.MotTest", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AddedBy")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<DateTime>("AddedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CompletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DataSource")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<DateOnly?>("ExpiryDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("ModifiedBy")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<DateTime>("ModifiedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("MotTestNumber")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int?>("Odometer")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("OdometerInKilometres")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("Passed")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("RegistrationAtTest")
+                        .HasMaxLength(15)
+                        .HasColumnType("nvarchar(15)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("VehicleId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VehicleId", "CompletedDate");
+
+                    b.ToTable("MotTests");
+                });
+
             modelBuilder.Entity("VehicleManager.Models.Owner", b =>
                 {
                     b.Property<int>("Id")
@@ -603,6 +726,28 @@ namespace VehicleManager.Data.Migrations
                     b.Navigation("FuelBrand");
                 });
 
+            modelBuilder.Entity("VehicleManager.Models.MotDefect", b =>
+                {
+                    b.HasOne("VehicleManager.Models.MotTest", "MotTest")
+                        .WithMany("Defects")
+                        .HasForeignKey("MotTestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("MotTest");
+                });
+
+            modelBuilder.Entity("VehicleManager.Models.MotTest", b =>
+                {
+                    b.HasOne("VehicleManager.Models.Vehicle", "Vehicle")
+                        .WithMany("MotTests")
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Vehicle");
+                });
+
             modelBuilder.Entity("VehicleManager.Models.SentReminder", b =>
                 {
                     b.HasOne("VehicleManager.Models.Vehicle", "Vehicle")
@@ -651,6 +796,11 @@ namespace VehicleManager.Data.Migrations
                     b.Navigation("Stops");
                 });
 
+            modelBuilder.Entity("VehicleManager.Models.MotTest", b =>
+                {
+                    b.Navigation("Defects");
+                });
+
             modelBuilder.Entity("VehicleManager.Models.Owner", b =>
                 {
                     b.Navigation("Vehicles");
@@ -659,6 +809,8 @@ namespace VehicleManager.Data.Migrations
             modelBuilder.Entity("VehicleManager.Models.Vehicle", b =>
                 {
                     b.Navigation("FuelEntries");
+
+                    b.Navigation("MotTests");
 
                     b.Navigation("ServiceRecords");
                 });

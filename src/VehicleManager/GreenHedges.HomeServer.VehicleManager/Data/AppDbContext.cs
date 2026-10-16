@@ -7,7 +7,7 @@ namespace VehicleManager.Data;
 /// <remarks>
 /// Each signed-in user has their own data. Query filters limit every query to the current user's
 /// owners, vehicles, fuel brands and stations, settings, and (through their vehicle) fill-ups and their stops,
-/// service records and sent reminders.
+/// service records, MOT tests and their defects, and sent reminders.
 /// <see cref="SaveChangesAsync(bool, CancellationToken)"/> stamps new user-owned rows with the
 /// current user's id and fills in every table's audit columns.
 /// With no signed-in user (e.g. at startup) queries return nothing and saving throws. Use
@@ -24,6 +24,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, CurrentUser? c
     public DbSet<UserSettings> UserSettings => Set<UserSettings>();
     public DbSet<SentReminder> SentReminders => Set<SentReminder>();
     public DbSet<ServiceRecord> ServiceRecords => Set<ServiceRecord>();
+    public DbSet<MotTest> MotTests => Set<MotTest>();
+    public DbSet<MotDefect> MotDefects => Set<MotDefect>();
 
     /// <summary>Read by the query filters; EF Core evaluates it per query, as a parameter.</summary>
     private string? CurrentUserId => currentUser?.Id;
@@ -60,6 +62,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, CurrentUser? c
              .WithOne(s => s.Vehicle)
              .HasForeignKey(s => s.VehicleId)
              .OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(v => v.MotTests)
+             .WithOne(t => t.Vehicle)
+             .HasForeignKey(t => t.VehicleId)
+             .OnDelete(DeleteBehavior.Cascade);
             e.HasMany<SentReminder>()
              .WithOne(r => r.Vehicle)
              .HasForeignKey(r => r.VehicleId)
@@ -70,6 +76,22 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, CurrentUser? c
         {
             e.HasQueryFilter(s => s.Vehicle!.UserId == CurrentUserId);
             e.HasIndex(s => new { s.VehicleId, s.Date });
+        });
+
+        modelBuilder.Entity<MotTest>(e =>
+        {
+            e.HasQueryFilter(t => t.Vehicle!.UserId == CurrentUserId);
+            e.HasIndex(t => new { t.VehicleId, t.CompletedDate });
+            e.HasMany(t => t.Defects)
+             .WithOne(d => d.MotTest)
+             .HasForeignKey(d => d.MotTestId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<MotDefect>(e =>
+        {
+            e.HasQueryFilter(d => d.MotTest!.Vehicle!.UserId == CurrentUserId);
+            e.HasIndex(d => new { d.MotTestId, d.Sequence }).IsUnique();
         });
 
         modelBuilder.Entity<SentReminder>(e =>

@@ -32,13 +32,21 @@ public sealed record MotHistoryOptions(string? ClientId, string? ClientSecret, s
 }
 
 /// <summary>A vehicle's MOT history. A vehicle too new for an MOT has no tests, but a first-MOT due date.</summary>
-public sealed record MotHistoryVehicle(string? Registration, DateOnly? MotTestDueDate, List<MotTest>? MotTests)
+public sealed record MotHistoryVehicle(string? Registration, DateOnly? MotTestDueDate, List<MotHistoryTest>? MotTests)
 {
     /// <summary>When the MOT runs out: the latest test certificate's expiry, or the first MOT's due date.</summary>
     public DateOnly? MotDueDate => MotTests?.Max(t => t.ExpiryDate) ?? MotTestDueDate;
 }
 
-public sealed record MotTest(DateTimeOffset CompletedDate, string? TestResult, DateOnly? ExpiryDate, string? OdometerValue, string? OdometerUnit, string? MotTestNumber);
+/// <summary>
+/// A test as the DVSA sends it. <see cref="OdometerResultType"/> is READ, UNREADABLE or NO_ODOMETER; Northern
+/// Ireland's tests (<see cref="DataSource"/> "DVA NI") come without defects.
+/// </summary>
+public sealed record MotHistoryTest(
+    DateTimeOffset? CompletedDate, string? TestResult, DateOnly? ExpiryDate, string? OdometerValue, string? OdometerUnit,
+    string? OdometerResultType, string? MotTestNumber, string? RegistrationAtTimeOfTest, string? DataSource, List<MotHistoryDefect>? Defects);
+
+public sealed record MotHistoryDefect(string? Text, string? Type, bool? Dangerous);
 
 /// <summary>Holds the DVSA access token between requests (they last an hour), so each lookup doesn't fetch a new one.</summary>
 public sealed class MotHistoryTokenCache

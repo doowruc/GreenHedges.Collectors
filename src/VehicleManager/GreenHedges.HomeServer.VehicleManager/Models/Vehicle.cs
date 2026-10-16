@@ -57,4 +57,5 @@ public class Vehicle : AuditedEntity, IUserOwned
 
     public List<FuelEntry> FuelEntries { get; set; } = [];
     public List<ServiceRecord> ServiceRecords { get; set; } = [];
+    public List<MotTest> MotTests { get; set; } = [];
 }

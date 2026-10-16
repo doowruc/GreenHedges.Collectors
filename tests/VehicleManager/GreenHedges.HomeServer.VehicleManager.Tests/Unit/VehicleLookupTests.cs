@@ -1,5 +1,7 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
+using VehicleManager.Data;
 using VehicleManager.Models;
 using VehicleManager.Services;
 using VehicleManager.Tests.Infrastructure;
@@ -20,11 +22,15 @@ public class VehicleLookupTests
         dvla ??= Dvla;
         dvsa ??= Dvsa;
         apis ??= new FakeVehicleApis();
-        return new VehicleLookup(
+        return new VehicleLookup(NoDatabase(),
             new DvlaClient(new HttpClient(apis, disposeHandler: false) { BaseAddress = new Uri(dvla.BaseUrl) }, dvla), dvla,
             new MotHistoryClient(new HttpClient(apis, disposeHandler: false) { BaseAddress = new Uri(dvsa.BaseUrl) }, dvsa, tokens ?? new()), dvsa,
             NullLogger<VehicleLookup>.Instance);
     }
+
+    /// <summary>A context that's never connected: refreshing a vehicle that isn't saved doesn't look in the database.</summary>
+    private static AppDbContext NoDatabase() =>
+        new(new DbContextOptionsBuilder<AppDbContext>().UseSqlServer("Server=unused.invalid").Options);
 
     [Fact]
     public async Task Tax_comes_from_the_DVLA_and_the_MOT_from_the_latest_DVSA_test()
@@ -83,6 +89,62 @@ public class VehicleLookupTests
         Assert.True(result.IsSorn);
         Assert.Equal((new DateOnly(2026, 12, 25), (DateOnly?)null), (vehicle.MotDueDate, vehicle.TaxDueDate));
         Assert.Contains("SORN", result.Summary);
+    }
+
+    [Fact]
+    public async Task The_DVSA_sends_the_MOT_history()
+    {
+        var reg = FakeVehicleApis.Add(FakeVehicleApis.NewRegistration(), new FakeVehicle { MotTestExpiryDates = [new(2025, 11, 3), new(2026, 11, 2)] });
+        Assert.Equal(3, (await Lookup().LookUpAsync(reg)).MotTests?.Count);   // two passes and a failure
+
+        // None, rather than an empty history, when the DVSA doesn't know the vehicle or isn't asked.
+        Assert.Null((await Lookup().LookUpAsync(FakeVehicleApis.NewRegistration())).MotTests);
+        Assert.Null((await Lookup(dvsa: NoDvsa).LookUpAsync(reg)).MotTests);
+    }
+
+    [Fact]
+    public async Task Refreshing_brings_in_the_MOT_tests()
+    {
+        var reg = FakeVehicleApis.Add(FakeVehicleApis.NewRegistration(), new FakeVehicle { MotTestExpiryDates = [new(2026, 11, 2)] });
+        var vehicle = new Vehicle { RegistrationNumber = reg };
+
+        await Lookup().RefreshAsync(vehicle);
+        Assert.Equal([true, false], vehicle.MotTests.Select(t => t.Passed));
+        Assert.Equal(FakeVehicleApis.FailedTestDefect, vehicle.MotTests[1].Defects[0].Text);
+    }
+
+    [Fact]
+    public async Task Checking_just_the_MOT_asks_only_the_DVSA()
+    {
+        var reg = FakeVehicleApis.Add(FakeVehicleApis.NewRegistration(), new FakeVehicle { DvlaFails = true, TaxDueDate = new(2027, 3, 1), MotTestExpiryDates = [new(2026, 11, 2)] });
+        var result = await Lookup().LookUpAsync(reg, LookupParts.Mot);
+        Assert.Equal((new DateOnly(2026, 11, 2), (DateOnly?)null, "the DVSA"), (result.MotDueDate, result.TaxDueDate, result.CheckedWith));
+        Assert.Empty(result.Problems);   // the failing DVLA wasn't asked
+
+        // With only the DVLA, it has the MOT date.
+        var dvlaReg = FakeVehicleApis.Add(FakeVehicleApis.NewRegistration(), new FakeVehicle { TaxDueDate = new(2027, 3, 1), DvlaMotExpiryDate = new(2026, 12, 1) });
+        result = await Lookup(dvsa: NoDvsa).LookUpAsync(dvlaReg, LookupParts.Mot);
+        Assert.Equal((new DateOnly(2026, 12, 1), (DateOnly?)null, "the DVLA"), (result.MotDueDate, result.TaxDueDate, result.CheckedWith));
+    }
+
+    [Fact]
+    public async Task Checking_just_the_tax_leaves_the_MOT_alone()
+    {
+        var reg = FakeVehicleApis.Add(FakeVehicleApis.NewRegistration(), new FakeVehicle { TaxDueDate = new(2027, 3, 1), DvlaMotExpiryDate = new(2026, 12, 1), MotTestExpiryDates = [new(2026, 11, 2)] });
+        var vehicle = new Vehicle { RegistrationNumber = reg, MotDueDate = new(2026, 1, 1) };
+
+        var result = await Lookup().RefreshAsync(vehicle, LookupParts.Tax);
+        Assert.Equal((new DateOnly(2026, 1, 1), (DateOnly?)new DateOnly(2027, 3, 1)), (vehicle.MotDueDate, vehicle.TaxDueDate));
+        Assert.Empty(vehicle.MotTests);
+        Assert.Equal(("the DVLA", "tax due 01/03/2027"), (result.CheckedWith, result.Summary));
+    }
+
+    [Fact]
+    public async Task Says_what_wasnt_found()
+    {
+        var reg = FakeVehicleApis.Add(FakeVehicleApis.NewRegistration(), new FakeVehicle { AtDvsa = false });
+        Assert.Equal("no MOT date found", (await Lookup().LookUpAsync(reg, LookupParts.Mot)).Summary);
+        Assert.Equal("no tax date found", (await Lookup().LookUpAsync(reg, LookupParts.Tax)).Summary);
     }
 
     [Fact]

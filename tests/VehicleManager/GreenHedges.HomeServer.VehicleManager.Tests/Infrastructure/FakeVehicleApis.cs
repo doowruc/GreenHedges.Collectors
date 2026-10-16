@@ -33,6 +33,9 @@ public sealed class FakeVehicleApis : HttpMessageHandler
     public const string TokenUrl = "https://login.tests.invalid/tenant/oauth2/v2.0/token";
     private const string AccessToken = "fake-token";
 
+    /// <summary>The first defect of the failed test the DVSA sends for every vehicle with tests (dated 01/01/2020, registered "OLD 1").</summary>
+    public const string FailedTestDefect = "Nearside front headlamp aim too high";
+
     private static readonly ConcurrentDictionary<string, FakeVehicle> Vehicles = new();
     private int _tokenRequests;
 
@@ -103,6 +106,7 @@ public sealed class FakeVehicleApis : HttpMessageHandler
         if (v.FirstMotDueDate is { } first)
             return Json(HttpStatusCode.OK, new { registration, make = "FORD", motTestDueDate = first.ToString("yyyy-MM-dd"), hasOutstandingRecall = "Unknown" });
 
+        // Passes with an advisory each, and a failed test with defects of its own.
         var tests = v.MotTestExpiryDates.Select((expiry, i) => (object)new
             {
                 completedDate = expiry.AddYears(-1).ToDateTime(new TimeOnly(10, 30)).ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
@@ -110,9 +114,22 @@ public sealed class FakeVehicleApis : HttpMessageHandler
                 expiryDate = expiry.ToString("yyyy-MM-dd"),
                 odometerValue = (30000 + i * 8000).ToString(),
                 odometerUnit = "MI",
-                motTestNumber = $"1234567890{i}"
+                odometerResultType = "READ",
+                motTestNumber = $"1234567890{i}",
+                registrationAtTimeOfTest = registration,
+                dataSource = "DVSA",
+                defects = new[] { new { text = $"Advisory {i + 1}: tyre worn close to legal limit", type = "ADVISORY", dangerous = false } }
             })
-            .Append(new { completedDate = "2020-01-01T09:00:00.000Z", testResult = "FAILED", odometerValue = "20000", odometerUnit = "MI", motTestNumber = "99" });
+            .Append(new
+            {
+                completedDate = "2020-01-01T09:00:00.000Z", testResult = "FAILED", odometerValue = "20000", odometerUnit = "MI",
+                odometerResultType = "READ", motTestNumber = "99", registrationAtTimeOfTest = "OLD 1", dataSource = "DVSA",
+                defects = new[]
+                {
+                    new { text = FailedTestDefect, type = "MAJOR", dangerous = false },
+                    new { text = "Brake pipe corroded", type = "DANGEROUS", dangerous = true }
+                }
+            });
         return Json(HttpStatusCode.OK, new { registration, make = "FORD", hasOutstandingRecall = "No", motTests = tests });
     }
 

@@ -30,7 +30,11 @@ public static class Reminders
     private static readonly TimeZoneInfo UkTime = TimeZoneInfo.FindSystemTimeZoneById("Europe/London");
 
     /// <summary>Today's date in the UK, whatever the server's time zone.</summary>
-    public static DateOnly UkToday() => DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, UkTime));
+    public static DateOnly UkToday() => UkDate(DateTime.UtcNow);
+
+    /// <summary>The UK date at a UTC time (as stored, e.g. when an MOT test was completed).</summary>
+    public static DateOnly UkDate(DateTime utc) =>
+        DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), UkTime));
 
     public static string Name(DueDateKind kind) => kind switch
     {

@@ -171,6 +171,9 @@ the MOT from the DVSA's [MOT History API](https://documentation.history.mot.api.
 expiry, or a new vehicle's first MOT date). A vehicle declared off the road (SORN) has no tax date. Both are
 free but need registering, and both are optional: without them, type the dates in.
 
+With the DVSA set up, each check also brings in the vehicle's **MOT history**, shown on the MOT tab of its
+page: every test, passed or failed, with its mileage, expiry and any defects and advisories.
+
 ```bash
 # DVLA Vehicle Enquiry Service: the API key from the DVLA
 dotnet user-secrets set "Dvla:ApiKey" "<api key>"
@@ -233,13 +236,14 @@ runs inside the app (Coravel), so the app must be running at 01:00 UTC; if sever
 
 ```
 VehicleManager/
-  Models/        EF Core entities: Owner, Vehicle, FuelEntry, FuelEntryStop, FuelBrand, FuelStation, ServiceRecord, UserSettings, SentReminder
+  Models/        EF Core entities: Owner, Vehicle, FuelEntry, FuelEntryStop, FuelBrand, FuelStation, ServiceRecord, UserSettings, SentReminder,
+                 MotTest + MotDefect
   ViewModels/    View (output) and input models used by the pages, with the calculated figures
   Data/          AppDbContext (EF Core + SQL Server), DatabaseMigrator, Migrations/
   Services/      FuelStatsService, FuelImportService (reads .xlsx via ClosedXML), FuelStops, BackupFile + BackupService,
                  BackupEmailer + ScheduledBackups (nightly emailed backups via Resend, scheduled with Coravel),
                  Reminders + ReminderEmailer + ScheduledReminders (due-date reminders), VehicleLookup + DvlaClient +
-                 MotHistoryClient (MOT and tax dates from the DVLA and DVSA)
+                 MotHistoryClient (MOT and tax dates from the DVLA and DVSA), MotTests (stored MOT history)
   Pages/         Dashboard, Owners/*, Vehicles/* (and each vehicle's Services/*), FuelLog/* (log + fill-up pages), Import/*, Backup/* (backup + restore), Settings/*, FuelBrands/* (and each brand's Stations/*),
                  Account/* (sign in/out)
 VehicleManager.Tests/

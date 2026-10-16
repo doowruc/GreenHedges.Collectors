@@ -56,7 +56,7 @@ so test pages through the in-memory host rather than relying on the browser.
 ```
 VehicleManager/
   Models/      EF Core entities: Owner, Vehicle, FuelEntry, FuelEntryStop, FuelBrand, FuelStation, ServiceRecord, UserSettings (storage only),
-               SentReminder (+ DueDateKind), AuditedEntity, IUserOwned, IFuelPlace
+               SentReminder (+ DueDateKind), MotTest (+ MotDefect), AuditedEntity, IUserOwned, IFuelPlace
   ViewModels/  What pages use: *View (output, with calculated figures) and *Input (form/import input)
   Data/        AppDbContext (per-user query filters, audit stamping), DatabaseMigrator, ConcurrencyExtensions,
                DesignTimeDbContextFactory, Migrations/
@@ -66,7 +66,8 @@ VehicleManager/
                BackupEmailer (emails a backup via Resend), ScheduledBackups (Coravel invocable, nightly),
                Reminders (when to remind; pure) + ReminderEmailer + ScheduledReminders (Coravel, each morning),
                MileageTrend (recent miles per day, for service-by-mileage estimates), ServiceSchedule (next service from intervals),
-               VehicleLookup (MOT/tax dates) over DvlaClient (DVLA Vehicle Enquiry) and MotHistoryClient (DVSA MOT History)
+               VehicleLookup (MOT/tax dates) over DvlaClient (DVLA Vehicle Enquiry) and MotHistoryClient (DVSA MOT History),
+               MotTests (keeps stored MOT tests in step with the DVSA)
   Pages/       Index (dashboard, with a "Coming up" due-dates list), Owners/*, Vehicles/* (+ Services/* per vehicle), FuelLog/* (log + fill-up pages), Import/*, Backup/* (Index, Restore), Settings/* (user menu), FuelBrands/* (+ Stations/* per brand),
                Account/* (Login, Logout, SignedOut), Shared/ (layout + partials)
   wwwroot/     css/site.css, js/color-mode.js, js/period-toggle.js, js/data-table.js (DataTables setup), js/typeahead.js (dropdown suggestions),
@@ -136,8 +137,8 @@ VehicleManager/
   included. Test `BackUpAsync(testUserId)` instead.
 
 **Service history**
-- The vehicle page (`Vehicles/Details`) has Fuel and Services tabs (Bootstrap `nav-tabs`). The active one is rendered
-  server-side from `?tab=fuel|services` (no flicker); the tab links carry it and a script keeps the address bar on the
+- The vehicle page (`Vehicles/Details`) has Fuel, Services and MOT tabs (Bootstrap `nav-tabs`). The active one is rendered
+  server-side from `?tab=fuel|services|mot` (no flicker); the tab links carry it and a script keeps the address bar on the
   selected tab. Service pages redirect and cancel back with `tab=services` (`DetailsModel.ServicesTab`).
 - `ServiceRecord` (date, mileage, garage, optional location, `UnderPreviousOwner` (done before the vehicle was the user's;
   it still counts as the latest service for the next one; ticked by `_ServiceForm`'s script for a date before the
@@ -173,8 +174,22 @@ VehicleManager/
   are optional user secrets (DVSA: all or none, else startup throws); without them `VehicleLookup.IsAvailable` is false
   and the lookup UI is hidden. Messages name only the services set up (`VehicleLookup.ServiceNames`, `LookedUp`,
   `MorningCheck`): with just the DVSA, only the MOT is looked up. The DVSA token (Entra client credentials, 1 hour) is cached in `MotHistoryTokenCache`.
+- MOT history: `VehicleLookup.RefreshAsync` also brings the vehicle's `MotTest` rows (each with ordered `MotDefect`s:
+  advisories, minors, majors…) in step with the DVSA via `Services/MotTests.SyncAsync`: matched by completion time and
+  test number, updated in place (unchanged rows aren't touched, so their audit columns stay put), and removed when the
+  DVSA no longer has them. No answer from the DVSA (not set up, failed, unknown vehicle) leaves them alone. They're
+  filtered and cascade through the vehicle, and are in the backup. The vehicle page's MOT tab (`_MotTests`) lists them;
+  it shows when the DVSA is set up or tests are stored. Northern Ireland tests (`DataSource` "DVA NI") have no defect details.
+- Checks can cover just the MOT, just the tax, or both (`LookupParts`; the vehicle page's `?handler=Lookup&check=mot|tax`).
+  MOT alone asks only the DVSA (the DVLA if it's the only service; its `motExpiryDate` fallback applies only when both are
+  checked); tax alone asks only the DVLA; each updates only its own date (MOT also syncs the history).
+  `VehicleLookupResult.CheckedWith` names the services asked. Adding a vehicle and the morning run check both.
+  The header has separate Check MOT / Check tax links, each shown only while its date is missing
+  (`ShowHeaderMotCheck`/`ShowHeaderTaxCheck`; tax needs the DVLA). The MOT tab always has a Check MOT button (top right,
+  returning to `tab=mot`).
 - Tests: `AppFactory` sets dummy DVLA/DVSA settings and routes both typed `HttpClient`s to `Infrastructure/FakeVehicleApis`,
   which answers only for registrations added with `FakeVehicleApis.Add(FakeVehicleApis.NewRegistration(), …)`.
+  Each pass it sends has an advisory, plus a failed test (01/01/2020, as "OLD 1") with `FakeVehicleApis.FailedTestDefect`.
 
 **Authentication (Auth0)**
 - `Auth0:Domain`, `Auth0:ClientId`, `Auth0:ClientSecret`, `AllowedEmails`, `Resend:ApiKey`, `Resend:From` and optional `ExistingDataOwner`, `Dvla:*`, `MotHistory:*` come from user secrets (env vars outside Development). Never put them in `appsettings*.json` or commit them. The app throws at startup if any required ones are missing.
@@ -196,7 +211,9 @@ VehicleManager/
 - Charts: put the canvas in a `<div class="chart-box">` and use `maintainAspectRatio: false`, so the height suits phones as well as desktop (a fixed ratio makes it very short on a phone).
 
 **Stats period toggle ("Last 12 months" / "All time")**
-- Shared partial `Pages/Shared/_PeriodToggle.cshtml` plus `wwwroot/js/period-toggle.js`, used on the dashboard and vehicle details. Reuse it rather than duplicating it.
+- Shared partial `Pages/Shared/_PeriodToggle.cshtml` plus `wwwroot/js/period-toggle.js`, used on the dashboard and vehicle details
+  (the Fuel and MOT tabs each have one). Reuse it rather than duplicating it. A page can have several: each copy of the
+  script binds only buttons not yet bound, and every toggle on the page shows the same period.
 - It's small (`nav-pills-sm` in `site.css`, sized like `btn-sm`), to sit with the small buttons and selects used beside it.
 - Mark up period-specific content as `<div class="period-stats" data-period="12m">` / `data-period="all"`. A `site.css` rule hides the non-selected one, based on `data-stats-period` on `<html>`.
 - The selection is remembered across pages in the `statsPeriod` cookie (`all`; absent means 12 months). The partial renders the active button server-side from the cookie, and the script runs synchronously right after the buttons, so nothing flickers on load. Keep it that way.

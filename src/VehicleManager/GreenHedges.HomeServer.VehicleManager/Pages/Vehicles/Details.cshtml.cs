@@ -19,6 +19,9 @@ public class DetailsModel(AppDbContext db, FuelStatsService stats, VehicleLookup
     public List<DueDateView> DueDates { get; private set; } = [];
     public MileageTrend? Mileage { get; private set; }
     public List<ServiceRecordView> Services { get; private set; } = [];
+    public List<MotTestView> MotTests { get; private set; } = [];
+    /// <summary>The MOT tests of the last 12 months, for the period toggle.</summary>
+    public List<MotTestView> MotTestsLastYear { get; private set; } = [];
 
     /// <summary>A service due at a mileage whose date can't be estimated yet (too few odometer readings).</summary>
     public int? UnestimatedServiceMileage { get; private set; }
@@ -26,19 +29,32 @@ public class DetailsModel(AppDbContext db, FuelStatsService stats, VehicleLookup
     /// <summary>The DVLA or DVSA is set up, so MOT (and tax, with the DVLA) can be checked.</summary>
     public bool CanLookUp => lookup.IsAvailable;
 
-    /// <summary>What a check fills in: "MOT and tax", or just "MOT".</summary>
-    public string LookedUp => lookup.LookedUp;
+    /// <summary>
+    /// The header offers each check only while its date is missing: the vehicle hasn't been checked yet, or nothing was
+    /// found. Otherwise the MOT is checked from the MOT tab. Either service has MOT dates; only the DVLA has tax.
+    /// </summary>
+    public bool ShowHeaderMotCheck => CanLookUp && Vehicle.MotDueDate is null;
+    public bool ShowHeaderTaxCheck => lookup.HasTax && Vehicle.TaxDueDate is null;
+
+    /// <summary>The <c>check</c> values a lookup takes: just the MOT or just the tax (neither means both).</summary>
+    public const string CheckMot = "mot", CheckTax = "tax";
+
+    /// <summary>The DVSA is set up, so checks bring in the MOT history.</summary>
+    public bool HasMotHistory => lookup.HasMotHistory;
+
+    /// <summary>The MOT tab shows with the DVSA set up, or MOT tests stored from when it was.</summary>
+    public bool ShowMotTab => HasMotHistory || MotTests.Count > 0;
 
     /// <summary>All vehicles for the switcher; each option's value is that vehicle's details URL.</summary>
     public List<SelectListItem> VehicleOptions { get; private set; } = [];
 
-    /// <summary>The tab shown first: fuel (the default) or services, from <c>?tab=</c>.</summary>
+    /// <summary>The tab shown first: fuel (the default), services or MOT, from <c>?tab=</c>.</summary>
     public string Tab { get; private set; } = FuelTab;
-    public const string FuelTab = "fuel", ServicesTab = "services";
+    public const string FuelTab = "fuel", ServicesTab = "services", MotTab = "mot";
 
     public async Task<IActionResult> OnGetAsync(int id, string? tab)
     {
-        Tab = tab == ServicesTab ? ServicesTab : FuelTab;
+        Tab = tab is ServicesTab or MotTab ? tab : FuelTab;
         var vehicle = await db.Vehicles.Where(v => v.Id == id).Select(VehicleView.Projection).FirstOrDefaultAsync();
         if (vehicle is null) return NotFound();
         Vehicle = vehicle;
@@ -62,6 +78,15 @@ public class DetailsModel(AppDbContext db, FuelStatsService stats, VehicleLookup
             .ToListAsync();
         ServiceSchedule.SetDue(Services, vehicle.ServiceIntervalMonths, vehicle.ServiceIntervalMiles);
 
+        MotTests = await db.MotTests
+            .Where(t => t.VehicleId == id)
+            .OrderByDescending(t => t.CompletedDate).ThenByDescending(t => t.Id)
+            .Select(MotTestView.Projection)
+            .ToListAsync();
+        var yearAgo = Reminders.UkToday().AddYears(-1);
+        MotTestsLastYear = MotTests.Where(t => t.Date >= yearAgo).ToList();
+        if (Tab == MotTab && !ShowMotTab) Tab = FuelTab;
+
         Mileage = MileageTrend.From(Entries);
         DueDates = vehicle.DueDates(Reminders.UkToday(), Mileage);
         if (Mileage is null) UnestimatedServiceMileage = vehicle.ServiceDueMileage;
@@ -81,17 +106,21 @@ public class DetailsModel(AppDbContext db, FuelStatsService stats, VehicleLookup
         return Page();
     }
 
-    /// <summary>Checks the MOT and tax due dates with whichever of the DVLA and DVSA are set up, and saves any found.</summary>
-    public async Task<IActionResult> OnPostLookupAsync(int id)
+    /// <summary>
+    /// Checks the MOT due date (and MOT history), the tax due date, or both (<paramref name="check"/>: mot, tax or
+    /// neither) with whichever of the DVLA and DVSA are set up, and saves any found. Returns to the tab it was asked from.
+    /// </summary>
+    public async Task<IActionResult> OnPostLookupAsync(int id, string? tab, string? check)
     {
         var vehicle = await db.Vehicles.FirstOrDefaultAsync(v => v.Id == id);
         if (vehicle is null) return NotFound();
-        if (!lookup.IsAvailable) return BadRequest();
+        var parts = check switch { CheckMot => LookupParts.Mot, CheckTax => LookupParts.Tax, _ => LookupParts.All };
+        if (!lookup.IsAvailable || (parts == LookupParts.Tax && !lookup.HasTax)) return BadRequest();
 
-        var found = await lookup.RefreshAsync(vehicle);
+        var found = await lookup.RefreshAsync(vehicle, parts);
         await db.SaveChangesAsync();
-        TempData["Message"] = $"Checked {vehicle.RegistrationNumber} with {lookup.ServiceNames}: {found.Summary}.";
+        TempData["Message"] = $"Checked {vehicle.RegistrationNumber} with {found.CheckedWith}: {found.Summary}.";
         if (found.Problems.Count > 0) TempData["Warning"] = string.Join(" ", found.Problems);
-        return RedirectToPage(new { id });
+        return RedirectToPage(new { id, tab = tab is ServicesTab or MotTab ? tab : null });
     }
 }

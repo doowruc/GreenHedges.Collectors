@@ -39,6 +39,8 @@ public static class TestDatabase
         await using var db = As(null);
         await db.FuelEntryStops.IgnoreQueryFilters().Where(s => s.FuelEntry!.Vehicle!.UserId == userId).ExecuteDeleteAsync();
         await db.SentReminders.IgnoreQueryFilters().Where(r => r.Vehicle!.UserId == userId).ExecuteDeleteAsync();
+        await db.MotDefects.IgnoreQueryFilters().Where(d => d.MotTest!.Vehicle!.UserId == userId).ExecuteDeleteAsync();
+        await db.MotTests.IgnoreQueryFilters().Where(t => t.Vehicle!.UserId == userId).ExecuteDeleteAsync();
         await db.ServiceRecords.IgnoreQueryFilters().Where(s => s.Vehicle!.UserId == userId).ExecuteDeleteAsync();
         await db.FuelEntries.IgnoreQueryFilters().Where(f => f.Vehicle!.UserId == userId).ExecuteDeleteAsync();
         await db.Vehicles.IgnoreQueryFilters().Where(v => v.UserId == userId).ExecuteDeleteAsync();

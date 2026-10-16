@@ -8,7 +8,7 @@ namespace VehicleManager.Tests.Data;
 
 public class BackupServiceTests : DatabaseTest
 {
-    /// <summary>A vehicle with due dates, a service interval and two services, a single and a split fill-up, and a brand with no stations.</summary>
+    /// <summary>A vehicle with due dates, a service interval, two services and two MOT tests, a single and a split fill-up, and a brand with no stations.</summary>
     private async Task SeedAsync(AppDbContext db)
     {
         var vehicle = await TestData.AddVehicleAsync(db, "BACK 1");
@@ -22,6 +22,13 @@ public class BackupServiceTests : DatabaseTest
         vehicle.ServiceIntervalMiles = 10000;
         vehicle.ServiceRecords.Add(new ServiceRecord { Date = new DateOnly(2025, 6, 30), Mileage = 35000, Garage = "Main Dealer", GarageLocation = "Leeds" });
         vehicle.ServiceRecords.Add(new ServiceRecord { Date = new DateOnly(2024, 6, 1), Mileage = 25000, Garage = "Local Garage", UnderPreviousOwner = true });
+        vehicle.MotTests.Add(new MotTest
+        {
+            CompletedDate = new DateTime(2025, 11, 3, 10, 30, 0), Passed = true, ExpiryDate = new DateOnly(2026, 11, 2), Odometer = 38000,
+            MotTestNumber = "123456789012", RegistrationAtTest = "BACK 1", DataSource = "DVSA",
+            Defects = [new() { Sequence = 1, Type = "ADVISORY", Text = "Tyre worn" }, new() { Sequence = 2, Type = "MINOR", Text = "Wiper blade", Dangerous = true }]
+        });
+        vehicle.MotTests.Add(new MotTest { CompletedDate = new DateTime(2024, 11, 1, 9, 0, 0), Odometer = 72000, OdometerInKilometres = true });
         await TestData.AddFillUpAsync(db, vehicle.Id, new DateOnly(2026, 1, 1), ("Shell", "Meadowbank"));
         var split = await TestData.AddFillUpAsync(db, vehicle.Id, new DateOnly(2026, 2, 1), ("BP", "Oak Lane"), ("Shell", "Meadowbank"));
         split.Notes = "Split";
@@ -39,7 +46,10 @@ public class BackupServiceTests : DatabaseTest
         .. await db.FuelStations.Select(s => $"station {s.FuelBrand!.Name}@{s.Name} user={s.UserId}").ToListAsync(),
         .. await db.FuelEntries.Select(f => $"fill-up {f.Vehicle!.RegistrationNumber} {f.Date} {f.Litres} {f.CostPerLitre} {f.Notes} {f.AddedBy}").ToListAsync(),
         .. await db.FuelEntryStops.Select(s => $"stop {s.FuelEntry!.Date} {s.Sequence} {s.FuelStation!.FuelBrand!.Name}@{s.FuelStation.Name}").ToListAsync(),
-        .. await db.ServiceRecords.Select(s => $"service {s.Vehicle!.RegistrationNumber} {s.Date} {s.Mileage} {s.Garage} {s.GarageLocation} previous={s.UnderPreviousOwner} {s.AddedBy} {s.AddedDate:O}").ToListAsync()
+        .. await db.ServiceRecords.Select(s => $"service {s.Vehicle!.RegistrationNumber} {s.Date} {s.Mileage} {s.Garage} {s.GarageLocation} previous={s.UnderPreviousOwner} {s.AddedBy} {s.AddedDate:O}").ToListAsync(),
+        .. await db.MotTests.Select(t => $"mot {t.Vehicle!.RegistrationNumber} {t.CompletedDate:O} passed={t.Passed} {t.ExpiryDate} {t.Odometer} km={t.OdometerInKilometres} " +
+                                         $"{t.MotTestNumber} {t.RegistrationAtTest} {t.DataSource} {t.AddedBy} {t.AddedDate:O}").ToListAsync(),
+        .. await db.MotDefects.Select(d => $"defect {d.MotTest!.CompletedDate:O} {d.Sequence} {d.Type} {d.Text} dangerous={d.Dangerous} {d.AddedDate:O}").ToListAsync()
     ];
 
     private static List<string> Sorted(List<string> list) => [.. list.Order()];
