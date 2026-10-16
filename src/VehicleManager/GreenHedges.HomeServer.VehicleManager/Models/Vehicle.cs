@@ -2,21 +2,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace VehicleManager.Models;
 
-public enum VehicleType
-{
-    Car,
-    Van,
-    Motorcycle,
-    Motorhome,
-    Other
-}
-
-public enum FuelType
-{
-    Unleaded,
-    Diesel
-}
-
 /// <summary>A stored vehicle. Pages use <c>VehicleView</c> / <c>VehicleInput</c> rather than this entity.</summary>
 public class Vehicle : AuditedEntity, IUserOwned
 {

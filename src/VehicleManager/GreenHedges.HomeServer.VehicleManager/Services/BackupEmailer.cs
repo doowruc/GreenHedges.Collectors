@@ -4,18 +4,6 @@ using VehicleManager.Data;
 
 namespace VehicleManager.Services;
 
-/// <summary>The address backup and reminder emails come from (<c>Resend:From</c>); its domain must be verified in Resend.</summary>
-public sealed record EmailOptions(string From);
-
-public enum BackupEmailResult
-{
-    /// <summary>The user hasn't set a backup email address.</summary>
-    NoAddress,
-    /// <summary>Nothing has changed since the last scheduled backup, so none was sent.</summary>
-    Unchanged,
-    Sent
-}
-
 /// <summary>Emails the signed-in user a backup of their data, through Resend, to their backup email address.</summary>
 public class BackupEmailer(AppDbContext db, BackupService backups, IResend resend, EmailOptions options)
 {

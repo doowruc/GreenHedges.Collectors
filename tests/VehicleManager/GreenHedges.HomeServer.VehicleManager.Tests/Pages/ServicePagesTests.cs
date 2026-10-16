@@ -1,7 +1,6 @@
 using System.Net;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
-using VehicleManager.Models;
 using VehicleManager.Services;
 using VehicleManager.Tests.Infrastructure;
 
@@ -274,7 +273,7 @@ public class ServicePagesTests(AppFactory app) : DatabaseTest, IClassFixture<App
 
         string Rows(string period) => Regex.Match(page, $@"<div class=""period-stats"" data-period=""{period}"">.*?<tbody>(.*?)</tbody>", RegexOptions.Singleline).Groups[1].Value;
         string Sizer(string period) => Regex.Match(page, $@"<div class=""period-stats"" data-period=""{period}"">.*?<tfoot class=""column-sizer""[^>]*>(.*?)</tfoot>", RegexOptions.Singleline).Groups[1].Value;
-        Assert.Equal(1, Regex.Matches(Rows("12m"), "<tr>").Count);
+        Assert.Single(Regex.Matches(Rows("12m"), "<tr>"));
         Assert.Equal(2, Regex.Matches(Rows("all"), "<tr>").Count);
         // Both size their columns from every service, so they line up when switching.
         Assert.Contains("Local Garage, a much longer name", Sizer("12m"));

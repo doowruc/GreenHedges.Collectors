@@ -7,16 +7,6 @@ using VehicleManager.ViewModels;
 
 namespace VehicleManager.Services;
 
-public sealed record ParsedSheet(string Name, List<FuelEntryInput> Entries, List<string> Warnings)
-{
-    public DateOnly? From => Entries.Count > 0 ? Entries.Min(e => e.Date) : null;
-    public DateOnly? To => Entries.Count > 0 ? Entries.Max(e => e.Date) : null;
-    public decimal TotalLitres => Entries.Sum(e => e.Litres);
-    public decimal TotalCost => Entries.Sum(e => e.TotalCost);
-}
-
-public sealed record ImportResult(int Imported, int SkippedDuplicates);
-
 /// <summary>
 /// Imports fill-ups from the historical fuel spreadsheet. Each worksheet is one vehicle;
 /// row 2 holds the headers: Date, Brand, Location, Litres, Per Litre, [Voucher], [Total],

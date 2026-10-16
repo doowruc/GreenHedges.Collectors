@@ -6,15 +6,6 @@ using VehicleManager.ViewModels;
 
 namespace VehicleManager.Services;
 
-public enum ReminderEmailResult
-{
-    /// <summary>The user hasn't set a reminder email address.</summary>
-    NoAddress,
-    /// <summary>No reminders were due that hadn't already been sent.</summary>
-    NothingDue,
-    Sent
-}
-
 /// <summary>Emails the signed-in user any reminders of their vehicles' due dates that haven't been sent yet (see <see cref="Reminders"/>).</summary>
 public class ReminderEmailer(AppDbContext db, IResend resend, EmailOptions options, VehicleLookup lookup)
 {

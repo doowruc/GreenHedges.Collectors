@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using VehicleManager.Data;
-using VehicleManager.Services;
 
 namespace VehicleManager.Tests.Infrastructure;
 
@@ -49,10 +48,4 @@ public static class TestDatabase
         await db.FuelBrands.IgnoreQueryFilters().Where(b => b.UserId == userId).ExecuteDeleteAsync();
         await db.UserSettings.IgnoreQueryFilters().Where(s => s.UserId == userId).ExecuteDeleteAsync();
     }
-}
-
-/// <summary>Acts as a fixed user instead of reading the signed-in user from the request.</summary>
-public class TestCurrentUser(string? id) : CurrentUser(new Microsoft.AspNetCore.Http.HttpContextAccessor())
-{
-    public override string? Id => id;
 }

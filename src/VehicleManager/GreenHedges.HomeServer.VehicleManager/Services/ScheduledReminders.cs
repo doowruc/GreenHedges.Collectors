@@ -4,8 +4,6 @@ using VehicleManager.Data;
 
 namespace VehicleManager.Services;
 
-public sealed record ReminderRunResult(int VehiclesUpdated, int LookupProblems, ReminderEmailResult Email);
-
 /// <summary>
 /// Each morning (scheduled in <c>Program.cs</c>), for every user with vehicles: checks their MOT and tax
 /// due dates with whichever of the DVLA and DVSA are set up, then emails any reminders due (if they've set an address).

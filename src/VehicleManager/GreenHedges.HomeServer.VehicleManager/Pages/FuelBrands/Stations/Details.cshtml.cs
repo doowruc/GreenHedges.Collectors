@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using VehicleManager.Data;
@@ -41,15 +40,4 @@ public class DetailsModel(AppDbContext db, FuelBrandList brands, FuelStationList
             Selected = fuelType is { } asked && Sections.Any(s => s.FuelType == asked) ? asked : entries[0].FuelType;
         return Page();
     }
-}
-
-/// <param name="Entries">Newest first.</param>
-public record FuelTypeSection(FuelType FuelType, List<FuelEntryView> Entries)
-{
-    /// <summary>
-    /// Pump price (before any voucher, which is ours rather than the station's) by date, oldest first,
-    /// for wwwroot/js/price-chart.js.
-    /// </summary>
-    public string ChartJson => JsonSerializer.Serialize(
-        Entries.AsEnumerable().Reverse().Select(f => new { date = f.Date.ToString("yyyy-MM-dd"), price = f.CostPerLitre }));
 }

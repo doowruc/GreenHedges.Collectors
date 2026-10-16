@@ -71,6 +71,3 @@ public class FuelEntryView
     public decimal? CostPerMile =>
         TripMiles is > 0 ? Math.Round(TotalCost / TripMiles.Value, 3) : null;
 }
-
-/// <summary>One stop of a fill-up; the ids are for linking to the station's page.</summary>
-public record FuelStopView(int BrandId, string Brand, int StationId, string Station);

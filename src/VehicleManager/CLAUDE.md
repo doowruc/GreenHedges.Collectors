@@ -251,6 +251,9 @@ VehicleManager/
   table scrolls sideways within its card (`table-responsive`), not the page.
 
 **General**
+- One type per file: each top-level class, record, enum, interface or struct has its own file, named after it
+  (`FuelPlaceList<T>` in `FuelPlaceList.cs`; a page model in its `.cshtml.cs`), in the same folder and namespace as
+  the code it belongs with. Nested types are fine. Applies to the tests too; generated migrations are exempt.
 - Prefer shared partials and small shared scripts over copying markup or JS between pages.
 - No breadcrumbs: a page below another has a Back button on the right of its header (`Pages/Shared/_BackButton`,
   model `BackButton(href)`), a plain link to the parent page, unless it's a form with its own Cancel (e.g. station Edit,
