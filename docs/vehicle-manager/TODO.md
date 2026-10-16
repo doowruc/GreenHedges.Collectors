@@ -9,10 +9,14 @@ Ideas for future features and improvements, roughly in order of how useful they'
       using the existing Coravel and Resend setup.
   - [x] Optional: look up MOT and tax due dates from the registration number using the DVLA Vehicle Enquiry API and
         the DVSA MOT History API (both free with an API key). Each is optional; messages name only the ones set up.
-    - [ ] Register for the DVSA MOT History API and add its four `MotHistory:*` settings.
+    - [x] Register for the DVSA MOT History API and add its four `MotHistory:*` settings.
     - [ ] Register for the DVLA Vehicle Enquiry Service once it reopens (registration was closed in October 2026)
           and add `Dvla:ApiKey`, so tax dates are looked up too.
-  - [ ] Show MOT history on the vehicle page, and check its recorded mileages against the fill-up odometer readings.
+  - [x] MOT history on the vehicle page: an MOT tab listing every test with its defects and advisories (kept in step
+        with the DVSA on each check, and in the backup), a mileage chart whose points scroll to their test, and
+        "Previous owner" badges for tests before the purchase date. Header links check the MOT and tax separately.
+  - [x] Use the MOT tests' mileages in the mileage trend, alongside the fill-ups'.
+  - [ ] Check the MOT tests' recorded mileages against the fill-up odometer readings, and flag big mismatches.
   - [x] Service due by mileage as well as date, estimated from the recent miles per month.
 - [x] **Service history** for each vehicle: date, mileage, garage and location, and whether it was under a previous
       owner (ticked automatically for dates before the purchase date). A service interval (months and/or miles) on the
@@ -31,7 +35,9 @@ Ideas for future features and improvements, roughly in order of how useful they'
 
 ## Smaller improvements
 
-- [x] **Vehicle page tabs:** Fuel and Services on separate tabs, the active one kept in the address (`?tab=`).
+- [x] **Vehicle page tabs:** Fuel, Services and MOT on separate tabs, the active one kept in the address (`?tab=`) and
+      when switching vehicle. Services and MOT have the 12 months / all time switch and a mileage chart, with previous
+      owners' readings shown differently.
 - [x] **Tidier menus and buttons:** the theme choice is a Theme item in the user menu; Add fill-up moved from the menu
       bar onto the Fuel Log page, the Fuel tab and the dashboard cards (with Add service beside it); small buttons,
       selects and pills (period toggle, station fuel types) throughout.
@@ -52,6 +58,7 @@ Ideas for future features and improvements, roughly in order of how useful they'
 
 - [x] **Edit conflict warnings now show on every edit page:** the vehicle and owner pages hid "someone changed this
       after you opened it", because the validation summary was inside the prefixed form partials. Fixed and tested.
+- [x] **One type per file** throughout, now a rule in CLAUDE.md.
 - [x] **Shared DataTables setup:** `data-table.js` and `_DataTableStyles`/`_DataTableScripts` serve both the fuel log
       and the service history, so a new table follows the same pattern.
 - [ ] **Develop against a local database again,** instead of the Azure one. It must stay SQL Server, because the
