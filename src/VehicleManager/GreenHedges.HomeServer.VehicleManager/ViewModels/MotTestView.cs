@@ -24,6 +24,9 @@ public class MotTestView
     /// <summary>E.g. "45,123 miles" or "72,000 km"; null if the odometer wasn't read.</summary>
     public string? OdometerText => Odometer is { } odometer ? $"{odometer:N0} {(OdometerInKilometres ? "km" : "miles")}" : null;
 
+    /// <summary>The odometer reading in miles (converted from kilometres if need be), for the mileage trend.</summary>
+    public int? Miles => Odometer is { } odometer ? MileageTrend.Miles(odometer, OdometerInKilometres) : null;
+
     /// <summary>Northern Ireland's tests come without defect details, so "no defects" can't be said of them.</summary>
     public bool HasDefectDetails => DataSource != "DVA NI";
 

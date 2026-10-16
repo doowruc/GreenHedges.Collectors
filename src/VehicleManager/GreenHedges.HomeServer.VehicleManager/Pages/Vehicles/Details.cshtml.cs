@@ -87,7 +87,7 @@ public class DetailsModel(AppDbContext db, FuelStatsService stats, VehicleLookup
         MotTestsLastYear = MotTests.Where(t => t.Date >= yearAgo).ToList();
         if (Tab == MotTab && !ShowMotTab) Tab = FuelTab;
 
-        Mileage = MileageTrend.From(Entries);
+        Mileage = MileageTrend.From(Entries, MotTests.Where(t => t.Miles is not null).Select(t => (t.Date, t.Miles!.Value)));
         DueDates = vehicle.DueDates(Reminders.UkToday(), Mileage);
         if (Mileage is null) UnestimatedServiceMileage = vehicle.ServiceDueMileage;
 

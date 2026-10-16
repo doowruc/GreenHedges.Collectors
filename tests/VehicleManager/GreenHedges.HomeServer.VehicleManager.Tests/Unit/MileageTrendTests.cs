@@ -1,4 +1,5 @@
 using VehicleManager.Services;
+using VehicleManager.ViewModels;
 
 namespace VehicleManager.Tests.Unit;
 
@@ -48,6 +49,21 @@ public class MileageTrendTests
         var trend = new MileageTrend(Latest, 40000, 30);
         Assert.Equal(Latest.AddDays(100), trend.DateAt(43000));
         Assert.Equal(Latest.AddDays(-10), trend.DateAt(39700));
+    }
+
+    [Fact]
+    public void MOT_readings_in_kilometres_are_converted_to_miles()
+    {
+        Assert.Equal((62137, 100000), (MileageTrend.Miles(100000, true), MileageTrend.Miles(100000, false)));
+        Assert.Equal(62137, new MotTestView { Odometer = 100000, OdometerInKilometres = true }.Miles);
+        Assert.Null(new MotTestView().Miles);
+    }
+
+    [Fact]
+    public void Fill_ups_and_MOT_readings_are_used_together()
+    {
+        var trend = MileageTrend.From([new FuelEntryView { Date = Latest, Odometer = 36000 }], [(Latest.AddMonths(-3), 33000)])!;
+        Assert.Equal(3000.0 / (Latest.DayNumber - Latest.AddMonths(-3).DayNumber), trend.MilesPerDay, 6);
     }
 
     [Fact]

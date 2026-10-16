@@ -152,9 +152,10 @@ They show on the vehicle's page and dashboard card and, when due within 30 days 
 **Coming up** list.
 
 **Service by mileage** – a service can also be due at a mileage, and is due at the date or the mileage, whichever
-comes first. The mileage's date is estimated from the fill-ups' odometer readings: the average miles per day over
+comes first. The mileage's date is estimated from the odometer readings of the fill-ups and (with the DVSA set up)
+the MOT tests: the average miles per day over
 the last 6 months (or all the readings, if the recent ones span less than 28 days). It's shown with "≈", e.g.
-"Service ≈06/11/2026 · in 30 days · 43,000 mi", and moves as you add fill-ups; the vehicle page shows the recent
+"Service ≈06/11/2026 · in 30 days · 43,000 mi", and moves as you add fill-ups or MOT checks bring in new tests; the vehicle page shows the recent
 miles per month. Without two odometer readings at least 28 days apart there's no estimate yet. Reminders for a
 mileage go once each, however much its estimated date moves.
 

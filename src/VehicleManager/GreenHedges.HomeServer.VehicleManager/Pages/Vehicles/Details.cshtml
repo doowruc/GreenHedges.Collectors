@@ -16,7 +16,7 @@
             <partial name="_DueDates" model="Model.DueDates" />
             @if (Model.UnestimatedServiceMileage is { } serviceMiles)
             {
-                <span class="text-muted small" title="Needs fill-ups with odometer readings at least @MileageTrend.MinDays days apart">Service due at @serviceMiles.ToString("N0") miles (not enough odometer readings to estimate when)</span>
+                <span class="text-muted small" title="Needs odometer readings (from fill-ups or MOT tests) at least @MileageTrend.MinDays days apart">Service due at @serviceMiles.ToString("N0") miles (not enough odometer readings to estimate when)</span>
             }
             @if (Model.DueDates.Count == 0 && Model.UnestimatedServiceMileage is null)
             {

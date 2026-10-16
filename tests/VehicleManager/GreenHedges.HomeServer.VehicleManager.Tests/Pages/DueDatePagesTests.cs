@@ -89,6 +89,29 @@ public class DueDatePagesTests(AppFactory app) : DatabaseTest, IClassFixture<App
     }
 
     [DatabaseFact]
+    public async Task MOT_test_readings_count_towards_the_estimate()
+    {
+        int id;
+        await using (var db = Db())
+        {
+            var vehicle = await TestData.AddVehicleAsync(db, FakeVehicleApis.NewRegistration());
+            vehicle.ServiceDueMileage = 41000;
+            vehicle.MotTests.Add(new MotTest { CompletedDate = Today.AddDays(-60).ToDateTime(new TimeOnly(12, 0)), Passed = true, Odometer = 38000 });
+            await db.SaveChangesAsync();
+            id = vehicle.Id;
+            (await TestData.AddFillUpAsync(db, id, Today, ("Shell", "Meadowbank"))).Odometer = 40000;
+            await db.SaveChangesAsync();
+        }
+        var client = app.ClientFor(UserId);
+
+        // 2,000 miles in the 60 days since the MOT, so the last 1,000 take 30 days.
+        var details = await client.GetAsync($"/Vehicles/Details/{id}");
+        Assert.Contains($"Service ≈{Today.AddDays(30):dd/MM/yyyy} · in 30 days · 41,000 mi", details.Text);
+        Assert.DoesNotContain("not enough odometer readings", details.Text);
+        Assert.Contains($"≈{Today.AddDays(30):dd/MM/yyyy} · in 30 days · 41,000 mi", (await client.GetAsync("/")).Text);
+    }
+
+    [DatabaseFact]
     public async Task A_service_due_mileage_must_be_a_mileage()
     {
         int id;

@@ -65,7 +65,7 @@ VehicleManager/
                BackupFile (backup JSON format: read/validate/write) + BackupService (create, restore, record),
                BackupEmailer (emails a backup via Resend), ScheduledBackups (Coravel invocable, nightly),
                Reminders (when to remind; pure) + ReminderEmailer + ScheduledReminders (Coravel, each morning),
-               MileageTrend (recent miles per day, for service-by-mileage estimates), ServiceSchedule (next service from intervals),
+               MileageTrend (recent miles per day from fill-up and MOT odometer readings, for service-by-mileage estimates), ServiceSchedule (next service from intervals),
                VehicleLookup (MOT/tax dates) over DvlaClient (DVLA Vehicle Enquiry) and MotHistoryClient (DVSA MOT History),
                MotTests (keeps stored MOT tests in step with the DVSA)
   Pages/       Index (dashboard, with a "Coming up" due-dates list), Owners/*, Vehicles/* (+ Services/* per vehicle), FuelLog/* (log + fill-up pages), Import/*, Backup/* (Index, Restore), Settings/* (user menu), FuelBrands/* (+ Stations/* per brand),
@@ -157,9 +157,11 @@ VehicleManager/
   `VehicleView.DueDates(today)` gives the set ones as `DueDateView`s (badge colour, "in 5 days"/"2 days overdue");
   `Pages/Shared/_DueDates` shows them as badges. "Today" is `Reminders.UkToday()`, not the server's date.
 - Service can also be due at `ServiceDueMileage`: whichever of date and mileage comes first. The mileage's date is
-  estimated by `Services/MileageTrend` (miles per day from fill-up odometer readings over the last 6 months, else all
+  estimated by `Services/MileageTrend` (miles per day from odometer readings over the last 6 months, else all
   of them; null without two readings 28+ days apart), so `DueDates(today, trend)` needs the trend
-  (`MileageTrend.From(entries)` or `ForVehiclesAsync(db)`). An estimate has `DueDateView.DueMileage` set.
+  (`MileageTrend.From(entries, motReadings)` or `ForVehiclesAsync(db)`). An estimate has `DueDateView.DueMileage` set.
+  The readings are the fill-ups' and the stored MOT tests' (`MotReadingsAsync`, or `MotTestView.Miles`; UK date of
+  the test, kilometres converted to miles by `MileageTrend.Miles`).
 - Reminders go 30 and 7 days before each date (`Reminders.DaysBefore`); a date first seen inside a threshold gets only
   the nearest one. `SentReminder` rows (vehicle, kind, due date, due mileage, days before; cascade with the vehicle; not
   in the backup) stop repeats, matched by `ReminderKey`: by date, or for a mileage estimate by the mileage (its date

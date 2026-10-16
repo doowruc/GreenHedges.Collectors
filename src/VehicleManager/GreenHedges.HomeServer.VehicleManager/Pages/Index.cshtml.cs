@@ -27,8 +27,10 @@ public class IndexModel(AppDbContext db, FuelStatsService stats) : PageModel
                 .ToListAsync())
             .ToLookup(f => f.VehicleId);
 
+        var motReadings = await MileageTrend.MotReadingsAsync(db);
+
         var today = Reminders.UkToday();
-        var dueDates = vehicles.ToDictionary(v => v.Id, v => v.DueDates(today, MileageTrend.From(entries[v.Id])));
+        var dueDates = vehicles.ToDictionary(v => v.Id, v => v.DueDates(today, MileageTrend.From(entries[v.Id], motReadings[v.Id])));
         ComingUp = dueDates.Values.SelectMany(d => d).Where(d => d.IsSoon)
             .OrderBy(d => d.Date).ThenBy(d => d.VehicleName).ThenBy(d => d.Kind)
             .ToList();
