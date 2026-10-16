@@ -102,4 +102,20 @@ public class VehiclePagesTests(AppFactory app) : DatabaseTest, IClassFixture<App
         Assert.Matches($@"<a class=""btn btn-sm btn-outline-secondary"" href=""/Vehicles/Edit/{id}"">Edit</a>", page);
         Assert.Matches($@"<a class=""btn btn-sm btn-outline-danger"" href=""/Vehicles/Delete/{id}"">Delete</a>", page);
     }
+
+    [DatabaseFact]
+    public async Task Switching_vehicle_keeps_the_tab()
+    {
+        int first, second;
+        await using (var db = Db())
+        {
+            first = (await TestData.AddVehicleAsync(db, "SWITCH 1")).Id;
+            second = (await TestData.AddVehicleAsync(db, "SWITCH 2")).Id;
+        }
+        var client = app.ClientFor(UserId);
+
+        Assert.Contains($"<option value=\"/Vehicles/Details/{second}?tab=services\">", (await client.GetAsync($"/Vehicles/Details/{first}?tab=services")).Html);
+        Assert.Contains($"<option value=\"/Vehicles/Details/{second}?tab=mot\">", (await client.GetAsync($"/Vehicles/Details/{first}?tab=mot")).Html);
+        Assert.Contains($"<option value=\"/Vehicles/Details/{second}\">", (await client.GetAsync($"/Vehicles/Details/{first}")).Html);   // the fuel tab, the default
+    }
 }

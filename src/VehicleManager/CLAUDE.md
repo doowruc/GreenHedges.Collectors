@@ -139,7 +139,8 @@ VehicleManager/
 **Service history**
 - The vehicle page (`Vehicles/Details`) has Fuel, Services and MOT tabs (Bootstrap `nav-tabs`). The active one is rendered
   server-side from `?tab=fuel|services|mot` (no flicker); the tab links carry it and a script keeps the address bar on the
-  selected tab. Service pages redirect and cancel back with `tab=services` (`DetailsModel.ServicesTab`).
+  selected tab. Service pages redirect and cancel back with `tab=services` (`DetailsModel.ServicesTab`). The vehicle
+  switcher's options carry the tab too (rendered server-side, updated by the same script), so switching vehicle keeps it.
 - `ServiceRecord` (date, mileage, garage, optional location, `UnderPreviousOwner` (done before the vehicle was the user's;
   it still counts as the latest service for the next one; ticked by `_ServiceForm`'s script for a date before the
   vehicle's `PurchasedDate`, and always set for one when a service is added); filter and cascade through its vehicle; in the backup) is

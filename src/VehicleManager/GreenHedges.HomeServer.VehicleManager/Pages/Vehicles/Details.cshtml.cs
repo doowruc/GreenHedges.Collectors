@@ -45,7 +45,7 @@ public class DetailsModel(AppDbContext db, FuelStatsService stats, VehicleLookup
     /// <summary>The MOT tab shows with the DVSA set up, or MOT tests stored from when it was.</summary>
     public bool ShowMotTab => HasMotHistory || MotTests.Count > 0;
 
-    /// <summary>All vehicles for the switcher; each option's value is that vehicle's details URL.</summary>
+    /// <summary>All vehicles for the switcher; each option's value is that vehicle's details URL, on the current tab.</summary>
     public List<SelectListItem> VehicleOptions { get; private set; } = [];
 
     /// <summary>The tab shown first: fuel (the default), services or MOT, from <c>?tab=</c>.</summary>
@@ -58,12 +58,6 @@ public class DetailsModel(AppDbContext db, FuelStatsService stats, VehicleLookup
         var vehicle = await db.Vehicles.Where(v => v.Id == id).Select(VehicleView.Projection).FirstOrDefaultAsync();
         if (vehicle is null) return NotFound();
         Vehicle = vehicle;
-
-        VehicleOptions = (await db.Vehicles.OrderBy(v => v.Make).ThenBy(v => v.Model)
-                .Select(v => new { v.Id, v.Make, v.Model, v.RegistrationNumber }).ToListAsync())
-            .Select(v => new SelectListItem(
-                $"{v.Make} {v.Model} ({v.RegistrationNumber})", Url.Page("Details", new { id = v.Id }), v.Id == id))
-            .ToList();
 
         Entries = await db.FuelEntries
             .Where(f => f.VehicleId == id)
@@ -86,6 +80,13 @@ public class DetailsModel(AppDbContext db, FuelStatsService stats, VehicleLookup
         var yearAgo = Reminders.UkToday().AddYears(-1);
         MotTestsLastYear = MotTests.Where(t => t.Date >= yearAgo).ToList();
         if (Tab == MotTab && !ShowMotTab) Tab = FuelTab;
+
+        // Switching vehicle keeps the tab (the script below updates these links when the tab changes).
+        VehicleOptions = (await db.Vehicles.OrderBy(v => v.Make).ThenBy(v => v.Model)
+                .Select(v => new { v.Id, v.Make, v.Model, v.RegistrationNumber }).ToListAsync())
+            .Select(v => new SelectListItem(
+                $"{v.Make} {v.Model} ({v.RegistrationNumber})", Url.Page("Details", new { id = v.Id, tab = Tab == FuelTab ? null : Tab }), v.Id == id))
+            .ToList();
 
         Mileage = MileageTrend.From(Entries, MotTests.Where(t => t.Miles is not null).Select(t => (t.Date, t.Miles!.Value)));
         DueDates = vehicle.DueDates(Reminders.UkToday(), Mileage);

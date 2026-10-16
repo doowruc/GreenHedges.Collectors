@@ -201,6 +201,12 @@
             // Keep the address bar on the selected tab (replacing, so Back doesn't step through tabs).
             history.replaceState(history.state, '', tab.href);
             document.querySelectorAll('.lookup-tab').forEach(input => input.value = tab.dataset.tab);
+            // So switching vehicle opens the same tab.
+            document.querySelectorAll('#vehicle-switcher option').forEach(option => {
+                const url = new URL(option.value, location.href);
+                url.searchParams.set('tab', tab.dataset.tab);
+                option.value = url.pathname + url.search;
+            });
         }));
     </script>
     @if (Model.Entries.Count > 0)
