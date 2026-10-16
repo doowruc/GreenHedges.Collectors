@@ -217,7 +217,9 @@ VehicleManager/
 - Anything drawing its own colours (e.g. Chart.js) should listen for the `themechange` event and use `window.themeColors()`. See `Pages/Vehicles/Details.cshtml`.
 - Charts: put the canvas in a `<div class="chart-box">` and use `maintainAspectRatio: false`, so the height suits phones as well as desktop (a fixed ratio makes it very short on a phone).
 - Mileage charts: `Pages/Shared/_MileageChart` (model `(Title, Json)`) drawn by `wwwroot/js/mileage-chart.js` (dates on a
-  linear axis, failed MOTs in red). The vehicle page's Services and MOT tabs each have one, from
+  linear axis, failed MOTs in red, a previous owner's readings as hollow grey points on a dashed grey line, from each
+  reading's `previousOwner`: the service's `UnderPreviousOwner`, or the MOT's `BoughtAfter`; a legend explains the colours
+  when any are used). The vehicle page's Services and MOT tabs each have one, from
   `DetailsModel.ServiceChartJson`/`MotChartJson` (null with fewer than two readings). The MOT chart shows every test
   whatever the period toggle says (a year's MOTs are a single point). The page loads Chart.js once for all its charts.
   A reading's optional `ref` links its point to the element with that `data-chart-ref` (MOT points →

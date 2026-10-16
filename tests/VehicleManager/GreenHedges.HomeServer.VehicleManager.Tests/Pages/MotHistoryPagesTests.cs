@@ -176,7 +176,7 @@ public class MotHistoryPagesTests(AppFactory app) : DatabaseTest, IClassFixture<
         Assert.Equal(2, items.Count);
         Assert.DoesNotContain("Previous owner", items[0]);   // newest first: after the purchase
         Assert.Contains("<span class=\"badge text-bg-secondary\" title=\"Before the vehicle was bought on 01/06/2024\">Previous owner</span>", items[1]);
-        Assert.Equal(["2024-05-31 30000 Pass · previous owner False", "2025-05-30 38000 Pass False"], ServicePagesTests.MileageChart(html));
+        Assert.Equal(["2024-05-31 30000 Pass False previous owner", "2025-05-30 38000 Pass False"], ServicePagesTests.MileageChart(html));
 
         // Without a purchase date, nothing is marked.
         await using (var db = Db())

@@ -493,6 +493,14 @@ public class ServicePagesTests(AppFactory app) : DatabaseTest, IClassFixture<App
         Assert.Equal(["2025-10-01 35000 Local Garage False", "2026-10-01 45000 Main Dealer, Leeds False"], MileageChart(page));
         Assert.Contains("chart.js@", page);
         Assert.Matches(@"<script src=""/js/mileage-chart[^""]*\.js""", page);
+
+        // A previous owner's service is flagged, for the chart to draw differently.
+        await using (var db = Db())
+        {
+            await db.ServiceRecords.Where(s => s.Mileage == 35000).ExecuteUpdateAsync(u => u.SetProperty(s => s.UnderPreviousOwner, true));
+        }
+        page = (await client.GetAsync($"/Vehicles/Details/{id}?tab=services")).Html;
+        Assert.Equal(["2025-10-01 35000 Local Garage False previous owner", "2026-10-01 45000 Main Dealer, Leeds False"], MileageChart(page));
     }
 
     /// <summary>The readings in the page's mileage chart, oldest first.</summary>
@@ -500,6 +508,7 @@ public class ServicePagesTests(AppFactory app) : DatabaseTest, IClassFixture<App
     {
         var json = WebUtility.HtmlDecode(Regex.Match(html, @"data-mileage-chart=""([^""]*)""").Groups[1].Value);
         return [.. System.Text.Json.JsonDocument.Parse(json).RootElement.EnumerateArray()
-            .Select(r => $"{r.GetProperty("date").GetString()} {r.GetProperty("miles").GetInt32()} {r.GetProperty("note").GetString()} {r.GetProperty("failed").GetBoolean()}")];
+            .Select(r => $"{r.GetProperty("date").GetString()} {r.GetProperty("miles").GetInt32()} {r.GetProperty("note").GetString()} {r.GetProperty("failed").GetBoolean()}" +
+                         (r.GetProperty("previousOwner").GetBoolean() ? " previous owner" : ""))];
     }
 }
