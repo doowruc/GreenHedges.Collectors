@@ -44,6 +44,10 @@ public class MotHistoryPagesTests(AppFactory app) : DatabaseTest, IClassFixture<
         Assert.Contains(FakeVehicleApis.FailedTestDefect, allTime);
         Assert.Contains("01/01/2020", allTime);
         Assert.Single(Regex.Matches(allTime, "Tested as"));   // only the failed test, under its old number plate
+        // The chart has every test with a reading, oldest first, whichever period is shown.
+        Assert.Contains("Mileage at each MOT", html);
+        Assert.Equal(["2020-01-01 20000 Fail True", $"{today.AddMonths(-18):yyyy-MM-dd} 30000 Pass False", $"{today.AddMonths(-11):yyyy-MM-dd} 38000 Pass False"],
+            ServicePagesTests.MileageChart(html));
         Assert.Matches(@"MOT history\s*<span class=""period-stats"" data-period=""12m"">\(1\)</span><span class=""period-stats"" data-period=""all"">\(3\)</span>", html);
     }
 

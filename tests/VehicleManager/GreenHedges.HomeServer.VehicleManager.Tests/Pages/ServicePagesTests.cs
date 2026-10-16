@@ -439,4 +439,30 @@ public class ServicePagesTests(AppFactory app) : DatabaseTest, IClassFixture<App
         await using var check = Db();
         Assert.Empty(await check.ServiceRecords.ToListAsync());
     }
+
+    [DatabaseFact]
+    public async Task The_services_tab_charts_mileage_once_there_are_two_services()
+    {
+        var id = await AddVehicleAsync();
+        var client = app.ClientFor(UserId);
+        await AddServiceAsync(client, id, "2026-10-01", 45000);
+        var page = (await client.GetAsync($"/Vehicles/Details/{id}?tab=services")).Html;
+        Assert.DoesNotContain("data-mileage-chart", page);   // one point isn't a chart
+        Assert.DoesNotContain("chart.js@", page);
+
+        await AddServiceAsync(client, id, "2025-10-01", 35000, "Local Garage", "");
+        page = (await client.GetAsync($"/Vehicles/Details/{id}?tab=services")).Html;
+        Assert.Contains("Mileage at each service", page);
+        Assert.Equal(["2025-10-01 35000 Local Garage False", "2026-10-01 45000 Main Dealer, Leeds False"], MileageChart(page));
+        Assert.Contains("chart.js@", page);
+        Assert.Matches(@"<script src=""/js/mileage-chart[^""]*\.js""", page);
+    }
+
+    /// <summary>The readings in the page's mileage chart, oldest first.</summary>
+    internal static List<string> MileageChart(string html)
+    {
+        var json = WebUtility.HtmlDecode(Regex.Match(html, @"data-mileage-chart=""([^""]*)""").Groups[1].Value);
+        return [.. System.Text.Json.JsonDocument.Parse(json).RootElement.EnumerateArray()
+            .Select(r => $"{r.GetProperty("date").GetString()} {r.GetProperty("miles").GetInt32()} {r.GetProperty("note").GetString()} {r.GetProperty("failed").GetBoolean()}")];
+    }
 }

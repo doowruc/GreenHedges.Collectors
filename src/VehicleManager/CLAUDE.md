@@ -71,7 +71,7 @@ VehicleManager/
   Pages/       Index (dashboard, with a "Coming up" due-dates list), Owners/*, Vehicles/* (+ Services/* per vehicle), FuelLog/* (log + fill-up pages), Import/*, Backup/* (Index, Restore), Settings/* (user menu), FuelBrands/* (+ Stations/* per brand),
                Account/* (Login, Logout, SignedOut), Shared/ (layout + partials)
   wwwroot/     css/site.css, js/color-mode.js, js/period-toggle.js, js/data-table.js (DataTables setup), js/typeahead.js (dropdown suggestions),
-               js/price-chart.js (station price charts)
+               js/price-chart.js (station price charts), js/mileage-chart.js (mileage over time: vehicle Services and MOT tabs)
 ```
 
 ## Conventions and how things work
@@ -212,6 +212,10 @@ VehicleManager/
 - Everything must work in both themes. Don't use `bg-white`, `table-light` or hard-coded colours. Use `bg-body`, the custom `<thead class="table-head">` and Bootstrap CSS variables in `site.css`.
 - Anything drawing its own colours (e.g. Chart.js) should listen for the `themechange` event and use `window.themeColors()`. See `Pages/Vehicles/Details.cshtml`.
 - Charts: put the canvas in a `<div class="chart-box">` and use `maintainAspectRatio: false`, so the height suits phones as well as desktop (a fixed ratio makes it very short on a phone).
+- Mileage charts: `Pages/Shared/_MileageChart` (model `(Title, Json)`) drawn by `wwwroot/js/mileage-chart.js` (dates on a
+  linear axis, failed MOTs in red). The vehicle page's Services and MOT tabs each have one, from
+  `DetailsModel.ServiceChartJson`/`MotChartJson` (null with fewer than two readings). The MOT chart shows every test
+  whatever the period toggle says (a year's MOTs are a single point). The page loads Chart.js once for all its charts.
 
 **Stats period toggle ("Last 12 months" / "All time")**
 - Shared partial `Pages/Shared/_PeriodToggle.cshtml` plus `wwwroot/js/period-toggle.js`, used on the dashboard and vehicle details

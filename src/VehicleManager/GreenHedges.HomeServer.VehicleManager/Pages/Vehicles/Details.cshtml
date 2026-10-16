@@ -104,6 +104,10 @@
     <div class="d-flex justify-content-end mb-2">
         <a asp-page="Services/Create" asp-route-vehicleId="@Model.Vehicle.Id" class="btn btn-sm btn-primary"><i class="bi bi-wrench me-1"></i>Add service</a>
     </div>
+    @if (Model.ServiceChartJson is { } serviceChart)
+    {
+        <partial name="_MileageChart" model='("Mileage at each service", serviceChart)' />
+    }
     <div class="card shadow-sm">
         <div class="card-header bg-body">
             <span class="fw-semibold">Service history (@Model.Services.Count)</span>
@@ -148,6 +152,11 @@
                     </form>
                 }
             </div>
+        }
+        @* Every test with a reading, whichever period is selected: a year's MOT is a single point. *@
+        @if (Model.MotChartJson is { } motChart)
+        {
+            <partial name="_MileageChart" model='("Mileage at each MOT", motChart)' />
         }
         <div class="card shadow-sm">
             <div class="card-header bg-body">
@@ -209,9 +218,16 @@
             });
         }));
     </script>
-    @if (Model.Entries.Count > 0)
+    @if (Model.Entries.Count > 0 || Model.ServiceChartJson is not null || Model.MotChartJson is not null)
     {
         <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.js"></script>
+    }
+    @if (Model.ServiceChartJson is not null || Model.MotChartJson is not null)
+    {
+        <script src="~/js/mileage-chart.js" asp-append-version="true"></script>
+    }
+    @if (Model.Entries.Count > 0)
+    {
         <script>
             const data = @Html.Raw(Model.ChartJson);
             const styleChart = () => {

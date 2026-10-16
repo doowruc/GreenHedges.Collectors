@@ -16,6 +16,10 @@ public class DetailsModel(AppDbContext db, FuelStatsService stats, VehicleLookup
     public FuelSummary AllTime { get; private set; } = FuelSummary.Empty;
     public FuelSummary LastYear { get; private set; } = FuelSummary.Empty;
     public string ChartJson { get; private set; } = "[]";
+
+    /// <summary>Mileage charts' readings (for wwwroot/js/mileage-chart.js), oldest first; null with fewer than two to draw.</summary>
+    public string? ServiceChartJson { get; private set; }
+    public string? MotChartJson { get; private set; }
     public List<DueDateView> DueDates { get; private set; } = [];
     public MileageTrend? Mileage { get; private set; }
     public List<ServiceRecordView> Services { get; private set; } = [];
@@ -104,7 +108,24 @@ public class DetailsModel(AppDbContext db, FuelStatsService stats, VehicleLookup
                 price = f.EffectiveCostPerLitre
             }));
 
+        ServiceChartJson = MileageChartJson(Services.AsEnumerable().Reverse()
+            .Select(s => (s.Date, s.Mileage, s.GarageAndLocation, false)));
+        MotChartJson = MileageChartJson(MotTests.AsEnumerable().Reverse().Where(t => t.Miles is not null)
+            .Select(t => (t.Date, t.Miles!.Value, t.Passed ? "Pass" : "Fail", !t.Passed)));
+
         return Page();
+    }
+
+    private static string? MileageChartJson(IEnumerable<(DateOnly Date, int Miles, string Note, bool Failed)> readings)
+    {
+        var list = readings.ToList();
+        return list.Count < 2 ? null : JsonSerializer.Serialize(list.Select(r => new
+        {
+            date = r.Date.ToString("yyyy-MM-dd"),
+            miles = r.Miles,
+            note = r.Note,
+            failed = r.Failed
+        }));
     }
 
     /// <summary>
