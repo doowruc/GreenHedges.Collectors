@@ -14,6 +14,7 @@
             else { <span class="small text-muted">Odometer not read</span> }
             @if (t.ExpiryDate is { } expiry) { <span class="small text-muted">Expires @expiry.ToString("dd/MM/yyyy")</span> }
             @if (t.RegistrationAtTest is { } reg && VehicleLookup.Compact(reg) != registration) { <span class="small text-muted">Tested as <span class="reg-plate">@reg</span></span> }
+            @if (t.BoughtAfter is { } bought) { <span class="badge text-bg-secondary" title="Before the vehicle was bought on @bought.ToString("dd/MM/yyyy")">Previous owner</span> }
             @if (t.MotTestNumber is { } number) { <span class="small text-muted ms-sm-auto">Test @number</span> }
         </div>
         @if (t.Defects.Count > 0)

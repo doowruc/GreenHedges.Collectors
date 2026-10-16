@@ -19,6 +19,18 @@ public class MotTestView
     public string? DataSource { get; init; }
     public List<MotDefectView> Defects { get; init; } = [];
 
+    /// <summary>
+    /// When the vehicle was bought, if the test was before then (a previous owner's MOT); null otherwise. Worked out
+    /// from the vehicle's purchase date by <see cref="MarkPreviousOwner"/>, not stored, so it follows changes to that date.
+    /// </summary>
+    public DateOnly? BoughtAfter { get; private set; }
+
+    /// <summary>Notes the tests done before the vehicle was bought (none without a purchase date).</summary>
+    public static void MarkPreviousOwner(IEnumerable<MotTestView> tests, DateOnly? purchasedDate)
+    {
+        foreach (var test in tests) test.BoughtAfter = purchasedDate is { } bought && test.Date < bought ? bought : null;
+    }
+
     public DateOnly Date => Reminders.UkDate(CompletedDate);
 
     /// <summary>

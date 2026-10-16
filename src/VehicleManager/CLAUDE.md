@@ -184,7 +184,9 @@ VehicleManager/
   filtered and cascade through the vehicle, and are in the backup. The vehicle page's MOT tab (`_MotTests`) lists them;
   it shows when the DVSA is set up or tests are stored. Northern Ireland tests (`DataSource` "DVA NI") have no defect details.
   Order them with `MotTestView.NewestFirst` (by UK date, and a same-day pass after the failure it's the retest of: the
-  DVSA's times can be identical or the wrong way round), not by `CompletedDate` alone.
+  DVSA's times can be identical or the wrong way round), not by `CompletedDate` alone. A test before the vehicle's
+  `PurchasedDate` gets a grey "Previous owner" badge, like services; it's worked out on the page
+  (`MotTestView.MarkPreviousOwner` sets `BoughtAfter`), not stored, so it follows changes to the purchase date.
 - Checks can cover just the MOT, just the tax, or both (`LookupParts`; the vehicle page's `?handler=Lookup&check=mot|tax`).
   MOT alone asks only the DVSA (the DVLA if it's the only service; its `motExpiryDate` fallback applies only when both are
   checked); tax alone asks only the DVLA; each updates only its own date (MOT also syncs the history).

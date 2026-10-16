@@ -83,6 +83,7 @@ public class DetailsModel(AppDbContext db, FuelStatsService stats, VehicleLookup
             .Select(MotTestView.Projection)
             .ToListAsync());
         var yearAgo = Reminders.UkToday().AddYears(-1);
+        MotTestView.MarkPreviousOwner(MotTests, vehicle.PurchasedDate);
         MotTestsLastYear = MotTests.Where(t => t.Date >= yearAgo).ToList();
         ServicesLastYear = Services.Where(s => s.Date >= yearAgo).ToList();   // late/over badges already set from the full history
         if (Tab == MotTab && !ShowMotTab) Tab = FuelTab;
@@ -113,7 +114,7 @@ public class DetailsModel(AppDbContext db, FuelStatsService stats, VehicleLookup
         ServiceChartJson = MileageChartJson(Services.AsEnumerable().Reverse()
             .Select(s => (s.Date, s.Mileage, s.GarageAndLocation, false, (string?)null)));
         MotChartJson = MileageChartJson(MotTests.AsEnumerable().Reverse().Where(t => t.Miles is not null)
-            .Select(t => (t.Date, t.Miles!.Value, t.Passed ? "Pass" : "Fail", !t.Passed, (string?)MotTestView.ChartRef(t.Id))));
+            .Select(t => (t.Date, t.Miles!.Value, (t.Passed ? "Pass" : "Fail") + (t.BoughtAfter is null ? "" : " · previous owner"), !t.Passed, (string?)MotTestView.ChartRef(t.Id))));
 
         return Page();
     }

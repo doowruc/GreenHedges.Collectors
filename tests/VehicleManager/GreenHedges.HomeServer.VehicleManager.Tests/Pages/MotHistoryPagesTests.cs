@@ -157,6 +157,37 @@ public class MotHistoryPagesTests(AppFactory app) : DatabaseTest, IClassFixture<
     }
 
     [DatabaseFact]
+    public async Task Tests_before_the_vehicle_was_bought_are_marked_previous_owner()
+    {
+        int id;
+        await using (var db = Db())
+        {
+            var vehicle = await TestData.AddVehicleAsync(db);
+            vehicle.PurchasedDate = new DateOnly(2024, 6, 1);
+            vehicle.MotTests.Add(new MotTest { CompletedDate = new DateTime(2024, 5, 31, 10, 0, 0), Passed = true, Odometer = 30000, MotTestNumber = "100000000001" });
+            vehicle.MotTests.Add(new MotTest { CompletedDate = new DateTime(2025, 5, 30, 10, 0, 0), Passed = true, Odometer = 38000, MotTestNumber = "100000000002" });
+            await db.SaveChangesAsync();
+            id = vehicle.Id;
+        }
+        var client = app.ClientFor(UserId);
+
+        var html = (await client.GetAsync($"/Vehicles/Details/{id}?tab=mot")).Html;
+        var items = Regex.Matches(Period(html, "all"), @"<li class=""list-group-item"".*?</li>", RegexOptions.Singleline).Select(m => m.Value).ToList();
+        Assert.Equal(2, items.Count);
+        Assert.DoesNotContain("Previous owner", items[0]);   // newest first: after the purchase
+        Assert.Contains("<span class=\"badge text-bg-secondary\" title=\"Before the vehicle was bought on 01/06/2024\">Previous owner</span>", items[1]);
+        Assert.Equal(["2024-05-31 30000 Pass · previous owner False", "2025-05-30 38000 Pass False"], ServicePagesTests.MileageChart(html));
+
+        // Without a purchase date, nothing is marked.
+        await using (var db = Db())
+        {
+            (await db.Vehicles.SingleAsync()).PurchasedDate = null;
+            await db.SaveChangesAsync();
+        }
+        Assert.DoesNotContain("Previous owner", (await client.GetAsync($"/Vehicles/Details/{id}?tab=mot")).Html);
+    }
+
+    [DatabaseFact]
     public async Task The_fuel_tab_is_the_default()
     {
         int id;
