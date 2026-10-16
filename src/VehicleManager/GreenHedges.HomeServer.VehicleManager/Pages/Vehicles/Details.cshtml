@@ -100,8 +100,9 @@
     }
 </div>
 <div class="tab-pane @PaneClass(DetailsModel.ServicesTab)" id="tab-services" role="tabpanel">
-    @* Above the card, right-aligned, like the Fuel tab's Add fill-up. *@
-    <div class="d-flex justify-content-end mb-2">
+    @* Like the other tabs: the period toggle on the left (with services to show), Add service on the right. *@
+    <div class="period-toggle-row d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+        @if (Model.Services.Count > 0) { <partial name="_PeriodToggle" /> } else { <span></span> }
         <a asp-page="Services/Create" asp-route-vehicleId="@Model.Vehicle.Id" class="btn btn-sm btn-primary"><i class="bi bi-wrench me-1"></i>Add service</a>
     </div>
     @if (Model.ServiceChartJson is { } serviceChart)
@@ -110,7 +111,13 @@
     }
     <div class="card shadow-sm">
         <div class="card-header bg-body">
-            <span class="fw-semibold">Service history (@Model.Services.Count)</span>
+            <span class="fw-semibold">Service history
+                @if (Model.Services.Count > 0)
+                {
+                    <span class="period-stats" data-period="12m">(@Model.ServicesLastYear.Count)</span><span class="period-stats" data-period="all">(@Model.Services.Count)</span>
+                }
+                else { <text>(0)</text> }
+            </span>
             <span class="text-muted small ms-2">
                 @if (Model.Vehicle.ServiceIntervalMonths is null && Model.Vehicle.ServiceIntervalMiles is null)
                 {
@@ -132,7 +139,21 @@
         }
         else
         {
-            <div class="card-body py-2"><partial name="_ServiceTable" model="Model.Services" /></div>
+            // Both tables size their columns from all the services, so they line up whichever is shown.
+            var serviceViewData = new ViewDataDictionary(ViewData) { ["SizeColumnsFrom"] = Model.Services };
+            <div class="period-stats" data-period="12m">
+                @if (Model.ServicesLastYear.Count == 0)
+                {
+                    <div class="card-body text-muted">No services in the last 12 months.</div>
+                }
+                else
+                {
+                    <div class="card-body py-2"><partial name="_ServiceTable" model="Model.ServicesLastYear" view-data="serviceViewData" /></div>
+                }
+            </div>
+            <div class="period-stats" data-period="all">
+                <div class="card-body py-2"><partial name="_ServiceTable" model="Model.Services" view-data="serviceViewData" /></div>
+            </div>
         }
     </div>
 </div>

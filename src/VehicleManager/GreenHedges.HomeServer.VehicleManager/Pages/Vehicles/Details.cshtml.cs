@@ -23,6 +23,8 @@ public class DetailsModel(AppDbContext db, FuelStatsService stats, VehicleLookup
     public List<DueDateView> DueDates { get; private set; } = [];
     public MileageTrend? Mileage { get; private set; }
     public List<ServiceRecordView> Services { get; private set; } = [];
+    /// <summary>The services of the last 12 months, for the period toggle.</summary>
+    public List<ServiceRecordView> ServicesLastYear { get; private set; } = [];
     public List<MotTestView> MotTests { get; private set; } = [];
     /// <summary>The MOT tests of the last 12 months, for the period toggle.</summary>
     public List<MotTestView> MotTestsLastYear { get; private set; } = [];
@@ -82,6 +84,7 @@ public class DetailsModel(AppDbContext db, FuelStatsService stats, VehicleLookup
             .ToListAsync());
         var yearAgo = Reminders.UkToday().AddYears(-1);
         MotTestsLastYear = MotTests.Where(t => t.Date >= yearAgo).ToList();
+        ServicesLastYear = Services.Where(s => s.Date >= yearAgo).ToList();   // late/over badges already set from the full history
         if (Tab == MotTab && !ShowMotTab) Tab = FuelTab;
 
         // Switching vehicle keeps the tab (the script below updates these links when the tab changes).

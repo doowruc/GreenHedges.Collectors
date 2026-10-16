@@ -2,9 +2,11 @@
 @{
     // Rows repeated invisibly in the footer so the columns don't resize as rows come and go (paging, searching),
     // as in _FuelTable: the longest mileage, and one per distinct garage and set of badges (letters' widths vary).
+    // A page with several of these tables (the period toggle's) passes all their services in "SizeColumnsFrom" so they match.
     var services = Model.ToList();
-    var widest = services.Count == 0 ? [] : services.DistinctBy(s => (s.GarageAndLocation, s.UnderPreviousOwner, s.LateText, s.MilesOverText))
-        .Append(services.MaxBy(s => s.Mileage.ToString("N0").Length)!)
+    var sizeFrom = (ViewData["SizeColumnsFrom"] as IEnumerable<ServiceRecordView> ?? services).ToList();
+    var widest = sizeFrom.Count == 0 ? [] : sizeFrom.DistinctBy(s => (s.GarageAndLocation, s.UnderPreviousOwner, s.LateText, s.MilesOverText))
+        .Append(sizeFrom.MaxBy(s => s.Mileage.ToString("N0").Length)!)
         .Distinct().ToList();
 
     // Like the fuel log, rows stay on one line; on a phone the table scrolls sideways within its card.

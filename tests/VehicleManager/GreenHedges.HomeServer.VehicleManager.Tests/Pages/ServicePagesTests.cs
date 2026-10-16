@@ -2,6 +2,7 @@ using System.Net;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using VehicleManager.Models;
+using VehicleManager.Services;
 using VehicleManager.Tests.Infrastructure;
 
 namespace VehicleManager.Tests.Pages;
@@ -48,7 +49,7 @@ public class ServicePagesTests(AppFactory app) : DatabaseTest, IClassFixture<App
 
         var page = await client.GetAsync($"/Vehicles/Details/{id}");
         Assert.Contains("Added the service on 01/10/2026. Next service due 01/10/2027 or at 55,000 miles.", page.Text);
-        Assert.Contains("Service history (1)", page.Text);
+        Assert.Matches(@"Service history\s*<span class=""period-stats"" data-period=""12m"">\(1\)</span><span class=""period-stats"" data-period=""all"">\(1\)</span>", page.Html);
         Assert.Contains("Every 12 months or 10,000 miles", page.Text);
         Assert.Matches(@"<td data-order=""2026-10-01"">01/10/2026</td>\s*<td class=""text-end"" data-order=""45000"">45,000</td>\s*<td>Main Dealer, Leeds</td>\s*<td>\s*</td>", page.Html);
         Assert.Contains($"href=\"/Vehicles/{id}/Services/Edit/", page.Html);
@@ -179,7 +180,8 @@ public class ServicePagesTests(AppFactory app) : DatabaseTest, IClassFixture<App
         await AddServiceAsync(client, id, "2026-12-01", 56000);   // 3 months late and 5,000 miles over
 
         var page = (await client.GetAsync($"/Vehicles/Details/{id}")).Html;
-        var body = Regex.Match(page, @"data-noun=""services"">.*?<tbody>(.*?)</tbody>", RegexOptions.Singleline).Groups[1].Value;
+        // The all-time table (the last 12 months' comes first).
+        var body = Regex.Match(page, @"<div class=""period-stats"" data-period=""all"">.*?data-noun=""services"">.*?<tbody>(.*?)</tbody>", RegexOptions.Singleline).Groups[1].Value;
         // In the Notes column, with the previous owner badge: late by date, then by miles.
         Assert.Matches(@"(?s)01/12/2026</td>.*?56,000</td>\s*<td>[^<]*</td>\s*<td>\s*" +
                        @"<span class=""badge text-bg-danger"" title=""Due 01/09/2026, the service interval after the one before"">3 months late</span>\s*" +
@@ -206,7 +208,7 @@ public class ServicePagesTests(AppFactory app) : DatabaseTest, IClassFixture<App
         // The service history is in its tab, after the fuel tab's content.
         var services = page.IndexOf("id=\"tab-services\"", StringComparison.Ordinal);
         Assert.True(page.IndexOf("No fill-ups recorded yet.", StringComparison.Ordinal) < services);
-        Assert.True(page.IndexOf("Service history (1)", StringComparison.Ordinal) > services);
+        Assert.True(page.IndexOf("Service history", StringComparison.Ordinal) > services);
     }
 
     [DatabaseFact]
@@ -242,12 +244,48 @@ public class ServicePagesTests(AppFactory app) : DatabaseTest, IClassFixture<App
     public async Task Add_service_is_above_the_service_history_card_right_aligned()
     {
         var id = await AddVehicleAsync();
-        var page = (await app.ClientFor(UserId).GetAsync($"/Vehicles/Details/{id}")).Html;
+        var client = app.ClientFor(UserId);
+        var page = (await client.GetAsync($"/Vehicles/Details/{id}")).Html;
         var tab = page[page.IndexOf("id=\"tab-services\"", StringComparison.Ordinal)..];
-        Assert.Matches($@"^[^>]*>\s*(?:@\*.*?\*@\s*)?<div class=""d-flex justify-content-end mb-2"">\s*<a class=""btn btn-sm btn-primary"" href=""/Vehicles/{id}/Services/Create""><i class=""bi bi-wrench me-1""></i>Add service</a>\s*</div>\s*<div class=""card shadow-sm"">", tab);
+        // No services yet, so no period toggle on the left.
+        Assert.Matches($@"^[^>]*>\s*<div class=""period-toggle-row d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2"">\s*<span></span>\s*<a class=""btn btn-sm btn-primary"" href=""/Vehicles/{id}/Services/Create""><i class=""bi bi-wrench me-1""></i>Add service</a>\s*</div>\s*<div class=""card shadow-sm"">", tab);
         var header = Regex.Match(tab, @"<div class=""card-header bg-body"">(.*?)</div>", RegexOptions.Singleline).Groups[1].Value;
-        Assert.Contains("Service history (0)", header);
+        Assert.Matches(@"Service history\s*\(0\)", header);
         Assert.DoesNotContain("Services/Create", header);
+
+        // With a service, the toggle takes the left.
+        await AddServiceAsync(client, id, "2026-10-01", 45000);
+        page = (await client.GetAsync($"/Vehicles/Details/{id}")).Html;
+        tab = page[page.IndexOf("id=\"tab-services\"", StringComparison.Ordinal)..];
+        Assert.Matches(@"^[^>]*>\s*<div class=""period-toggle-row[^""]*"">\s*<ul class=""nav nav-pills nav-pills-sm", tab);
+    }
+
+    [DatabaseFact]
+    public async Task The_services_tab_has_the_period_toggle()
+    {
+        var id = await AddVehicleAsync();
+        var client = app.ClientFor(UserId);
+        var today = Reminders.UkToday();
+        await AddServiceAsync(client, id, today.AddMonths(-2).ToString("yyyy-MM-dd"), 45000);
+        await AddServiceAsync(client, id, today.AddMonths(-14).ToString("yyyy-MM-dd"), 35000, "Local Garage, a much longer name", "");
+
+        var page = (await client.GetAsync($"/Vehicles/Details/{id}?tab=services")).Html;
+        Assert.Matches(@"Service history\s*<span class=""period-stats"" data-period=""12m"">\(1\)</span><span class=""period-stats"" data-period=""all"">\(2\)</span>", page);
+
+        string Rows(string period) => Regex.Match(page, $@"<div class=""period-stats"" data-period=""{period}"">.*?<tbody>(.*?)</tbody>", RegexOptions.Singleline).Groups[1].Value;
+        string Sizer(string period) => Regex.Match(page, $@"<div class=""period-stats"" data-period=""{period}"">.*?<tfoot class=""column-sizer""[^>]*>(.*?)</tfoot>", RegexOptions.Singleline).Groups[1].Value;
+        Assert.Equal(1, Regex.Matches(Rows("12m"), "<tr>").Count);
+        Assert.Equal(2, Regex.Matches(Rows("all"), "<tr>").Count);
+        // Both size their columns from every service, so they line up when switching.
+        Assert.Contains("Local Garage, a much longer name", Sizer("12m"));
+        Assert.Equal(Sizer("all"), Sizer("12m"));
+
+        // Nothing in the last 12 months.
+        await using (var db = Db())
+        {
+            await db.ServiceRecords.Where(s => s.Mileage == 45000).ExecuteDeleteAsync();
+        }
+        Assert.Contains("No services in the last 12 months.", (await client.GetAsync($"/Vehicles/Details/{id}?tab=services")).Text);
     }
 
     [DatabaseFact]

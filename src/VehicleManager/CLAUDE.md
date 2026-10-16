@@ -224,7 +224,7 @@ VehicleManager/
 
 **Stats period toggle ("Last 12 months" / "All time")**
 - Shared partial `Pages/Shared/_PeriodToggle.cshtml` plus `wwwroot/js/period-toggle.js`, used on the dashboard and vehicle details
-  (the Fuel and MOT tabs each have one). Reuse it rather than duplicating it. A page can have several: each copy of the
+  (the Fuel, Services and MOT tabs each have one). Reuse it rather than duplicating it. A page can have several: each copy of the
   script binds only buttons not yet bound, and every toggle on the page shows the same period.
 - It's small (`nav-pills-sm` in `site.css`, sized like `btn-sm`), to sit with the small buttons and selects used beside it.
 - Mark up period-specific content as `<div class="period-stats" data-period="12m">` / `data-period="all"`. A `site.css` rule hides the non-selected one, based on `data-stats-period` on `<html>`.
@@ -246,7 +246,8 @@ VehicleManager/
   are `tabular-nums`, so equal width) and one per distinct name (vehicle, station, garage). `data-table.js` sets DataTables up
   without it (DataTables would rework it as column footers) and puts it back, with `autoWidth: false` (DataTables would
   otherwise fix widths from each table's own rows). A page with several tables passes all their fill-ups in
-  `ViewData["SizeColumnsFrom"]` so they match (the station page's fuel type tabs). Rows stay on one line; on a phone a
+  `ViewData["SizeColumnsFrom"]` so they match (the station page's fuel type tabs; `_ServiceTable` takes it too, for the
+  Services tab's last-12-months and all-time tables, passed through the partial's `view-data`). Rows stay on one line; on a phone a
   table scrolls sideways within its card (`table-responsive`), not the page.
 
 **General**
