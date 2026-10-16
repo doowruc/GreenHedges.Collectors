@@ -76,11 +76,10 @@ public class DetailsModel(AppDbContext db, FuelStatsService stats, VehicleLookup
             .ToListAsync();
         ServiceSchedule.SetDue(Services, vehicle.ServiceIntervalMonths, vehicle.ServiceIntervalMiles);
 
-        MotTests = await db.MotTests
+        MotTests = MotTestView.NewestFirst(await db.MotTests
             .Where(t => t.VehicleId == id)
-            .OrderByDescending(t => t.CompletedDate).ThenByDescending(t => t.Id)
             .Select(MotTestView.Projection)
-            .ToListAsync();
+            .ToListAsync());
         var yearAgo = Reminders.UkToday().AddYears(-1);
         MotTestsLastYear = MotTests.Where(t => t.Date >= yearAgo).ToList();
         if (Tab == MotTab && !ShowMotTab) Tab = FuelTab;

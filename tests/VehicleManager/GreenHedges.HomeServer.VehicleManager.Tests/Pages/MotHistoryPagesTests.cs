@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
+using VehicleManager.Models;
 using VehicleManager.Services;
 using VehicleManager.Tests.Infrastructure;
 
@@ -130,6 +131,29 @@ public class MotHistoryPagesTests(AppFactory app) : DatabaseTest, IClassFixture<
             var vehicle = await db.Vehicles.SingleAsync();
             Assert.Equal((new DateOnly(2026, 11, 2), new DateOnly(2027, 3, 1)), (vehicle.MotDueDate, vehicle.TaxDueDate));
         }
+    }
+
+    [DatabaseTheory]
+    [InlineData(10, 10)]   // the same time: the pass (stored first, as the DVSA lists the newest first) must still come after the fail
+    [InlineData(9, 10)]    // the pass's time before the fail's: a retest on the day still follows the fail
+    public async Task A_retest_on_the_day_comes_after_the_failure(int passHour, int failHour)
+    {
+        int id;
+        await using (var db = Db())
+        {
+            var vehicle = await TestData.AddVehicleAsync(db);
+            vehicle.MotTests.Add(new MotTest { CompletedDate = new DateTime(2013, 2, 25, passHour, 0, 0), Passed = true, Odometer = 21749, MotTestNumber = "327086453026" });
+            await db.SaveChangesAsync();
+            vehicle.MotTests.Add(new MotTest { CompletedDate = new DateTime(2013, 2, 25, failHour, 0, 0), Passed = false, Odometer = 21749, MotTestNumber = "146196953093" });
+            vehicle.MotTests.Add(new MotTest { CompletedDate = new DateTime(2014, 2, 20, 9, 0, 0), Passed = true, Odometer = 28000, MotTestNumber = "400000000001" });
+            await db.SaveChangesAsync();
+            id = vehicle.Id;
+        }
+
+        var html = (await app.ClientFor(UserId).GetAsync($"/Vehicles/Details/{id}?tab=mot")).Html;
+        var all = Period(html, "all");
+        Assert.Equal(["400000000001", "327086453026", "146196953093"], Regex.Matches(all, @"Test (\d+)").Select(m => m.Groups[1].Value).Take(3));   // newest first
+        Assert.Equal(["2013-02-25 21749 Fail True", "2013-02-25 21749 Pass False", "2014-02-20 28000 Pass False"], ServicePagesTests.MileageChart(html));   // oldest first
     }
 
     [DatabaseFact]

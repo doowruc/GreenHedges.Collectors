@@ -21,6 +21,13 @@ public class MotTestView
 
     public DateOnly Date => Reminders.UkDate(CompletedDate);
 
+    /// <summary>
+    /// Newest first, by UK date. On the same day a pass comes after a failure (it's the retest), whatever the
+    /// DVSA's times say: they can be identical, or even have the retest first.
+    /// </summary>
+    public static List<MotTestView> NewestFirst(IEnumerable<MotTestView> tests) =>
+        [.. tests.OrderByDescending(t => t.Date).ThenByDescending(t => t.Passed).ThenByDescending(t => t.CompletedDate).ThenByDescending(t => t.Id)];
+
     /// <summary>Links a test's point on the mileage chart to its item in the list (<c>data-chart-ref</c>).</summary>
     public static string ChartRef(int id) => $"mot-{id}";
 
