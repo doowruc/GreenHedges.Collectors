@@ -17,16 +17,18 @@ applied each time the app starts.
 
 ### Logs and traces (Aspire dashboard)
 
-To see the app's logs, traces and metrics, run it through the Aspire AppHost instead, from the repo root:
+To see the app's logs, traces and metrics, run it through the Aspire AppHost instead, from the repo root, with the
+[Aspire CLI](https://aspire.dev):
 
 ```bash
-dotnet run --project VehicleManager.AppHost
+aspire run
 ```
 
 It starts the app (still on http://localhost:5080, with the same user secrets) and the
 [Aspire dashboard](https://aspire.dev) at https://localhost:17080. Open the dashboard with the login link printed in
-the console. No Docker is needed. `aspire run` does the same if the [Aspire CLI](https://aspire.dev) is up to date
-with the AppHost's Aspire version (13.6; an older CLI hangs at "Connecting to apphost").
+the console. No Docker is needed. The CLI must be at least the AppHost's Aspire version (13.6): an older one hangs at
+"Connecting to apphost", so update it with `aspire update --self`. Without the CLI,
+`dotnet run --project VehicleManager.AppHost` does the same.
 
 The app sends telemetry over OpenTelemetry (OTLP) only when `OTEL_EXPORTER_OTLP_ENDPOINT` is set, as the AppHost does
 for the dashboard. Plain `dotnet run`/`dotnet watch` and the tests log to the console only. Each nightly job run is a

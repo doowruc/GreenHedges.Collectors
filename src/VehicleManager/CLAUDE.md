@@ -20,7 +20,9 @@ From the repo root:
 
 ```bash
 dotnet test                  # all tests (VehicleManager.Tests); must all pass
-dotnet run --project VehicleManager.AppHost   # the app plus the Aspire dashboard (logs, traces) → https://localhost:17080
+aspire run                   # the app plus the Aspire dashboard (logs, traces) → https://localhost:17080
+                             # (CLI must be ≥ the AppHost's Aspire version: `aspire update --self`;
+                             #  or `dotnet run --project VehicleManager.AppHost`)
 ```
 
 ## Tests
@@ -52,7 +54,8 @@ so test pages through the in-memory host rather than relying on the browser.
 - Pinned only to fix vulnerability advisories in transitive packages (remove when the parent package catches up; each has
   a comment): `System.Security.Cryptography.Pkcs` (app, via SqlClient) and `MessagePack` (AppHost, via Aspire).
 - `VehicleManager.AppHost` uses `Aspire.AppHost.Sdk` (13.6) for local development only; it suppresses ASPIRE010 (no
-  Aspire CLI bundle), so it works with `dotnet run` whatever CLI version is installed.
+  Aspire CLI bundle), so `dotnet run` works whatever CLI version is installed; `aspire run` needs a CLI at least as new
+  as the AppHost's Aspire version.
 - Front end: Bootstrap 5.3, Bootstrap Icons, Chart.js 4 and DataTables 3 (Bootstrap 5 styling, no jQuery; fuel log tables) from the jsDelivr CDN (no npm/bundler). Pages add CSS via the layout's `Styles` section. Small vanilla JS files in `wwwroot/js`.
 - en-GB culture throughout (dd/MM/yyyy, £). MPG uses UK gallons (4.54609 L).
 
