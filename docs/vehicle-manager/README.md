@@ -15,6 +15,24 @@ The app needs an Azure SQL database and Auth0 sign-in, so set both up first (see
 http://localhost:5080. The tables are created on first run, and any pending schema migrations are
 applied each time the app starts.
 
+### Logs and traces (Aspire dashboard)
+
+To see the app's logs, traces and metrics, run it through the Aspire AppHost instead, from the repo root:
+
+```bash
+dotnet run --project VehicleManager.AppHost
+```
+
+It starts the app (still on http://localhost:5080, with the same user secrets) and the
+[Aspire dashboard](https://aspire.dev) at https://localhost:17080. Open the dashboard with the login link printed in
+the console. No Docker is needed. `aspire run` does the same if the [Aspire CLI](https://aspire.dev) is up to date
+with the AppHost's Aspire version (13.6; an older CLI hangs at "Connecting to apphost").
+
+The app sends telemetry over OpenTelemetry (OTLP) only when `OTEL_EXPORTER_OTLP_ENDPOINT` is set, as the AppHost does
+for the dashboard. Plain `dotnet run`/`dotnet watch` and the tests log to the console only. Each nightly job run is a
+trace with a span per user, with the database, email and DVLA/DVSA calls under it. Logs carry Auth0 user ids rather
+than emails or registrations, and registrations are taken out of the DVSA request URLs in traces.
+
 ## Database (Azure SQL)
 
 Data is stored in an Azure SQL Database (SQL Server). To set one up:
@@ -244,9 +262,11 @@ VehicleManager/
   Services/      FuelStatsService, FuelImportService (reads .xlsx via ClosedXML), FuelStops, BackupFile + BackupService,
                  BackupEmailer + ScheduledBackups (nightly emailed backups via Resend, scheduled with Coravel),
                  Reminders + ReminderEmailer + ScheduledReminders (due-date reminders), VehicleLookup + DvlaClient +
-                 MotHistoryClient (MOT and tax dates from the DVLA and DVSA), MotTests (stored MOT history)
+                 MotHistoryClient (MOT and tax dates from the DVLA and DVSA), MotTests (stored MOT history),
+                 Telemetry (OpenTelemetry setup)
   Pages/         Dashboard, Owners/*, Vehicles/* (and each vehicle's Services/*), FuelLog/* (log + fill-up pages), Import/*, Backup/* (backup + restore), Settings/*, FuelBrands/* (and each brand's Stations/*),
                  Account/* (sign in/out)
+VehicleManager.AppHost/   Aspire AppHost: runs the app with the Aspire dashboard (logs, traces, metrics) locally
 VehicleManager.Tests/
   Unit/, Data/, Pages/   unit, database and in-memory page tests; Infrastructure/ holds the helpers
 ```

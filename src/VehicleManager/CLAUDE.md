@@ -20,6 +20,7 @@ From the repo root:
 
 ```bash
 dotnet test                  # all tests (VehicleManager.Tests); must all pass
+dotnet run --project VehicleManager.AppHost   # the app plus the Aspire dashboard (logs, traces) → https://localhost:17080
 ```
 
 ## Tests
@@ -47,7 +48,11 @@ so test pages through the in-memory host rather than relying on the browser.
 ## Stack
 
 - .NET 10, Razor Pages, EF Core 10 + SQL Server (Azure SQL Database). Connection string `ConnectionStrings:VehicleManager` is in user secrets; there is no local database.
-- Packages: `Microsoft.EntityFrameworkCore.SqlServer`, `Microsoft.EntityFrameworkCore.Design` (PrivateAssets=all), `ClosedXML`, `Auth0.AspNetCore.Authentication`, `Coravel` (scheduler), `Resend` (email). Keep EF packages and `dotnet-ef` on the same version.
+- Packages: `Microsoft.EntityFrameworkCore.SqlServer`, `Microsoft.EntityFrameworkCore.Design` (PrivateAssets=all), `ClosedXML`, `Auth0.AspNetCore.Authentication`, `Coravel` (scheduler), `Resend` (email), `OpenTelemetry.*` (keep them on one version). Keep EF packages and `dotnet-ef` on the same version.
+- Pinned only to fix vulnerability advisories in transitive packages (remove when the parent package catches up; each has
+  a comment): `System.Security.Cryptography.Pkcs` (app, via SqlClient) and `MessagePack` (AppHost, via Aspire).
+- `VehicleManager.AppHost` uses `Aspire.AppHost.Sdk` (13.6) for local development only; it suppresses ASPIRE010 (no
+  Aspire CLI bundle), so it works with `dotnet run` whatever CLI version is installed.
 - Front end: Bootstrap 5.3, Bootstrap Icons, Chart.js 4 and DataTables 3 (Bootstrap 5 styling, no jQuery; fuel log tables) from the jsDelivr CDN (no npm/bundler). Pages add CSS via the layout's `Styles` section. Small vanilla JS files in `wwwroot/js`.
 - en-GB culture throughout (dd/MM/yyyy, £). MPG uses UK gallons (4.54609 L).
 
@@ -67,11 +72,12 @@ VehicleManager/
                Reminders (when to remind; pure) + ReminderEmailer + ScheduledReminders (Coravel, each morning),
                MileageTrend (recent miles per day from fill-up and MOT odometer readings, for service-by-mileage estimates), ServiceSchedule (next service from intervals),
                VehicleLookup (MOT/tax dates) over DvlaClient (DVLA Vehicle Enquiry) and MotHistoryClient (DVSA MOT History),
-               MotTests (keeps stored MOT tests in step with the DVSA)
+               MotTests (keeps stored MOT tests in step with the DVSA), Telemetry (OpenTelemetry setup, ActivitySource)
   Pages/       Index (dashboard, with a "Coming up" due-dates list), Owners/*, Vehicles/* (+ Services/* per vehicle), FuelLog/* (log + fill-up pages), Import/*, Backup/* (Index, Restore), Settings/* (user menu), FuelBrands/* (+ Stations/* per brand),
                Account/* (Login, Logout, SignedOut), Shared/ (layout + partials)
   wwwroot/     css/site.css, js/color-mode.js, js/period-toggle.js, js/data-table.js (DataTables setup), js/typeahead.js (dropdown suggestions),
                js/price-chart.js (station price charts), js/mileage-chart.js (mileage over time: vehicle Services and MOT tabs)
+VehicleManager.AppHost/   AppHost.cs: runs the app with the Aspire dashboard, for local development only
 ```
 
 ## Conventions and how things work
@@ -197,6 +203,16 @@ VehicleManager/
 - Tests: `AppFactory` sets dummy DVLA/DVSA settings and routes both typed `HttpClient`s to `Infrastructure/FakeVehicleApis`,
   which answers only for registrations added with `FakeVehicleApis.Add(FakeVehicleApis.NewRegistration(), …)`.
   Each pass it sends has an advisory, plus a failed test (01/01/2020, as "OLD 1") with `FakeVehicleApis.FailedTestDefect`.
+
+**Telemetry and logging** (`Services/Telemetry.cs`)
+- OpenTelemetry logs (through `ILogger`), traces and metrics go over OTLP only when `OTEL_EXPORTER_OTLP_ENDPOINT` is set:
+  by `VehicleManager.AppHost` (the Aspire dashboard) locally, or the standard `OTEL_*` settings for another destination
+  (Grafana Cloud is a TODO). Otherwise nothing is set up: `dotnet watch` and the tests log to the console only.
+- Logs and traces may leave the app, so never log or tag emails, registrations, tokens or connection strings; use the
+  Auth0 user id (`enduser.id` on spans). `Telemetry.RedactUrl` takes registrations out of the DVSA's request URLs in
+  traces, and `System.Net.Http.HttpClient` logging is at Warning (it would log every request URL).
+- Background work gets its own spans from `Telemetry.Source`, like the nightly jobs: one per run, one per user inside it,
+  with `AddException` and an error status on a user's failure.
 
 **Authentication (Auth0)**
 - `Auth0:Domain`, `Auth0:ClientId`, `Auth0:ClientSecret`, `AllowedEmails`, `Resend:ApiKey`, `Resend:From` and optional `ExistingDataOwner`, `Dvla:*`, `MotHistory:*` come from user secrets (env vars outside Development). Never put them in `appsettings*.json` or commit them. The app throws at startup if any required ones are missing.

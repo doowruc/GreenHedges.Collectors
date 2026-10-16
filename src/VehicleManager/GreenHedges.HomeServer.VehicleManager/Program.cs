@@ -13,6 +13,9 @@ using VehicleManager.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Logs, traces and metrics over OTLP when an endpoint is set, e.g. to the Aspire dashboard by `aspire run` (see README).
+builder.AddTelemetry();
+
 // Auth0 sign-in. The settings live in user secrets in development (see README), environment
 // variables elsewhere, e.g. Auth0__Domain.
 string RequiredSetting(string key) =>

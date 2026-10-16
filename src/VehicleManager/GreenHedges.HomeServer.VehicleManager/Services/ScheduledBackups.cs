@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Coravel.Invocable;
 using Microsoft.EntityFrameworkCore;
 using VehicleManager.Data;
@@ -12,16 +13,24 @@ public class ScheduledBackups(AppDbContext db, IServiceScopeFactory scopes, ILog
 {
     public async Task Invoke()
     {
-        foreach (var userId in await UsersToBackUpAsync())
+        // A trace per run with a span per user (Telemetry), so the database, email and lookup calls for each user sit under it.
+        using var run = Telemetry.Source.StartActivity("Scheduled backups");
+        var users = await UsersToBackUpAsync();
+        run?.SetTag("vehiclemanager.users", users.Count);
+        foreach (var userId in users)
         {
+            using var span = Telemetry.Source.StartActivity("Back up user");
+            span?.SetTag("enduser.id", userId);
             try
             {
                 var result = await BackUpAsync(userId);
+                span?.SetTag("vehiclemanager.backup.result", result.ToString());
                 logger.LogInformation("Scheduled backup for {UserId}: {Result}", userId, result);
             }
             // One user's failure (e.g. Resend refusing their address) shouldn't stop the others' backups.
             catch (Exception ex)
             {
+                span?.AddException(ex).SetStatus(ActivityStatusCode.Error);
                 logger.LogError(ex, "Scheduled backup for {UserId} failed", userId);
             }
         }

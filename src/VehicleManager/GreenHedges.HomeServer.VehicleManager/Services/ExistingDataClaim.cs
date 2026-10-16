@@ -54,7 +54,8 @@ public class ExistingDataClaim(AppDbContext db, AllowedUsers allowedUsers, IConf
             return (ownerCount, vehicleCount);
         });
 
-        logger.LogInformation("Gave {Owners} existing owner(s) and {Vehicles} vehicle(s) to {Email}.",
-            ownerCount, vehicleCount, ownerEmail);
+        // The user id rather than the email: logs may leave the app (Telemetry).
+        logger.LogInformation("Gave {Owners} existing owner(s) and {Vehicles} vehicle(s) to {UserId}.",
+            ownerCount, vehicleCount, userId);
     }
 }

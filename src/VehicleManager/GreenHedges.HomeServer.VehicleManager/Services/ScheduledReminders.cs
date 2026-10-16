@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Coravel.Invocable;
 using Microsoft.EntityFrameworkCore;
 using VehicleManager.Data;
@@ -13,16 +14,26 @@ public class ScheduledReminders(AppDbContext db, IServiceScopeFactory scopes, IL
     public async Task Invoke()
     {
         var today = Reminders.UkToday();
-        foreach (var userId in await UsersAsync())
+        // A trace per run with a span per user (Telemetry), so the database, email and lookup calls for each user sit under it.
+        using var run = Telemetry.Source.StartActivity("Scheduled reminders");
+        var users = await UsersAsync();
+        run?.SetTag("vehiclemanager.users", users.Count);
+        foreach (var userId in users)
         {
+            using var span = Telemetry.Source.StartActivity("Remind user");
+            span?.SetTag("enduser.id", userId);
             try
             {
                 var result = await RunForAsync(userId, today);
+                span?.SetTag("vehiclemanager.vehicles_updated", result.VehiclesUpdated)
+                    .SetTag("vehiclemanager.lookup_problems", result.LookupProblems)
+                    .SetTag("vehiclemanager.email_result", result.Email.ToString());
                 logger.LogInformation("Reminders for {UserId}: {Result}", userId, result);
             }
             // One user's failure (e.g. Resend refusing their address) shouldn't stop the others' reminders.
             catch (Exception ex)
             {
+                span?.AddException(ex).SetStatus(ActivityStatusCode.Error);
                 logger.LogError(ex, "Reminders for {UserId} failed", userId);
             }
         }

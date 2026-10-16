@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using VehicleManager.Data;
 using VehicleManager.Models;
@@ -17,7 +18,7 @@ public class VehicleLookupTests
     private static readonly MotHistoryOptions NoDvsa = new(null, null, null, null, MotHistoryOptions.DefaultScope, MotHistoryOptions.DefaultBaseUrl);
 
     private static VehicleLookup Lookup(DvlaOptions? dvla = null, MotHistoryOptions? dvsa = null,
-        MotHistoryTokenCache? tokens = null, FakeVehicleApis? apis = null)
+        MotHistoryTokenCache? tokens = null, FakeVehicleApis? apis = null, ILogger<VehicleLookup>? logger = null)
     {
         dvla ??= Dvla;
         dvsa ??= Dvsa;
@@ -25,7 +26,7 @@ public class VehicleLookupTests
         return new VehicleLookup(NoDatabase(),
             new DvlaClient(new HttpClient(apis, disposeHandler: false) { BaseAddress = new Uri(dvla.BaseUrl) }, dvla), dvla,
             new MotHistoryClient(new HttpClient(apis, disposeHandler: false) { BaseAddress = new Uri(dvsa.BaseUrl) }, dvsa, tokens ?? new()), dvsa,
-            NullLogger<VehicleLookup>.Instance);
+            logger ?? NullLogger<VehicleLookup>.Instance);
     }
 
     /// <summary>A context that's never connected: refreshing a vehicle that isn't saved doesn't look in the database.</summary>
@@ -68,6 +69,19 @@ public class VehicleLookupTests
         var result = await Lookup().LookUpAsync(reg);
         Assert.Equal((new DateOnly(2026, 12, 1), (DateOnly?)null), (result.MotDueDate, result.TaxDueDate));
         Assert.Equal("The DVLA returned an error (500: System error occurred).", Assert.Single(result.Problems));
+    }
+
+    [Fact]
+    public async Task Failures_are_logged_without_the_registration()
+    {
+        var reg = FakeVehicleApis.Add(FakeVehicleApis.NewRegistration(), new FakeVehicle { DvlaFails = true, MotTestExpiryDates = [new(2026, 12, 1)] });
+        var logger = new ListLogger<VehicleLookup>();
+        await Lookup(logger: logger).LookUpAsync(reg);
+
+        var logged = Assert.Single(logger.Messages);
+        Assert.Contains("DVLA lookup failed", logged);
+        Assert.DoesNotContain(reg, logged);
+        Assert.DoesNotContain(VehicleLookup.Compact(reg), logged);
     }
 
     [Fact]

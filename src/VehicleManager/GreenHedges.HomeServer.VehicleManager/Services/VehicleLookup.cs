@@ -55,7 +55,7 @@ public class VehicleLookup(AppDbContext db, DvlaClient dvla, DvlaOptions dvlaOpt
         DvlaVehicle? fromDvla = null;
         if (askDvla)
         {
-            fromDvla = await TryAsync("DVLA", registration, () => dvla.GetAsync(registration), problems);
+            fromDvla = await TryAsync("DVLA", () => dvla.GetAsync(registration), problems);
             if (fromDvla is null && problems.Count == 0) problems.Add($"The DVLA has no vehicle registered {registration}.");
         }
 
@@ -63,7 +63,7 @@ public class VehicleLookup(AppDbContext db, DvlaClient dvla, DvlaOptions dvlaOpt
         if (askDvsa)
         {
             var before = problems.Count;
-            fromDvsa = await TryAsync("DVSA", registration, () => motHistory.GetAsync(registration), problems);
+            fromDvsa = await TryAsync("DVSA", () => motHistory.GetAsync(registration), problems);
             if (fromDvsa is null && problems.Count == before) problems.Add($"The DVSA has no MOT record for {registration}.");
         }
 
@@ -94,7 +94,7 @@ public class VehicleLookup(AppDbContext db, DvlaClient dvla, DvlaOptions dvlaOpt
         return result;
     }
 
-    private async Task<T?> TryAsync<T>(string service, string registration, Func<Task<T?>> lookUp, List<string> problems) where T : class
+    private async Task<T?> TryAsync<T>(string service, Func<Task<T?>> lookUp, List<string> problems) where T : class
     {
         try
         {
@@ -102,12 +102,12 @@ public class VehicleLookup(AppDbContext db, DvlaClient dvla, DvlaOptions dvlaOpt
         }
         catch (VehicleLookupException ex)
         {
-            logger.LogWarning(ex, "{Service} lookup of {Registration} failed", service, registration);
+            logger.LogWarning(ex, "{Service} lookup failed", service);   // not the registration: logs may leave the app (Telemetry)
             problems.Add(ex.Message);
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
         {
-            logger.LogWarning(ex, "{Service} lookup of {Registration} failed", service, registration);
+            logger.LogWarning(ex, "{Service} lookup failed", service);
             problems.Add($"The {service} couldn't be reached or sent something unexpected.");
         }
         return null;

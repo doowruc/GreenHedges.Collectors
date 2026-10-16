@@ -72,26 +72,23 @@ Ideas for future features and improvements, roughly in order of how useful they'
     with a `compose.yaml` for the container.
   - Database tests would then run locally too (still as throwaway `test|…` users). Use backup and restore to copy
     real data between the Azure and local databases.
-- [ ] **Persistent logging, with OpenTelemetry.** Logs only go to the console now, so a failed nightly job
-      (`ScheduledBackups`, `ScheduledReminders`) or a page exception is lost once the terminal closes. Use
-      OpenTelemetry (OTel) for logs, traces and metrics, sent over OTLP, so the destination can change without
-      changing code.
-  - Packages: `OpenTelemetry.Extensions.Hosting`, `OpenTelemetry.Exporter.OpenTelemetryProtocol`, and
-    instrumentation for ASP.NET Core, `HttpClient` (Resend, DVLA, DVSA) and SQL Client / EF Core. Send logs through
-    `builder.Logging.AddOpenTelemetry`, so the existing `ILogger` calls are kept.
-  - Add an `ActivitySource` around the Coravel jobs, so each nightly run is a trace with a span per user.
-  - Destination: [Grafana Cloud's free tier](https://grafana.com/products/cloud/free-tier) (50 GB each of logs and
-    traces a month, 10k metric series, 14 days' retention, free indefinitely). It takes OTLP directly. Configure it with
-    the standard `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_EXPORTER_OTLP_HEADERS` (the stack's token) and
-    `OTEL_SERVICE_NAME`, from user secrets or environment variables as with the other secrets. Get the endpoint and
-    token from the stack's OpenTelemetry setup page.
-  - Locally, the standalone .NET Aspire dashboard container also takes OTLP, for seeing traces without the cloud.
-    Without an endpoint set, keep console logging only.
-  - Grafana's alerting could then cover "Alert on failures" below, e.g. a failed nightly job or no successful backup
-    in 48 hours.
-  - Privacy: this sends data to a third party. Log Auth0 user ids, never emails, registration numbers, tokens or
-    connection strings. Some existing log lines need changing: the DVLA/DVSA lookup warnings (`VehicleLookup`) log the
-    registration, and `ExistingDataClaim` logs the email it gave data to.
+- [ ] **Persistent logging, with OpenTelemetry.** Logs only went to the console, so a failed nightly job
+      (`ScheduledBackups`, `ScheduledReminders`) or a page exception was lost once the terminal closed. OpenTelemetry
+      (OTel) logs, traces and metrics are sent over OTLP, so the destination can change without changing code.
+  - [x] Locally, with the Aspire dashboard: `VehicleManager.AppHost` runs the app alongside the dashboard (no Docker
+        needed). The app sends telemetry only when `OTEL_EXPORTER_OTLP_ENDPOINT` is set, as the AppHost does; plain
+        `dotnet watch` and the tests stay console-only. Logs go through `builder.Logging.AddOpenTelemetry`, so existing
+        `ILogger` calls are kept; traces cover ASP.NET Core, `HttpClient` (Resend, DVLA, DVSA) and SQL Client; each
+        nightly job run is a trace with a span per user. Logs no longer carry registrations or emails, and the DVSA's
+        request URLs are redacted in traces.
+  - [ ] Grafana Cloud, for telemetry kept beyond a local session: [the free tier](https://grafana.com/products/cloud/free-tier)
+        (50 GB each of logs and traces a month, 10k metric series, 14 days' retention, free indefinitely) takes OTLP
+        directly. Set the standard `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_EXPORTER_OTLP_HEADERS` (the stack's token) and
+        `OTEL_SERVICE_NAME` from user secrets or environment variables, as with the other secrets; the endpoint and
+        token are on the stack's OpenTelemetry setup page. No code changes needed. Grafana's alerting could then cover
+        "Alert on failures" below, e.g. a failed nightly job or no successful backup in 48 hours. It sends data to a
+        third party, so check what the logs and traces carry first: user ids are Auth0 ids; Resend errors may quote
+        an email address.
 - [ ] **Log more of what matters.** Sign-ins and access-denied attempts (`AllowedUsers`), restores and imports
       (counts of rows), merges of brands/stations, concurrency conflicts in `TrySaveEditAsync`, and unhandled
       exceptions via the `/Error` page with its request id.
