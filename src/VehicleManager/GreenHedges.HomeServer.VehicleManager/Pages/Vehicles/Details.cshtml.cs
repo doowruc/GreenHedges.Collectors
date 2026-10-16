@@ -109,14 +109,15 @@ public class DetailsModel(AppDbContext db, FuelStatsService stats, VehicleLookup
             }));
 
         ServiceChartJson = MileageChartJson(Services.AsEnumerable().Reverse()
-            .Select(s => (s.Date, s.Mileage, s.GarageAndLocation, false)));
+            .Select(s => (s.Date, s.Mileage, s.GarageAndLocation, false, (string?)null)));
         MotChartJson = MileageChartJson(MotTests.AsEnumerable().Reverse().Where(t => t.Miles is not null)
-            .Select(t => (t.Date, t.Miles!.Value, t.Passed ? "Pass" : "Fail", !t.Passed)));
+            .Select(t => (t.Date, t.Miles!.Value, t.Passed ? "Pass" : "Fail", !t.Passed, (string?)MotTestView.ChartRef(t.Id))));
 
         return Page();
     }
 
-    private static string? MileageChartJson(IEnumerable<(DateOnly Date, int Miles, string Note, bool Failed)> readings)
+    /// <param name="readings">Each with an optional <c>Ref</c>: clicking its point scrolls to the item with that <c>data-chart-ref</c>.</param>
+    private static string? MileageChartJson(IEnumerable<(DateOnly Date, int Miles, string Note, bool Failed, string? Ref)> readings)
     {
         var list = readings.ToList();
         return list.Count < 2 ? null : JsonSerializer.Serialize(list.Select(r => new
@@ -124,7 +125,8 @@ public class DetailsModel(AppDbContext db, FuelStatsService stats, VehicleLookup
             date = r.Date.ToString("yyyy-MM-dd"),
             miles = r.Miles,
             note = r.Note,
-            failed = r.Failed
+            failed = r.Failed,
+            @ref = r.Ref
         }));
     }
 

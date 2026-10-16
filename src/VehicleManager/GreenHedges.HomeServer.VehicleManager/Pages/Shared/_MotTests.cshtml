@@ -5,7 +5,7 @@
 <ul class="list-group list-group-flush">
 @foreach (var t in Model)
 {
-    <li class="list-group-item">
+    <li class="list-group-item" data-chart-ref="@MotTestView.ChartRef(t.Id)">
         <div class="d-flex flex-wrap align-items-baseline column-gap-3 row-gap-1">
             <span class="fw-semibold">@t.Date.ToString("dd/MM/yyyy")</span>
             @if (t.Passed) { <span class="badge text-bg-success">Pass</span> }

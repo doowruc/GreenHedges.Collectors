@@ -53,6 +53,9 @@
 
 /* Chart container: Chart.js fills it (maintainAspectRatio: false), so the chart stays readable on phones. */
 .chart-box { position: relative; height: clamp(16rem, 35vw, 22rem); }
+/* An item a chart point was clicked for (wwwroot/js/mileage-chart.js): briefly highlighted, fading out. */
+[data-chart-ref] { transition: background-color 1.5s ease-out; scroll-margin: 4rem; }
+[data-chart-ref].chart-ref-highlight { background-color: var(--bs-primary-bg-subtle); transition: none; }
 
 /* Typeahead suggestions (wwwroot/js/typeahead.js): a dropdown menu under the input, scrolling if long. */
 .typeahead-menu { position: absolute; margin-top: .125rem; max-height: 16rem; overflow-y: auto; }

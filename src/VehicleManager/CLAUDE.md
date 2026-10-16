@@ -216,6 +216,9 @@ VehicleManager/
   linear axis, failed MOTs in red). The vehicle page's Services and MOT tabs each have one, from
   `DetailsModel.ServiceChartJson`/`MotChartJson` (null with fewer than two readings). The MOT chart shows every test
   whatever the period toggle says (a year's MOTs are a single point). The page loads Chart.js once for all its charts.
+  A reading's optional `ref` links its point to the element with that `data-chart-ref` (MOT points →
+  `_MotTests` items, `MotTestView.ChartRef(id)`): clicking scrolls there and highlights it (`site.css`), switching the
+  period toggle to "All time" (which is remembered) when the item is only in that list.
 
 **Stats period toggle ("Last 12 months" / "All time")**
 - Shared partial `Pages/Shared/_PeriodToggle.cshtml` plus `wwwroot/js/period-toggle.js`, used on the dashboard and vehicle details

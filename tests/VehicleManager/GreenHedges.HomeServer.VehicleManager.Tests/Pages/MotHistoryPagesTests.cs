@@ -48,6 +48,12 @@ public class MotHistoryPagesTests(AppFactory app) : DatabaseTest, IClassFixture<
         Assert.Contains("Mileage at each MOT", html);
         Assert.Equal(["2020-01-01 20000 Fail True", $"{today.AddMonths(-18):yyyy-MM-dd} 30000 Pass False", $"{today.AddMonths(-11):yyyy-MM-dd} 38000 Pass False"],
             ServicePagesTests.MileageChart(html));
+        // Each point links to its test in the list (in both periods' lists).
+        var json = WebUtility.HtmlDecode(Regex.Match(html, @"data-mileage-chart=""([^""]*)""").Groups[1].Value);
+        var refs = System.Text.Json.JsonDocument.Parse(json).RootElement.EnumerateArray().Select(r => r.GetProperty("ref").GetString()!).ToList();
+        Assert.Equal(3, refs.Distinct().Count());
+        foreach (var r in refs) Assert.Contains($"<li class=\"list-group-item\" data-chart-ref=\"{r}\">", html);
+        Assert.Equal(4, Regex.Matches(html, @"<li class=""list-group-item"" data-chart-ref=""mot-\d+"">").Count);   // 1 in the last 12 months + 3 all time
         Assert.Matches(@"MOT history\s*<span class=""period-stats"" data-period=""12m"">\(1\)</span><span class=""period-stats"" data-period=""all"">\(3\)</span>", html);
     }
 

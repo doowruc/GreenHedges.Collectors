@@ -21,6 +21,9 @@ public class MotTestView
 
     public DateOnly Date => Reminders.UkDate(CompletedDate);
 
+    /// <summary>Links a test's point on the mileage chart to its item in the list (<c>data-chart-ref</c>).</summary>
+    public static string ChartRef(int id) => $"mot-{id}";
+
     /// <summary>E.g. "45,123 miles" or "72,000 km"; null if the odometer wasn't read.</summary>
     public string? OdometerText => Odometer is { } odometer ? $"{odometer:N0} {(OdometerInKilometres ? "km" : "miles")}" : null;
 

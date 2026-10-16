@@ -1,6 +1,9 @@
 // Draws a mileage-over-time chart in each <canvas data-mileage-chart='[{"date":"yyyy-MM-dd","miles":45000,"note":"Main Dealer","failed":false}, …]'>
 // (oldest first), e.g. a vehicle's service history or MOT tests. Dates go on a linear axis, so the gaps between
 // readings show to scale. A reading with "failed": true (a failed MOT) is drawn in red; "note" goes in its tooltip.
+// A reading with a "ref" links to the page's element with that data-chart-ref: clicking near its point scrolls there
+// and highlights it. If only a hidden copy is found inside a .period-stats block (e.g. an older MOT while "Last 12
+// months" is shown), the period toggle is switched to "All time" first.
 // Needs Chart.js first. Charts in a hidden tab are sized when the tab is shown (Chart.js watches the canvas's size).
 (() => {
     'use strict';
@@ -14,6 +17,24 @@
         Chart.defaults.borderColor = grid;
     };
     styleDefaults();
+
+    // The visible element for a ref, switching the period toggle to "All time" if that's where it is.
+    const target = ref => {
+        const all = [...document.querySelectorAll('[data-chart-ref]')].filter(el => el.dataset.chartRef === ref);
+        const visible = () => all.find(el => el.offsetParent !== null);
+        if (!visible() && all.some(el => el.closest('.period-stats[data-period="all"]')))
+            document.querySelector('[data-show-period="all"]')?.click();
+        return visible();
+    };
+
+    const showRef = ref => {
+        const el = target(ref);
+        if (!el) return;
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('chart-ref-highlight');
+        // Removed on the next frame, so the background fades out (site.css).
+        setTimeout(() => requestAnimationFrame(() => el.classList.remove('chart-ref-highlight')), 600);
+    };
 
     const charts = [...document.querySelectorAll('canvas[data-mileage-chart]')].map(canvas => {
         const readings = JSON.parse(canvas.dataset.mileageChart);
@@ -33,6 +54,14 @@
                 // Fill .chart-box's height rather than a fixed width:height ratio, which left it very short on phones.
                 maintainAspectRatio: false,
                 interaction: { mode: 'nearest', axis: 'x', intersect: false },
+                // Clicking picks the point the tooltip shows (the nearest along the date axis).
+                onClick: (e, elements) => {
+                    const ref = elements.length > 0 ? readings[elements[0].index].ref : null;
+                    if (ref) showRef(ref);
+                },
+                onHover: (e, elements) => {
+                    e.native.target.style.cursor = elements.length > 0 && readings[elements[0].index].ref ? 'pointer' : 'default';
+                },
                 plugins: {
                     legend: { display: false },
                     tooltip: {
