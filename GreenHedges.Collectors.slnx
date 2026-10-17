@@ -14,6 +14,7 @@
   <Folder Name="/src/Weather/">
     <Project Path="src/Weather/GreenHedges.Collectors.Weather.Rtl433/GreenHedges.Collectors.Weather.Rtl433.csproj" />
     <Project Path="src/Weather/GreenHedges.Collectors.Weather.Storage/GreenHedges.Collectors.Weather.Storage.csproj" />
+    <Project Path="src/Weather/GreenHedges.Collectors.Weather.Worker/GreenHedges.Collectors.Weather.Worker.csproj" />
   </Folder>
   <Folder Name="/tests/" />
   <Folder Name="/tests/Common/">
@@ -29,5 +30,6 @@
   <Folder Name="/tests/Weather/">
     <Project Path="tests/Weather/GreenHedges.Collectors.Weather.Rtl433.Tests/GreenHedges.Collectors.Weather.Rtl433.Tests.csproj" />
     <Project Path="tests/Weather/GreenHedges.Collectors.Weather.Storage.Tests/GreenHedges.Collectors.Weather.Storage.Tests.csproj" />
+    <Project Path="tests/Weather/GreenHedges.Collectors.Weather.Worker.Tests/GreenHedges.Collectors.Weather.Worker.Tests.csproj" />
   </Folder>
 </Solution>
