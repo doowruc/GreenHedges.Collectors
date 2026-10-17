@@ -1,0 +1,74 @@
+# Nightscout + MongoDB for LibreCollector (Phase 2).
+# Installed on the host as /opt/nightscout/compose.yaml; secrets in /etc/nightscout/nightscout.env.
+# See deploy/libre/HOST-SETUP.md §10. Start/update with:  sudo docker compose -f /opt/nightscout/compose.yaml up -d
+#
+# Nightscout's data is derived from the LibreCollector SQLite archive and can be rebuilt from it,
+# so MongoDB needs no backup of its own.
+
+name: nightscout
+
+services:
+  mongo:
+    # Version used by Nightscout 15.0.8's own example compose. Newer MongoDB versions aren't confirmed
+    # for Nightscout yet (cgm-remote-monitor#8305). 5.0 is past end of life, which is acceptable only
+    # because Mongo is never reachable from outside Docker (internal network, no published port).
+    image: mongo:5.0.32
+    restart: unless-stopped
+    command: ["--wiredTigerCacheSizeGB", "0.25"]
+    volumes:
+      - /var/lib/nightscout/mongo:/data/db
+    networks:
+      - backend
+    logging: &logging
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  nightscout:
+    image: nightscout/cgm-remote-monitor:15.0.8
+    restart: unless-stopped
+    depends_on:
+      - mongo
+    env_file:
+      - /etc/nightscout/nightscout.env   # API_SECRET only
+    environment:
+      NODE_ENV: production
+      TZ: Europe/London
+      NIGHTSCOUT_HOSTNAME: 0.0.0.0
+      PORT: "1337"
+      INSECURE_USE_HTTP: "true"          # plain HTTP inside; HTTPS is provided by `tailscale serve`
+      MONGO_CONNECTION: mongodb://mongo:27017/nightscout
+      AUTH_DEFAULT_ROLES: readable       # the tailnet is the access boundary
+      DISPLAY_UNITS: mmol
+      TIME_FORMAT: "24"
+      LANGUAGE: en
+      CUSTOM_TITLE: LibreCollector
+      THEME: colors
+      ENABLE: dbsize
+      # Target range (mmol/L): urgent low / low / high / urgent high
+      BG_LOW: "3.0"
+      BG_TARGET_BOTTOM: "3.9"
+      BG_TARGET_TOP: "10.0"
+      BG_HIGH: "13.9"
+      # Alerting is done by the collector's emails, not Nightscout's browser alarms.
+      ALARM_URGENT_HIGH: "off"
+      ALARM_HIGH: "off"
+      ALARM_LOW: "off"
+      ALARM_URGENT_LOW: "off"
+      ALARM_TIMEAGO_WARN: "off"
+      ALARM_TIMEAGO_URGENT: "off"
+    ports:
+      # Localhost only. Docker-published ports bypass ufw, so never bind 0.0.0.0 here.
+      - "127.0.0.1:1337:1337"
+    networks:
+      - backend
+      - frontend
+    logging: *logging
+
+networks:
+  # No route out: MongoDB can only talk to Nightscout.
+  backend:
+    internal: true
+  # Lets the published port reach Nightscout.
+  frontend: {}
