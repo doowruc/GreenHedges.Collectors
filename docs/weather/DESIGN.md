@@ -93,7 +93,7 @@ rtl_433 -f 868.3M -s 1024k -R 172 -M time:unix:usec -M level -M protocol -F json
 
 ## Archive (SQLite)
 
-Versioned migrations (`PRAGMA user_version`) at startup, as in the Libre collector. WAL mode. Insert-only.
+Versioned migrations (`PRAGMA user_version`) at startup, WAL mode and online backups, through `Common.Sqlite` (shared with the Libre collector). `messages` is insert-only.
 
 **`messages`** (every decoded line):
 
@@ -102,12 +102,13 @@ Versioned migrations (`PRAGMA user_version`) at startup, as in the Libre collect
 | `id` | `INTEGER PRIMARY KEY` (explicit, so `VACUUM` can't renumber) |
 | `received_at_utc` | Worker's clock, fixed-width ISO UTC with milliseconds |
 | `rtl_time` | rtl_433's `time`, as received |
-| `protocol`, `model`, `device_id`, `channel` | Extracted for indexing; `device_id` as text (models differ) |
+| `protocol`, `model`, `device_id`, `channel` | Extracted for indexing; `device_id` and `channel` as text (models differ) |
+| `is_valid_json` | 0 for a line that isn't a JSON object (kept anyway) |
 | `raw_json` | The line exactly as rtl_433 wrote it |
 
 Index on `(model, device_id, received_at_utc)`.
 
-**`station_readings`** (typed, for the station's device ids only; written in the same transaction): `message_id`, `received_at_utc`, `device_id`, `temperature_c`, `humidity`, `wind_avg_ms`, `wind_max_ms`, `wind_dir_deg`, `rain_total_mm`, `battery_ok`, `rssi`, `snr`, all nullable. Rebuildable from `messages`.
+**`station_readings`** (typed, for the station's device ids only; written in the same transaction): `message_id`, `received_at_utc`, `device_id`, `temperature_c`, `humidity`, `wind_avg_ms`, `wind_max_ms`, `wind_dir_deg`, `rain_total_mm`, `battery_ok`, `flags`, `startup`, `rssi`, `snr`, all nullable. Rebuildable from `messages`.
 
 **`devices`:** each `(model, device_id)` seen, with first and last seen, message count, and whether it's the station.
 
