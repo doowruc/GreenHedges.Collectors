@@ -17,8 +17,10 @@ Shared by both: a .NET 10 Worker Service under systemd, SQLite archives that kee
 | `src/Common/`, `tests/Common/` | Shared by every collector (`GreenHedges.Collectors.Common`): host setup, email alerts, heartbeat, backups and off-site copies |
 | `src/Libre/`, `tests/Libre/` | The Libre collector (`GreenHedges.Collectors.Libre.*`) |
 | `src/Weather/`, `tests/Weather/` | The Weather collector (`GreenHedges.Collectors.Weather.*`), being built |
-| `deploy/libre/` | Its systemd unit, deploy script, host setup, Nightscout stack and backup pull |
+| `deploy/deploy.sh` | Publishes a collector and installs it on the host (`deploy/<collector>/deploy.sh` for short) |
+| `deploy/libre/` | The Libre collector's systemd unit, deploy script, host setup, Nightscout stack and backup pull |
 | `docs/libre/` | Its README (setup and use) and design notes |
+| `deploy/weather/` | The Weather collector's systemd unit, deploy script and host setup |
 | `docs/weather/` | The Weather collector's design |
 | `deploy/aws/` | CloudFormation for the shared off-site backup bucket and its write-only users |
 | `deploy/local.env.example` | Personal defaults for the deploy scripts (copy to the git-ignored `deploy/local.env`) |

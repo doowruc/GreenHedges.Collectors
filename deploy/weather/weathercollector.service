@@ -1,0 +1,31 @@
+# systemd unit for the Weather collector. Installed by deploy/weather/deploy.sh into /etc/systemd/system/.
+# The self-contained build goes in /opt/weathercollector (read-only); data and logs in /var/lib/weathercollector.
+# Settings that stay off the repo (the station's id, later alert and backup keys) go in /etc/weathercollector/env
+# (root:root, 0600); see deploy/weather/HOST-SETUP.md.
+[Unit]
+Description=WeatherCollector (rtl_433 weather station archive)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=notify
+User=weathercollector
+Group=weathercollector
+# The RTL-SDR dongle's USB device is group plugdev (librtlsdr's udev rule).
+SupplementaryGroups=plugdev
+WorkingDirectory=/var/lib/weathercollector
+ExecStart=/opt/weathercollector/GreenHedges.Collectors.Weather.Worker
+EnvironmentFile=/etc/weathercollector/env
+Environment=DOTNET_ENVIRONMENT=Production
+Restart=always
+RestartSec=30
+
+# Hardening. Devices stay visible (no PrivateDevices) so rtl_433 can open the dongle under /dev/bus/usb.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/weathercollector
+
+[Install]
+WantedBy=multi-user.target
