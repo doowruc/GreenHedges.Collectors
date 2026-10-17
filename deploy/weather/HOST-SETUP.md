@@ -20,9 +20,17 @@ Linux treats an RTL-SDR dongle as a DVB-T TV tuner and loads `dvb_usb_rtl28xxu` 
 printf 'blacklist dvb_usb_rtl28xxu\nblacklist rtl2832_sdr\nblacklist rtl2832\n' | sudo tee /etc/modprobe.d/blacklist-rtl-sdr.conf
 ```
 
+If the dongle is plugged in, the driver is attached to it and can't be unloaded ("Module dvb_usb_rtl28xxu is in use"). Detach it first (or unplug the dongle), then unload it:
+
+```bash
+for i in /sys/bus/usb/drivers/dvb_usb_rtl28xxu/*:*; do [ -e "$i" ] && echo -n "${i##*/}" | sudo tee /sys/bus/usb/drivers/dvb_usb_rtl28xxu/unbind; done
+```
+
 ```bash
 sudo modprobe -r dvb_usb_rtl28xxu rtl2832_sdr rtl2832; lsmod | grep rtl28 || echo "DVB-T driver not loaded"
 ```
+
+The blacklist keeps it off after a replug or reboot.
 
 ## 3. Check reception (optional)
 
