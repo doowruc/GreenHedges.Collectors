@@ -270,6 +270,8 @@ It prints the **public key** (`age1…`). Save the **whole key file** (it contai
 rm librecollector-offsite.key
 ```
 
+> **Shared bucket:** the bucket and a write-only user for each collector can now be created from [`deploy/aws/offsite.yaml`](../aws/README.md) (CloudFormation) instead of steps 2 and 3. Steps 1, 4 and 5 still apply.
+
 ### 2. S3 bucket (AWS console)
 
 1. **S3 → Create bucket.** Pick a globally unique name and your nearest region (e.g. `eu-west-2`, London). Keep **Block all public access** on. Turn **Bucket Versioning** on. Leave default encryption (SSE-S3) on.
