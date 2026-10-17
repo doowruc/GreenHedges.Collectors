@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="GreenHedges.Collectors.Weather.Rtl433.Tests" />
+  </ItemGroup>
+
+</Project>
