@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# Local guard (GitHub doesn't enforce branch rules on free private repos):
+#   - no direct pushes to main (changes go via a branch and a pull request)
+#   - no force pushes (non-fast-forward updates) to any branch
+# Enable once per clone:  git config core.hooksPath .githooks
+# Emergency override:     ALLOW_PROTECTED_PUSH=1 git push ...
+set -euo pipefail
+
+if [ "${ALLOW_PROTECTED_PUSH:-}" = "1" ]; then
+  exit 0
+fi
+
+zero=0000000000000000000000000000000000000000
+status=0
+
+# git passes one line per ref being pushed: <local ref> <local sha> <remote ref> <remote sha>
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [ -n "${remote_ref:-}" ] || continue
+
+  if [ "$remote_ref" = "refs/heads/main" ]; then
+    if [ "$local_sha" = "$zero" ]; then
+      echo "pre-push: refusing to delete main." >&2
+    else
+      echo "pre-push: refusing to push to main. Push a branch and open a pull request." >&2
+    fi
+    status=1
+    continue
+  fi
+
+  # Deleting a remote branch, or creating a new one, is not a force push.
+  if [ "$local_sha" = "$zero" ] || [ "$remote_sha" = "$zero" ]; then
+    continue
+  fi
+
+  if ! git cat-file -e "$remote_sha^{commit}" 2>/dev/null; then
+    echo "pre-push: $remote_ref has commits you don't have locally. Fetch first (git fetch) and try again." >&2
+    status=1
+    continue
+  fi
+
+  if ! git merge-base --is-ancestor "$remote_sha" "$local_sha"; then
+    echo "pre-push: refusing to force-push $remote_ref (it would discard commits on the remote)." >&2
+    status=1
+  fi
+done
+
+exit $status
