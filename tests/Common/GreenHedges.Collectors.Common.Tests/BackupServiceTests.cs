@@ -1,50 +1,40 @@
 using System.IO.Compression;
-using GreenHedges.Collectors.Libre.Storage;
-using GreenHedges.Collectors.Libre.Worker.Backups;
-using Microsoft.Data.Sqlite;
+using GreenHedges.Collectors.Common.Backups;
+using GreenHedges.Collectors.Common.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 
-namespace GreenHedges.Collectors.Libre.Worker.Tests;
+namespace GreenHedges.Collectors.Common.Tests;
 
 public sealed class BackupServiceTests : IDisposable
 {
     private static readonly TimeZoneInfo London = TimeZoneInfo.FindSystemTimeZoneById("Europe/London");
 
-    private readonly string _root = Path.Combine(Path.GetTempPath(), $"librecollector-backup-test-{Guid.NewGuid():N}");
+    private readonly string _root = Path.Combine(Path.GetTempPath(), $"collectors-backup-test-{Guid.NewGuid():N}");
     private readonly FakeTimeProvider _time = new(new DateTimeOffset(2026, 10, 17, 2, 30, 0, TimeSpan.Zero));
-    private readonly CollectorHealth _health;
-    private readonly GlucoseArchive _archive;
+    private readonly BackupHealth _health;
+    private readonly FakeSource _source = new();
     private readonly BackupService _service;
 
     public BackupServiceTests()
     {
         Directory.CreateDirectory(_root);
-        _health = new CollectorHealth(_time);
-        _archive = new GlucoseArchive(Path.Combine(_root, "live.db"));
+        _health = new BackupHealth(_time);
         _service = new BackupService(
-            _archive,
+            _source,
             _health,
             Options.Create(new BackupOptions { Directory = Path.Combine(_root, "backups"), Retain = 3 }),
+            new CollectorIdentity("LibreCollector"),
             _time,
             NullLogger<BackupService>.Instance);
     }
 
-    public void Dispose()
-    {
-        SqliteConnection.ClearAllPools();
-        Directory.Delete(_root, recursive: true);
-    }
+    public void Dispose() => Directory.Delete(_root, recursive: true);
 
     [Fact]
-    public async Task Backup_is_a_gzipped_valid_copy_and_is_recorded()
+    public async Task Backup_is_a_gzipped_copy_named_for_the_collector_and_is_recorded()
     {
-        await _archive.InitialiseAsync(CancellationToken.None);
-        await _archive.InsertAsync(
-            [new ArchivedReading(_time.GetUtcNow(), ReadingSource.Current, null, 115, 3, 1, false, false, _time.GetUtcNow(), "{}")],
-            CancellationToken.None);
-
         var path = await _service.RunBackupAsync(CancellationToken.None);
 
         Assert.NotNull(path);
@@ -52,22 +42,14 @@ public sealed class BackupServiceTests : IDisposable
         Assert.Equal(_time.GetUtcNow(), _health.Snapshot().LastBackupAt);
         Assert.Single(Directory.GetFiles(Path.Combine(_root, "backups")));
 
-        var restored = Path.Combine(_root, "restored.db");
-        await using (var input = new GZipStream(File.OpenRead(path), CompressionMode.Decompress))
-        await using (var output = File.Create(restored))
-        {
-            await input.CopyToAsync(output);
-        }
-
-        var copy = new GlucoseArchive(restored);
-        Assert.Equal(1, await copy.CountAsync(ReadingSource.Current, CancellationToken.None));
+        await using var input = new GZipStream(File.OpenRead(path), CompressionMode.Decompress);
+        using var reader = new StreamReader(input);
+        Assert.Equal(FakeSource.Content, await reader.ReadToEndAsync());
     }
 
     [Fact]
     public async Task Keeps_only_the_newest_backups()
     {
-        await _archive.InitialiseAsync(CancellationToken.None);
-
         for (var day = 0; day < 5; day++)
         {
             await _service.RunBackupAsync(CancellationToken.None);
@@ -83,13 +65,14 @@ public sealed class BackupServiceTests : IDisposable
     [Fact]
     public async Task Failure_is_recorded_not_thrown()
     {
-        // No InitialiseAsync and a directory that can't be created: the backup must fail cleanly.
+        // A directory that can't be created: the backup must fail cleanly.
         var blocker = Path.Combine(_root, "blocked");
         await File.WriteAllTextAsync(blocker, "not a directory");
         var service = new BackupService(
-            _archive,
+            _source,
             _health,
             Options.Create(new BackupOptions { Directory = Path.Combine(blocker, "backups") }),
+            new CollectorIdentity("LibreCollector"),
             _time,
             NullLogger<BackupService>.Instance);
 
@@ -121,5 +104,32 @@ public sealed class BackupServiceTests : IDisposable
         var next = BackupService.NextRun(DateTimeOffset.Parse("2026-03-28T12:00:00Z"), new TimeSpan(1, 30, 0), London);
 
         Assert.Equal(DateTimeOffset.Parse("2026-03-29T01:30:00Z"), next);
+    }
+
+    [Fact]
+    public async Task Source_failure_is_recorded_and_leaves_no_temporary_files()
+    {
+        _source.Fail = true;
+
+        Assert.Null(await _service.RunBackupAsync(CancellationToken.None));
+        Assert.IsType<IOException>(_health.Snapshot().LastBackupError);
+        Assert.Empty(Directory.GetFiles(Path.Combine(_root, "backups")));
+    }
+
+    private sealed class FakeSource : IBackupSource
+    {
+        public const string Content = "SQLite format 3 (pretend)";
+
+        public bool Fail { get; set; }
+
+        public async Task BackupToAsync(string destinationPath, CancellationToken cancellationToken)
+        {
+            if (Fail)
+            {
+                throw new IOException("Disk full");
+            }
+
+            await File.WriteAllTextAsync(destinationPath, Content, cancellationToken);
+        }
     }
 }

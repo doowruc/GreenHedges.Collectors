@@ -1,8 +1,8 @@
 using System.Text;
 using GreenHedges.Collectors.Common.Alerts;
+using GreenHedges.Collectors.Common.Backups;
 using GreenHedges.Collectors.Libre.LibreLinkUp;
 using GreenHedges.Collectors.Libre.Nightscout;
-using GreenHedges.Collectors.Libre.Worker.Backups;
 using Microsoft.Extensions.Options;
 
 namespace GreenHedges.Collectors.Libre.Worker.Alerts;
@@ -16,18 +16,15 @@ public sealed class LibreAlertMonitor(
     AlertBook alerts,
     IOptions<AlertOptions> alertOptions,
     IOptions<LibreAlertOptions> options,
-    IOptions<BackupOptions> backupOptions,
     IOptions<NightscoutOptions> nightscoutOptions,
-    IOptions<OffsiteOptions> offsiteOptions,
+    BackupMonitor backups,
     TimeProvider time,
     ILogger<LibreAlertMonitor> logger) : AlertMonitorService(alerts, alertOptions, time, logger)
 {
     private static readonly string[] Keys = Enum.GetNames<AlertKind>();
 
     private readonly LibreAlertOptions _options = options.Value;
-    private readonly BackupOptions _backupOptions = backupOptions.Value;
     private readonly NightscoutOptions _nightscoutOptions = nightscoutOptions.Value;
-    private readonly OffsiteOptions _offsiteOptions = offsiteOptions.Value;
 
     private enum AlertKind
     {
@@ -37,13 +34,13 @@ public sealed class LibreAlertMonitor(
         /// <summary>No new current reading for longer than <see cref="LibreAlertOptions.StaleAfter"/>.</summary>
         Stale,
 
-        /// <summary>No good backup for longer than <see cref="BackupOptions.AlertAfter"/>.</summary>
+        /// <summary>No good backup for longer than <see cref="BackupOptions.AlertAfter"/> (checked by <see cref="BackupMonitor"/>).</summary>
         Backup,
 
         /// <summary>Nightscout publishing failing for longer than <see cref="LibreAlertOptions.PublishStalledAfter"/>.</summary>
         Publish,
 
-        /// <summary>No successful off-site copy for longer than <see cref="OffsiteOptions.AlertAfter"/>.</summary>
+        /// <summary>No successful off-site copy for longer than <see cref="OffsiteOptions.AlertAfter"/> (checked by <see cref="BackupMonitor"/>).</summary>
         Offsite,
     }
 
@@ -101,34 +98,7 @@ public sealed class LibreAlertMonitor(
             await ResolveAsync(AlertKind.Stale, cancellationToken);
         }
 
-        if (_backupOptions.Enabled)
-        {
-            // Measured from startup when there's no backup at all, like the stale-data check.
-            var lastBackup = snapshot.LastBackupAt ?? snapshot.StartedAt;
-            var sinceBackup = now - lastBackup;
-            if (sinceBackup > _backupOptions.AlertAfter)
-            {
-                await RaiseAsync(
-                    AlertKind.Backup,
-                    "Backups failing",
-                    $"""
-                    No successful backup for {FormatDuration(sinceBackup)}.
-                    Last good backup: {(snapshot.LastBackupAt is { } b ? $"{b:u}" : "none")}
-                    Last backup error: {(snapshot.LastBackupError is { } e ? $"{e.GetType().Name}: {e.Message}" : "none recorded")}
-
-                    {Describe(snapshot, now)}
-                    """,
-                    cancellationToken);
-            }
-            else if (snapshot.LastBackupAt is { } goodBackup && now - goodBackup <= _backupOptions.AlertAfter)
-            {
-                await ResolveAsync(AlertKind.Backup, cancellationToken);
-            }
-        }
-        else
-        {
-            await ResolveAsync(AlertKind.Backup, cancellationToken);
-        }
+        await backups.CheckAsync(Alerts, now, Describe(snapshot, now), cancellationToken);
 
         if (snapshot.PublishFailingSince is { } failingSince && now - failingSince > _options.PublishStalledAfter)
         {
@@ -148,36 +118,6 @@ public sealed class LibreAlertMonitor(
                  || (snapshot.PublishFailingSince is null && snapshot.LastPublishSuccessAt is not null))
         {
             await ResolveAsync(AlertKind.Publish, cancellationToken);
-        }
-
-        if (_offsiteOptions.Enabled && _backupOptions.Enabled)
-        {
-            var lastOffsite = snapshot.LastOffsiteAt ?? snapshot.StartedAt;
-            var sinceOffsite = now - lastOffsite;
-            // Misconfiguration can't fix itself, so it alerts straight away rather than after AlertAfter.
-            if (sinceOffsite > _offsiteOptions.AlertAfter || snapshot.LastOffsiteError is OffsiteMisconfiguredException)
-            {
-                await RaiseAsync(
-                    AlertKind.Offsite,
-                    "Off-site backup failing",
-                    $"""
-                    No successful off-site backup copy for {FormatDuration(sinceOffsite)}.
-                    Last good copy: {(snapshot.LastOffsiteAt is { } o ? $"{o:u}" : "none")}
-                    Last error: {(snapshot.LastOffsiteError is { } e ? $"{e.GetType().Name}: {e.Message}" : "none recorded")}
-                    Local backups are unaffected.
-
-                    {Describe(snapshot, now)}
-                    """,
-                    cancellationToken);
-            }
-            else if (snapshot.LastOffsiteAt is { } goodOffsite && now - goodOffsite <= _offsiteOptions.AlertAfter)
-            {
-                await ResolveAsync(AlertKind.Offsite, cancellationToken);
-            }
-        }
-        else
-        {
-            await ResolveAsync(AlertKind.Offsite, cancellationToken);
         }
     }
 

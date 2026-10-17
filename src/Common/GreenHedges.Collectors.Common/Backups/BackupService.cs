@@ -1,9 +1,9 @@
 using System.Globalization;
 using System.IO.Compression;
-using GreenHedges.Collectors.Libre.Storage;
+using GreenHedges.Collectors.Common.Hosting;
 using Microsoft.Extensions.Options;
 
-namespace GreenHedges.Collectors.Libre.Worker.Backups;
+namespace GreenHedges.Collectors.Common.Backups;
 
 public sealed class BackupOptions
 {
@@ -24,23 +24,38 @@ public sealed class BackupOptions
     public TimeSpan AlertAfter { get; set; } = TimeSpan.FromHours(36);
 }
 
+/// <summary>What gets backed up: the collector's archive.</summary>
+public interface IBackupSource
+{
+    /// <summary>
+    /// Writes a consistent, integrity-checked, self-contained copy of the database to
+    /// <paramref name="destinationPath"/> (replacing any file there).
+    /// </summary>
+    Task BackupToAsync(string destinationPath, CancellationToken cancellationToken);
+}
+
 /// <summary>
-/// Daily consistent, integrity-checked, gzipped copy of the SQLite archive, kept for
-/// <see cref="BackupOptions.Retain"/> days. Off-machine copies are pulled from this folder by the Mac.
+/// Daily gzipped copy of the collector's archive, kept for <see cref="BackupOptions.Retain"/> days.
+/// Files are named <c>&lt;collector name in lower case&gt;-&lt;UTC time&gt;.db.gz</c>. Off-machine copies are
+/// pulled from this folder by the Mac, and <see cref="OffsiteBackupService"/> sends encrypted copies off-site.
 /// </summary>
 public sealed class BackupService(
-    GlucoseArchive archive,
-    CollectorHealth health,
+    IBackupSource source,
+    BackupHealth health,
     IOptions<BackupOptions> options,
+    CollectorIdentity identity,
     TimeProvider time,
     ILogger<BackupService> logger) : BackgroundService
 {
-    private const string FilePrefix = "librecollector-";
     private const string FileSuffix = ".db.gz";
     private const string FileTimestampFormat = "yyyyMMdd'T'HHmmss'Z'";
 
     private readonly BackupOptions _options = options.Value;
     private readonly string _directory = Path.GetFullPath(options.Value.Directory);
+    private readonly string _filePrefix = FilePrefix(identity);
+
+    /// <summary>The start of this collector's backup file names, e.g. <c>librecollector-</c>.</summary>
+    public static string FilePrefix(CollectorIdentity identity) => identity.Name.ToLowerInvariant() + "-";
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -53,7 +68,7 @@ public sealed class BackupService(
         Directory.CreateDirectory(_directory);
 
         // Count an existing recent backup, so a restart doesn't raise the alert or force an immediate backup.
-        var newest = ListBackups(_directory).FirstOrDefault();
+        var newest = ListBackups(_directory, _filePrefix).FirstOrDefault();
         if (newest is not null)
         {
             health.RecordBackup(newest.CreatedAt);
@@ -88,14 +103,14 @@ public sealed class BackupService(
         var startedAt = time.GetUtcNow();
         var finalPath = Path.Combine(
             _directory,
-            FilePrefix + startedAt.UtcDateTime.ToString(FileTimestampFormat, CultureInfo.InvariantCulture) + FileSuffix);
+            _filePrefix + startedAt.UtcDateTime.ToString(FileTimestampFormat, CultureInfo.InvariantCulture) + FileSuffix);
         var dbTemp = Path.ChangeExtension(finalPath, ".snapshot.tmp");
         var gzTemp = finalPath + ".tmp";
 
         try
         {
             Directory.CreateDirectory(_directory);
-            await archive.BackupToAsync(dbTemp, cancellationToken);
+            await source.BackupToAsync(dbTemp, cancellationToken);
 
             await using (var input = File.OpenRead(dbTemp))
             await using (var output = File.Create(gzTemp))
@@ -144,7 +159,7 @@ public sealed class BackupService(
 
     private void Prune()
     {
-        foreach (var old in ListBackups(_directory).Skip(Math.Max(1, _options.Retain)))
+        foreach (var old in ListBackups(_directory, _filePrefix).Skip(Math.Max(1, _options.Retain)))
         {
             try
             {
@@ -159,12 +174,12 @@ public sealed class BackupService(
     }
 
     /// <summary>Backups in <paramref name="directory"/>, newest first, timed by the timestamp in the file name.</summary>
-    internal static IEnumerable<BackupFile> ListBackups(string directory) =>
+    internal static IEnumerable<BackupFile> ListBackups(string directory, string filePrefix) =>
         Directory.Exists(directory)
-            ? Directory.EnumerateFiles(directory, FilePrefix + "*" + FileSuffix)
+            ? Directory.EnumerateFiles(directory, filePrefix + "*" + FileSuffix)
                 .Select(path => (path, name: Path.GetFileName(path)))
                 .Select(f => DateTimeOffset.TryParseExact(
-                        f.name[FilePrefix.Length..^FileSuffix.Length],
+                        f.name[filePrefix.Length..^FileSuffix.Length],
                         FileTimestampFormat,
                         CultureInfo.InvariantCulture,
                         DateTimeStyles.AssumeUniversal,

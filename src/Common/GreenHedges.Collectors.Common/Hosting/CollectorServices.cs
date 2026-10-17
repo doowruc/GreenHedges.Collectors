@@ -1,4 +1,5 @@
 using GreenHedges.Collectors.Common.Alerts;
+using GreenHedges.Collectors.Common.Backups;
 using GreenHedges.Collectors.Common.Heartbeat;
 using Microsoft.Extensions.Options;
 
@@ -65,6 +66,33 @@ public static class CollectorServices
             services.GetRequiredService<IOptions<HeartbeatOptions>>(),
             services.GetRequiredService<TimeProvider>(),
             services.GetRequiredService<ILogger<HeartbeatService>>()));
+        return builder;
+    }
+
+    /// <summary>
+    /// Nightly local backups of <typeparamref name="TSource"/> and encrypted off-site copies, with their
+    /// health and the <see cref="BackupMonitor"/> alerts. Off-site settings aren't validated at startup: a bad
+    /// one is reported by <see cref="OffsiteBackupService"/> (log and immediate alert) instead of stopping
+    /// the collector.
+    /// </summary>
+    public static HostApplicationBuilder AddBackups<TSource>(this HostApplicationBuilder builder)
+        where TSource : class, IBackupSource
+    {
+        builder.Services.AddOptions<BackupOptions>().BindConfiguration(BackupOptions.SectionName);
+        builder.Services.AddOptions<OffsiteOptions>().BindConfiguration(OffsiteOptions.SectionName);
+
+        builder.Services.AddSingleton<IBackupSource, TSource>();
+        builder.Services.AddSingleton<BackupHealth>();
+        builder.Services.AddSingleton<BackupMonitor>();
+        builder.Services.AddHostedService<BackupService>();
+        builder.Services.AddSingleton<IBackupEncryptor>(services =>
+        {
+            var o = services.GetRequiredService<IOptions<OffsiteOptions>>().Value;
+            return new AgeEncryptor(o.AgePath, o.AgeRecipient!);
+        });
+        builder.Services.AddSingleton<IOffsiteStore>(services =>
+            new S3OffsiteStore(services.GetRequiredService<IOptions<OffsiteOptions>>().Value));
+        builder.Services.AddHostedService<OffsiteBackupService>();
         return builder;
     }
 

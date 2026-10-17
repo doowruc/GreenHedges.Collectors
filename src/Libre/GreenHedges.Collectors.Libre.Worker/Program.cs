@@ -25,10 +25,6 @@ builder.Services.AddOptions<LibreLinkUpOptions>()
 builder.Services.AddOptions<CollectorOptions>().BindConfiguration(CollectorOptions.SectionName);
 builder.Services.AddOptions<ArchiveOptions>().BindConfiguration(ArchiveOptions.SectionName);
 builder.Services.AddOptions<LibreAlertOptions>().BindConfiguration(AlertOptions.SectionName);
-builder.Services.AddOptions<BackupOptions>().BindConfiguration(BackupOptions.SectionName);
-// Not validated at startup: a bad off-site setting is reported by OffsiteBackupService (log + immediate
-// alert) instead of stopping the collector.
-builder.Services.AddOptions<OffsiteOptions>().BindConfiguration(OffsiteOptions.SectionName);
 builder.Services.AddOptions<NightscoutOptions>()
     .BindConfiguration(NightscoutOptions.SectionName)
     .Validate(
@@ -63,15 +59,7 @@ builder.Services.AddSingleton<IHeartbeatSource>(services => services.GetRequired
 builder.Services.AddSingleton<SensorTracker>();
 builder.Services.AddHostedService<CollectorService>();
 builder.Services.AddHostedService<LibreAlertMonitor>();
-builder.Services.AddHostedService<BackupService>();
-builder.Services.AddSingleton<IBackupEncryptor>(services =>
-{
-    var o = services.GetRequiredService<IOptions<OffsiteOptions>>().Value;
-    return new AgeEncryptor(o.AgePath, o.AgeRecipient!);
-});
-builder.Services.AddSingleton<IOffsiteStore>(services =>
-    new S3OffsiteStore(services.GetRequiredService<IOptions<OffsiteOptions>>().Value));
-builder.Services.AddHostedService<OffsiteBackupService>();
+builder.AddBackups<ArchiveBackupSource>();
 
 builder.Services.AddSingleton<PublishSignal>();
 builder.Services.AddSingleton(services => new NightscoutClient(

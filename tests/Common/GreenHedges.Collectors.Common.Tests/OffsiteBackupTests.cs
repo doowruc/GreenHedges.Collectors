@@ -1,28 +1,28 @@
 using System.Diagnostics;
-using GreenHedges.Collectors.Libre.Worker.Backups;
+using GreenHedges.Collectors.Common.Backups;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Time.Testing;
 
-namespace GreenHedges.Collectors.Libre.Worker.Tests;
+namespace GreenHedges.Collectors.Common.Tests;
 
 public sealed class OffsiteBackupTests : IDisposable
 {
     private readonly string _dir = Path.Combine(Path.GetTempPath(), $"librecollector-offsite-{Guid.NewGuid():N}");
     private readonly FakeTimeProvider _time = new(new DateTimeOffset(2026, 10, 18, 3, 31, 0, TimeSpan.Zero));
-    private readonly CollectorHealth _health;
+    private readonly BackupHealth _health;
     private readonly FakeEncryptor _encryptor = new();
     private readonly FakeStore _store = new();
 
     public OffsiteBackupTests()
     {
         Directory.CreateDirectory(_dir);
-        _health = new CollectorHealth(_time);
+        _health = new BackupHealth(_time);
     }
 
     public void Dispose() => Directory.Delete(_dir, recursive: true);
 
     private OffsiteCopier Copier(string prefix = "librecollector") =>
-        new(_dir, prefix, _encryptor, _store, _health, _time, NullLogger.Instance);
+        new(_dir, "librecollector-", prefix, _encryptor, _store, _health, _time, NullLogger.Instance);
 
     private string Backup(string stamp, string content = "backup")
     {

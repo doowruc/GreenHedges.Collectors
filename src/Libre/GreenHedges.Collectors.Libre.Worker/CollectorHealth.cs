@@ -13,12 +13,8 @@ public sealed class CollectorHealth(TimeProvider time) : IHeartbeatSource
     private DateTimeOffset? _lastSuccessAt;
     private Exception? _lastError;
     private DateTimeOffset? _lastErrorAt;
-    private DateTimeOffset? _lastBackupAt;
-    private Exception? _lastBackupError;
     private DateTimeOffset? _publishFailingSince;
     private DateTimeOffset? _lastPublishSuccessAt;
-    private DateTimeOffset? _lastOffsiteAt;
-    private Exception? _lastOffsiteError;
     private Exception? _lastPublishError;
 
     public DateTimeOffset StartedAt { get; } = time.GetUtcNow();
@@ -54,28 +50,6 @@ public sealed class CollectorHealth(TimeProvider time) : IHeartbeatSource
         }
     }
 
-    /// <summary>Records a completed backup. <paramref name="completedAt"/> may be in the past (an existing backup found at startup).</summary>
-    public void RecordBackup(DateTimeOffset completedAt)
-    {
-        lock (_lock)
-        {
-            if (_lastBackupAt is null || completedAt > _lastBackupAt)
-            {
-                _lastBackupAt = completedAt;
-            }
-
-            _lastBackupError = null;
-        }
-    }
-
-    public void RecordBackupFailure(Exception error)
-    {
-        lock (_lock)
-        {
-            _lastBackupError = error;
-        }
-    }
-
     /// <summary>Records that everything pending was published.</summary>
     public void RecordPublishSuccess()
     {
@@ -96,28 +70,6 @@ public sealed class CollectorHealth(TimeProvider time) : IHeartbeatSource
         }
     }
 
-    /// <summary>Records a successful (or already up-to-date) off-site copy. Keeps the newest time.</summary>
-    public void RecordOffsite(DateTimeOffset at)
-    {
-        lock (_lock)
-        {
-            if (_lastOffsiteAt is null || at > _lastOffsiteAt)
-            {
-                _lastOffsiteAt = at;
-            }
-
-            _lastOffsiteError = null;
-        }
-    }
-
-    public void RecordOffsiteFailure(Exception error)
-    {
-        lock (_lock)
-        {
-            _lastOffsiteError = error;
-        }
-    }
-
     /// <summary>Healthy for the heartbeat if LibreLinkUp was polled successfully within the interval.</summary>
     public string? HealthyStatus(DateTimeOffset now, TimeSpan interval)
     {
@@ -132,16 +84,14 @@ public sealed class CollectorHealth(TimeProvider time) : IHeartbeatSource
         lock (_lock)
         {
             return new CollectorHealthSnapshot(
-                StartedAt, _latestReadingAt, _lastSuccessAt, _lastError, _lastErrorAt, _lastBackupAt, _lastBackupError,
-                _publishFailingSince, _lastPublishError, _lastPublishSuccessAt, _lastOffsiteAt, _lastOffsiteError);
+                StartedAt, _latestReadingAt, _lastSuccessAt, _lastError, _lastErrorAt,
+                _publishFailingSince, _lastPublishError, _lastPublishSuccessAt);
         }
     }
 }
 
 /// <param name="LatestReadingAt">Sensor time of the newest current reading seen since startup.</param>
 /// <param name="LastError">The most recent failure, cleared by the next successful poll.</param>
-/// <param name="LastBackupAt">When the newest good backup was made (including one found on disk at startup).</param>
-/// <param name="LastBackupError">The most recent backup failure, cleared by the next successful backup.</param>
 /// <param name="PublishFailingSince">When Nightscout publishing started failing; null while it's healthy.</param>
 public sealed record CollectorHealthSnapshot(
     DateTimeOffset StartedAt,
@@ -149,10 +99,6 @@ public sealed record CollectorHealthSnapshot(
     DateTimeOffset? LastSuccessAt,
     Exception? LastError,
     DateTimeOffset? LastErrorAt,
-    DateTimeOffset? LastBackupAt = null,
-    Exception? LastBackupError = null,
     DateTimeOffset? PublishFailingSince = null,
     Exception? LastPublishError = null,
-    DateTimeOffset? LastPublishSuccessAt = null,
-    DateTimeOffset? LastOffsiteAt = null,
-    Exception? LastOffsiteError = null);
+    DateTimeOffset? LastPublishSuccessAt = null);
