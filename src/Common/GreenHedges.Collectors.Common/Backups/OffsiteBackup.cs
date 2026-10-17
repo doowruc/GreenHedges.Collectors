@@ -3,9 +3,10 @@ using Amazon;
 using Amazon.Runtime;
 using Amazon.S3;
 using Amazon.S3.Model;
+using GreenHedges.Collectors.Common.Hosting;
 using Microsoft.Extensions.Options;
 
-namespace GreenHedges.Collectors.Libre.Worker.Backups;
+namespace GreenHedges.Collectors.Common.Backups;
 
 public sealed class OffsiteOptions
 {
@@ -17,8 +18,11 @@ public sealed class OffsiteOptions
     /// <summary>AWS region of the bucket, e.g. <c>eu-west-2</c>. Also the signing region for S3-compatible services.</summary>
     public string? Region { get; set; }
 
-    /// <summary>Key prefix ("folder") inside the bucket. The write-only IAM policy should be scoped to it.</summary>
-    public string Prefix { get; set; } = "librecollector";
+    /// <summary>
+    /// Key prefix ("folder") inside the bucket; the collector's name in lower case when not set. The
+    /// write-only IAM policy should be scoped to it.
+    /// </summary>
+    public string? Prefix { get; set; }
 
     /// <summary>Access key for an IAM user that may only <c>s3:PutObject</c> under the prefix. If empty, the AWS default credential chain is used.</summary>
     public string? AccessKeyId { get; set; }
@@ -173,10 +177,11 @@ public sealed class S3OffsiteStore : IOffsiteStore, IDisposable
 /// </summary>
 public sealed class OffsiteCopier(
     string backupDirectory,
+    string filePrefix,
     string prefix,
     IBackupEncryptor encryptor,
     IOffsiteStore store,
-    CollectorHealth health,
+    BackupHealth health,
     TimeProvider time,
     ILogger logger)
 {
@@ -185,7 +190,7 @@ public sealed class OffsiteCopier(
     /// <summary>Copies the newest backup if it hasn't been copied yet. Returns true if it uploaded something. Never throws (except on shutdown).</summary>
     public async Task<bool> CopyNewestAsync(CancellationToken cancellationToken)
     {
-        var newest = BackupService.ListBackups(backupDirectory).FirstOrDefault();
+        var newest = BackupService.ListBackups(backupDirectory, filePrefix).FirstOrDefault();
         if (newest is null)
         {
             return false;
@@ -241,7 +246,8 @@ public sealed class OffsiteBackupService(
     IServiceProvider services,
     IOptions<OffsiteOptions> options,
     IOptions<BackupOptions> backupOptions,
-    CollectorHealth health,
+    BackupHealth health,
+    CollectorIdentity identity,
     TimeProvider time,
     ILogger<OffsiteBackupService> logger) : BackgroundService
 {
@@ -255,7 +261,7 @@ public sealed class OffsiteBackupService(
             return;
         }
 
-        // A bad off-site setting must never stop glucose collection: report it and stand down.
+        // A bad off-site setting must never stop collection: report it and stand down.
         if (_options.Problem() is { } problem)
         {
             logger.LogError("Off-site backup is misconfigured and won't run: {Problem}", problem);
@@ -263,15 +269,17 @@ public sealed class OffsiteBackupService(
             return;
         }
 
+        var prefix = _options.Prefix ?? identity.Name.ToLowerInvariant();
         var copier = new OffsiteCopier(
             Path.GetFullPath(backupOptions.Value.Directory),
-            _options.Prefix,
+            BackupService.FilePrefix(identity),
+            prefix,
             services.GetRequiredService<IBackupEncryptor>(),
             services.GetRequiredService<IOffsiteStore>(),
             health,
             time,
             logger);
-        logger.LogInformation("Off-site backup to {Destination}", services.GetRequiredService<IOffsiteStore>().Describe(_options.Prefix));
+        logger.LogInformation("Off-site backup to {Destination}", services.GetRequiredService<IOffsiteStore>().Describe(prefix));
 
         while (!stoppingToken.IsCancellationRequested)
         {

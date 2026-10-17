@@ -1,10 +1,10 @@
 using System.Net;
 using GreenHedges.Collectors.Common.Alerts;
+using GreenHedges.Collectors.Common.Backups;
 using GreenHedges.Collectors.Common.Hosting;
 using GreenHedges.Collectors.Libre.LibreLinkUp;
 using GreenHedges.Collectors.Libre.Nightscout;
 using GreenHedges.Collectors.Libre.Worker.Alerts;
-using GreenHedges.Collectors.Libre.Worker.Backups;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
@@ -19,6 +19,7 @@ public sealed class LibreAlertMonitorTests : IDisposable
     private readonly bool _backupsEnabled;
     private readonly bool _offsiteEnabled;
     private CollectorHealth _health = null!;
+    private BackupHealth _backupHealth = null!;
     private LibreAlertMonitor _monitor = null!;
 
     public LibreAlertMonitorTests()
@@ -39,6 +40,7 @@ public sealed class LibreAlertMonitorTests : IDisposable
     private void Start()
     {
         _health = new CollectorHealth(_time);
+        _backupHealth = new BackupHealth(_time);
         _monitor = new LibreAlertMonitor(
             _health,
             new AlertBook(
@@ -49,9 +51,11 @@ public sealed class LibreAlertMonitorTests : IDisposable
                 NullLogger<AlertBook>.Instance),
             Options.Create(new AlertOptions()),
             Options.Create(new LibreAlertOptions { StaleAfter = TimeSpan.FromMinutes(20) }),
-            Options.Create(new BackupOptions { Enabled = _backupsEnabled, AlertAfter = TimeSpan.FromHours(36) }),
             Options.Create(new NightscoutOptions { BaseUrl = "http://127.0.0.1:1337" }),
-            Options.Create(new OffsiteOptions { Bucket = _offsiteEnabled ? "bucket" : null, AlertAfter = TimeSpan.FromHours(36) }),
+            new BackupMonitor(
+                _backupHealth,
+                Options.Create(new BackupOptions { Enabled = _backupsEnabled, AlertAfter = TimeSpan.FromHours(36) }),
+                Options.Create(new OffsiteOptions { Bucket = _offsiteEnabled ? "bucket" : null, AlertAfter = TimeSpan.FromHours(36) })),
             _time,
             NullLogger<LibreAlertMonitor>.Instance);
     }
@@ -66,16 +70,16 @@ public sealed class LibreAlertMonitorTests : IDisposable
     public async Task Offsite_alert_after_36_hours_without_a_copy_then_resolves()
     {
         var tests = new LibreAlertMonitorTests(backupsEnabled: true, offsiteEnabled: true);
-        tests._health.RecordOffsite(tests._time.GetUtcNow());
+        tests._backupHealth.RecordOffsite(tests._time.GetUtcNow());
 
         for (var hour = 1; hour <= 37; hour++)
         {
             tests._time.Advance(TimeSpan.FromHours(1));
             tests._health.RecordReading(tests._time.GetUtcNow());
-            tests._health.RecordBackup(tests._time.GetUtcNow());   // local backups fine; only off-site failing
+            tests._backupHealth.RecordBackup(tests._time.GetUtcNow());   // local backups fine; only off-site failing
             if (hour == 30)
             {
-                tests._health.RecordOffsiteFailure(new InvalidOperationException("AccessDenied"));
+                tests._backupHealth.RecordOffsiteFailure(new InvalidOperationException("AccessDenied"));
             }
 
             await tests._monitor.CheckAsync(CancellationToken.None);
@@ -85,7 +89,7 @@ public sealed class LibreAlertMonitorTests : IDisposable
         Assert.Equal("[LibreCollector] PROBLEM: Off-site backup failing", problem.Subject);
         Assert.Contains("AccessDenied", problem.Body);
 
-        tests._health.RecordOffsite(tests._time.GetUtcNow());
+        tests._backupHealth.RecordOffsite(tests._time.GetUtcNow());
         await tests._monitor.CheckAsync(CancellationToken.None);
         Assert.Equal("[LibreCollector] RESOLVED: Off-site backup failing", tests._sender.Sent[^1].Subject);
     }
@@ -94,8 +98,8 @@ public sealed class LibreAlertMonitorTests : IDisposable
     public async Task Offsite_misconfiguration_alerts_immediately()
     {
         var tests = new LibreAlertMonitorTests(backupsEnabled: true, offsiteEnabled: true);
-        tests._health.RecordBackup(tests._time.GetUtcNow());
-        tests._health.RecordOffsiteFailure(new OffsiteMisconfiguredException("Offsite:Region is not set."));
+        tests._backupHealth.RecordBackup(tests._time.GetUtcNow());
+        tests._backupHealth.RecordOffsiteFailure(new OffsiteMisconfiguredException("Offsite:Region is not set."));
 
         tests._health.RecordReading(tests._time.GetUtcNow());
         await tests._monitor.CheckAsync(CancellationToken.None);
@@ -211,7 +215,7 @@ public sealed class LibreAlertMonitorTests : IDisposable
     public async Task Backup_alert_after_36_hours_without_a_good_backup_then_resolves()
     {
         var tests = new LibreAlertMonitorTests(backupsEnabled: true);
-        tests._health.RecordBackup(tests._time.GetUtcNow());
+        tests._backupHealth.RecordBackup(tests._time.GetUtcNow());
 
         // Keep readings fresh so only the backup alert can fire.
         for (var hour = 1; hour <= 36; hour++)
@@ -223,7 +227,7 @@ public sealed class LibreAlertMonitorTests : IDisposable
 
         Assert.Empty(tests._sender.Sent);
 
-        tests._health.RecordBackupFailure(new IOException("Disk full"));
+        tests._backupHealth.RecordBackupFailure(new IOException("Disk full"));
         tests._time.Advance(TimeSpan.FromMinutes(1));
         tests._health.RecordReading(tests._time.GetUtcNow());
         await tests._monitor.CheckAsync(CancellationToken.None);
@@ -232,7 +236,7 @@ public sealed class LibreAlertMonitorTests : IDisposable
         Assert.Equal("[LibreCollector] PROBLEM: Backups failing", problem.Subject);
         Assert.Contains("IOException: Disk full", problem.Body);
 
-        tests._health.RecordBackup(tests._time.GetUtcNow());
+        tests._backupHealth.RecordBackup(tests._time.GetUtcNow());
         await tests._monitor.CheckAsync(CancellationToken.None);
 
         Assert.Equal("[LibreCollector] RESOLVED: Backups failing", tests._sender.Sent[^1].Subject);

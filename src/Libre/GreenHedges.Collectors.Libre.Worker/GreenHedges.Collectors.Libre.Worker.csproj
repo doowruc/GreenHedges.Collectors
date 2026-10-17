@@ -5,10 +5,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="AWSSDK.S3" />
-  </ItemGroup>
-
-  <ItemGroup>
     <InternalsVisibleTo Include="GreenHedges.Collectors.Libre.Worker.Tests" />
   </ItemGroup>
 
