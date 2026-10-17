@@ -1,5 +1,8 @@
 <Solution>
   <Folder Name="/src/" />
+  <Folder Name="/src/Common/">
+    <Project Path="src/Common/GreenHedges.Collectors.Common/GreenHedges.Collectors.Common.csproj" />
+  </Folder>
   <Folder Name="/src/Libre/">
     <Project Path="src/Libre/GreenHedges.Collectors.Libre.LibreLinkUp/GreenHedges.Collectors.Libre.LibreLinkUp.csproj" />
     <Project Path="src/Libre/GreenHedges.Collectors.Libre.LibreView/GreenHedges.Collectors.Libre.LibreView.csproj" />
@@ -8,6 +11,9 @@
     <Project Path="src/Libre/GreenHedges.Collectors.Libre.Worker/GreenHedges.Collectors.Libre.Worker.csproj" />
   </Folder>
   <Folder Name="/tests/" />
+  <Folder Name="/tests/Common/">
+    <Project Path="tests/Common/GreenHedges.Collectors.Common.Tests/GreenHedges.Collectors.Common.Tests.csproj" />
+  </Folder>
   <Folder Name="/tests/Libre/">
     <Project Path="tests/Libre/GreenHedges.Collectors.Libre.LibreLinkUp.Tests/GreenHedges.Collectors.Libre.LibreLinkUp.Tests.csproj" />
     <Project Path="tests/Libre/GreenHedges.Collectors.Libre.LibreView.Tests/GreenHedges.Collectors.Libre.LibreView.Tests.csproj" />

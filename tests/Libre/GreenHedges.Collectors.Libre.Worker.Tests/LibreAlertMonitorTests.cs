@@ -1,4 +1,6 @@
 using System.Net;
+using GreenHedges.Collectors.Common.Alerts;
+using GreenHedges.Collectors.Common.Hosting;
 using GreenHedges.Collectors.Libre.LibreLinkUp;
 using GreenHedges.Collectors.Libre.Nightscout;
 using GreenHedges.Collectors.Libre.Worker.Alerts;
@@ -9,7 +11,7 @@ using Microsoft.Extensions.Time.Testing;
 
 namespace GreenHedges.Collectors.Libre.Worker.Tests;
 
-public sealed class AlertMonitorServiceTests : IDisposable
+public sealed class LibreAlertMonitorTests : IDisposable
 {
     private readonly FakeTimeProvider _time = new(new DateTimeOffset(2026, 10, 17, 9, 0, 0, TimeSpan.Zero));
     private readonly RecordingSender _sender = new();
@@ -17,14 +19,14 @@ public sealed class AlertMonitorServiceTests : IDisposable
     private readonly bool _backupsEnabled;
     private readonly bool _offsiteEnabled;
     private CollectorHealth _health = null!;
-    private AlertMonitorService _monitor = null!;
+    private LibreAlertMonitor _monitor = null!;
 
-    public AlertMonitorServiceTests()
+    public LibreAlertMonitorTests()
         : this(backupsEnabled: false)
     {
     }
 
-    private AlertMonitorServiceTests(bool backupsEnabled, bool offsiteEnabled = false)
+    private LibreAlertMonitorTests(bool backupsEnabled, bool offsiteEnabled = false)
     {
         _backupsEnabled = backupsEnabled;
         _offsiteEnabled = offsiteEnabled;
@@ -37,16 +39,21 @@ public sealed class AlertMonitorServiceTests : IDisposable
     private void Start()
     {
         _health = new CollectorHealth(_time);
-        _monitor = new AlertMonitorService(
+        _monitor = new LibreAlertMonitor(
             _health,
-            _sender,
-            Options.Create(new AlertOptions { StaleAfter = TimeSpan.FromMinutes(20) }),
+            new AlertBook(
+                _sender,
+                new AlertStateStore(_statePath, NullLogger<AlertStateStore>.Instance),
+                new CollectorIdentity("LibreCollector"),
+                _time,
+                NullLogger<AlertBook>.Instance),
+            Options.Create(new AlertOptions()),
+            Options.Create(new LibreAlertOptions { StaleAfter = TimeSpan.FromMinutes(20) }),
             Options.Create(new BackupOptions { Enabled = _backupsEnabled, AlertAfter = TimeSpan.FromHours(36) }),
             Options.Create(new NightscoutOptions { BaseUrl = "http://127.0.0.1:1337" }),
             Options.Create(new OffsiteOptions { Bucket = _offsiteEnabled ? "bucket" : null, AlertAfter = TimeSpan.FromHours(36) }),
-            new AlertStateStore(_statePath, NullLogger<AlertStateStore>.Instance),
             _time,
-            NullLogger<AlertMonitorService>.Instance);
+            NullLogger<LibreAlertMonitor>.Instance);
     }
 
     private async Task RestartAsync()
@@ -58,7 +65,7 @@ public sealed class AlertMonitorServiceTests : IDisposable
     [Fact]
     public async Task Offsite_alert_after_36_hours_without_a_copy_then_resolves()
     {
-        var tests = new AlertMonitorServiceTests(backupsEnabled: true, offsiteEnabled: true);
+        var tests = new LibreAlertMonitorTests(backupsEnabled: true, offsiteEnabled: true);
         tests._health.RecordOffsite(tests._time.GetUtcNow());
 
         for (var hour = 1; hour <= 37; hour++)
@@ -86,7 +93,7 @@ public sealed class AlertMonitorServiceTests : IDisposable
     [Fact]
     public async Task Offsite_misconfiguration_alerts_immediately()
     {
-        var tests = new AlertMonitorServiceTests(backupsEnabled: true, offsiteEnabled: true);
+        var tests = new LibreAlertMonitorTests(backupsEnabled: true, offsiteEnabled: true);
         tests._health.RecordBackup(tests._time.GetUtcNow());
         tests._health.RecordOffsiteFailure(new OffsiteMisconfiguredException("Offsite:Region is not set."));
 
@@ -203,7 +210,7 @@ public sealed class AlertMonitorServiceTests : IDisposable
     [Fact]
     public async Task Backup_alert_after_36_hours_without_a_good_backup_then_resolves()
     {
-        var tests = new AlertMonitorServiceTests(backupsEnabled: true);
+        var tests = new LibreAlertMonitorTests(backupsEnabled: true);
         tests._health.RecordBackup(tests._time.GetUtcNow());
 
         // Keep readings fresh so only the backup alert can fire.

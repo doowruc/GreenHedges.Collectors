@@ -14,6 +14,7 @@ Shared by both: a .NET 10 Worker Service under systemd, SQLite archives that kee
 | Path | What |
 |---|---|
 | `GreenHedges.Collectors.slnx` | The one solution |
+| `src/Common/`, `tests/Common/` | Shared by every collector (`GreenHedges.Collectors.Common`): host setup, email alerts, heartbeat |
 | `src/Libre/`, `tests/Libre/` | The Libre collector (`GreenHedges.Collectors.Libre.*`) |
 | `deploy/libre/` | Its systemd unit, deploy script, host setup, Nightscout stack and backup pull |
 | `docs/libre/` | Its README (setup and use) and design notes |

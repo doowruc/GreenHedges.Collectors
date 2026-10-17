@@ -1,10 +1,12 @@
+using GreenHedges.Collectors.Common.Heartbeat;
+
 namespace GreenHedges.Collectors.Libre.Worker;
 
 /// <summary>
 /// What the collector has done lately, shared with the alert monitor. Kept separate from the
 /// collector loop so a stuck or paused loop still shows up as stale data.
 /// </summary>
-public sealed class CollectorHealth(TimeProvider time)
+public sealed class CollectorHealth(TimeProvider time) : IHeartbeatSource
 {
     private readonly Lock _lock = new();
     private DateTimeOffset? _latestReadingAt;
@@ -114,6 +116,15 @@ public sealed class CollectorHealth(TimeProvider time)
         {
             _lastOffsiteError = error;
         }
+    }
+
+    /// <summary>Healthy for the heartbeat if LibreLinkUp was polled successfully within the interval.</summary>
+    public string? HealthyStatus(DateTimeOffset now, TimeSpan interval)
+    {
+        var snapshot = Snapshot();
+        return snapshot.LastSuccessAt is { } lastSuccess && now - lastSuccess <= interval
+            ? $"Last successful poll {lastSuccess:u}; newest reading {snapshot.LatestReadingAt:u}"
+            : null;
     }
 
     public CollectorHealthSnapshot Snapshot()

@@ -1,10 +1,11 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
-using GreenHedges.Collectors.Libre.Worker.Alerts;
+using GreenHedges.Collectors.Common.Alerts;
+using GreenHedges.Collectors.Common.Hosting;
 using Microsoft.Extensions.Options;
 
-namespace GreenHedges.Collectors.Libre.Worker.Tests;
+namespace GreenHedges.Collectors.Common.Tests;
 
 public sealed class ResendAlertSenderTests
 {
@@ -17,7 +18,8 @@ public sealed class ResendAlertSenderTests
             ResendApiKey = "re_test_key",
             From = "LibreCollector <alerts@example.com>",
             To = ["me@example.com"],
-        }));
+        }),
+        new CollectorIdentity("TestCollector"));
 
     [Fact]
     public async Task Posts_plain_text_email_to_resend()
@@ -32,6 +34,7 @@ public sealed class ResendAlertSenderTests
         Assert.Equal(HttpMethod.Post, _handler.Method);
         Assert.Equal("https://api.resend.com/emails", _handler.Uri?.ToString());
         Assert.Equal("Bearer re_test_key", _handler.Authorization);
+        Assert.Equal("TestCollector/1.0", _handler.UserAgent);
 
         using var body = JsonDocument.Parse(_handler.Body!);
         var root = body.RootElement;
@@ -66,6 +69,8 @@ public sealed class ResendAlertSenderTests
 
         public string? Authorization { get; private set; }
 
+        public string? UserAgent { get; private set; }
+
         public string? Body { get; private set; }
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -73,6 +78,7 @@ public sealed class ResendAlertSenderTests
             Method = request.Method;
             Uri = request.RequestUri;
             Authorization = request.Headers.Authorization?.ToString();
+            UserAgent = request.Headers.UserAgent.ToString();
             Body = request.Content is null ? null : await request.Content.ReadAsStringAsync(cancellationToken);
             return Response;
         }

@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace GreenHedges.Collectors.Libre.Worker.Alerts;
+namespace GreenHedges.Collectors.Common.Alerts;
 
 /// <summary>An open alert as saved between restarts.</summary>
 /// <param name="Since">When the problem started.</param>

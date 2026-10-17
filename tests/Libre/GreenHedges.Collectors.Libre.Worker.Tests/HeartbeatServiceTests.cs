@@ -1,5 +1,5 @@
 using System.Net;
-using GreenHedges.Collectors.Libre.Worker.Alerts;
+using GreenHedges.Collectors.Common.Heartbeat;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
