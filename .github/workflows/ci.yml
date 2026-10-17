@@ -30,6 +30,9 @@ jobs:
       - name: Install age (used by the off-site backup tests)
         run: sudo apt-get update -qq && sudo apt-get install -y -qq age
 
+      - name: Lint CloudFormation templates
+        run: pipx run --spec cfn-lint==1.45.0 cfn-lint deploy/aws/*.yaml
+
       - name: Restore
         run: dotnet restore
 

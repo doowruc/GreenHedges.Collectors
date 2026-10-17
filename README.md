@@ -18,6 +18,7 @@ Shared by both: a .NET 10 Worker Service under systemd, SQLite archives that kee
 | `src/Libre/`, `tests/Libre/` | The Libre collector (`GreenHedges.Collectors.Libre.*`) |
 | `deploy/libre/` | Its systemd unit, deploy script, host setup, Nightscout stack and backup pull |
 | `docs/libre/` | Its README (setup and use) and design notes |
+| `deploy/aws/` | CloudFormation for the shared off-site backup bucket and its write-only users |
 | `deploy/local.env.example` | Personal defaults for the deploy scripts (copy to the git-ignored `deploy/local.env`) |
 
 Building, testing and the pull-request workflow: [CONTRIBUTING.md](CONTRIBUTING.md).

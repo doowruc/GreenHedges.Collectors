@@ -1,0 +1,151 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  Off-site backups for GreenHedges.Collectors: one private, versioned S3 bucket shared by every
+  collector, each uploading age-encrypted nightly backups under its own prefix with a write-only IAM
+  user, so a compromised host can add copies but never read, list or delete them.
+
+Metadata:
+  AWSToolsMetrics:
+    AWSAgentToolkit: aws-cloudformation@3
+  com.aws.cloudformation.Context:
+    arch: collector on home host -> age encrypt (public key only on host) -> s3:PutObject <prefix>/<file>.age -> Deep Archive after N days
+    must:
+      - backups are only ever added; nothing in this stack may grant read, list or delete to a collector
+      - access keys are created by hand after deploy (CLI or console) straight into the password manager; never in this template or its outputs
+    ref:
+      - at: deploy/aws/README.md
+        has: deploy, access keys, switching a collector over
+
+Parameters:
+  BucketName:
+    Type: String
+    Description: Globally unique name for the shared off-site bucket.
+    AllowedPattern: "^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$"
+  DeepArchiveAfterDays:
+    Type: Number
+    Default: 30
+    MinValue: 1
+    Description: Days before copies (current and older versions) move to S3 Glacier Deep Archive.
+  LibrePrefix:
+    Type: String
+    Default: librecollector
+    Description: Key prefix for the Libre collector's copies (its Offsite:Prefix setting).
+    AllowedPattern: "^[a-z0-9][a-z0-9-]*$"
+  WeatherPrefix:
+    Type: String
+    Default: weathercollector
+    Description: Key prefix for the Weather collector's copies (its Offsite:Prefix setting).
+    AllowedPattern: "^[a-z0-9][a-z0-9-]*$"
+
+Resources:
+  OffsiteBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: single bucket for all collectors, split by prefix; versioning keeps any overwritten copy; Deep Archive keeps years of copies for pennies (restore 12-48 h, fine for disaster recovery)
+        must:
+          - never public
+          - no expiration rule: copies are kept forever
+        mutable: change-with-constraints
+        mutability:
+          BucketName: must-never-change
+    Properties:
+      BucketName: !Ref BucketName
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeepArchive
+            Status: Enabled
+            Transitions:
+              - StorageClass: DEEP_ARCHIVE
+                TransitionInDays: !Ref DeepArchiveAfterDays
+            NoncurrentVersionTransitions:
+              - StorageClass: DEEP_ARCHIVE
+                TransitionInDays: !Ref DeepArchiveAfterDays
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 7
+
+  OffsiteBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: refuse anything not over TLS
+    Properties:
+      Bucket: !Ref OffsiteBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: DenyInsecureTransport
+            Effect: Deny
+            Principal: "*"
+            Action: "s3:*"
+            Resource:
+              - !GetAtt OffsiteBucket.Arn
+              - !Sub "${OffsiteBucket.Arn}/*"
+            Condition:
+              Bool:
+                aws:SecureTransport: "false"
+
+  LibreUploader:
+    Type: AWS::IAM::User
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: the Libre collector's off-site key (env file on the host); one user per collector so a leaked key reaches one prefix only
+        must:
+          - s3:PutObject on its own prefix only
+    Properties:
+      UserName: !Sub "${AWS::StackName}-libre"
+      Policies:
+        - PolicyName: UploadOffsiteBackupsOnly
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: UploadOffsiteBackupsOnly
+                Effect: Allow
+                Action: s3:PutObject
+                Resource: !Sub "${OffsiteBucket.Arn}/${LibrePrefix}/*"
+
+  WeatherUploader:
+    Type: AWS::IAM::User
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: the Weather collector's off-site key; same shape as LibreUploader
+        must:
+          - s3:PutObject on its own prefix only
+    Properties:
+      UserName: !Sub "${AWS::StackName}-weather"
+      Policies:
+        - PolicyName: UploadOffsiteBackupsOnly
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: UploadOffsiteBackupsOnly
+                Effect: Allow
+                Action: s3:PutObject
+                Resource: !Sub "${OffsiteBucket.Arn}/${WeatherPrefix}/*"
+
+Outputs:
+  BucketName:
+    Description: Offsite:Bucket for every collector.
+    Value: !Ref OffsiteBucket
+  LibreUser:
+    Description: IAM user to create the Libre collector's access key for.
+    Value: !Ref LibreUploader
+  WeatherUser:
+    Description: IAM user to create the Weather collector's access key for.
+    Value: !Ref WeatherUploader
