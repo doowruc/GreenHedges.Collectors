@@ -1,4 +1,4 @@
-namespace GreenHedges.Collectors.Libre.Worker.Alerts;
+namespace GreenHedges.Collectors.Common.Alerts;
 
 public interface IAlertSender
 {

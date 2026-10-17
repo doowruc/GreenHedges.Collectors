@@ -1,18 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk.Worker">
 
   <PropertyGroup>
-    <UserSecretsId>dotnet-GreenHedges.Collectors.Libre.Worker-2c08a2a9-7f3a-4ec6-b493-2882fdbeb680</UserSecretsId>
+    <UserSecretsId>dotnet-LibreCollector.Worker-2c08a2a9-7f3a-4ec6-b493-2882fdbeb680</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="AWSSDK.S3" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" />
-    <PackageReference Include="Microsoft.Extensions.Hosting.Systemd" />
-    <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" />
-    <PackageReference Include="Serilog.Extensions.Hosting" />
-    <PackageReference Include="Serilog.Settings.Configuration" />
-    <PackageReference Include="Serilog.Sinks.Console" />
-    <PackageReference Include="Serilog.Sinks.File" />
   </ItemGroup>
 
   <ItemGroup>
@@ -20,6 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\Common\GreenHedges.Collectors.Common\GreenHedges.Collectors.Common.csproj" />
     <ProjectReference Include="..\GreenHedges.Collectors.Libre.LibreLinkUp\GreenHedges.Collectors.Libre.LibreLinkUp.csproj" />
     <ProjectReference Include="..\GreenHedges.Collectors.Libre.LibreView\GreenHedges.Collectors.Libre.LibreView.csproj" />
     <ProjectReference Include="..\GreenHedges.Collectors.Libre.Nightscout\GreenHedges.Collectors.Libre.Nightscout.csproj" />

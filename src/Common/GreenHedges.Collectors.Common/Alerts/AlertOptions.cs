@@ -1,5 +1,9 @@
-namespace GreenHedges.Collectors.Libre.Worker.Alerts;
+namespace GreenHedges.Collectors.Common.Alerts;
 
+/// <summary>
+/// Alert delivery settings shared by every collector (section <c>Alerts</c>). A collector binds its own
+/// thresholds from the same section.
+/// </summary>
 public sealed class AlertOptions
 {
     public const string SectionName = "Alerts";
@@ -12,13 +16,7 @@ public sealed class AlertOptions
 
     public string[] To { get; set; } = [];
 
-    /// <summary>Alert if the newest current reading is older than this.</summary>
-    public TimeSpan StaleAfter { get; set; } = TimeSpan.FromMinutes(20);
-
     public TimeSpan CheckInterval { get; set; } = TimeSpan.FromMinutes(1);
-
-    /// <summary>Alert if Nightscout publishing has been failing for this long.</summary>
-    public TimeSpan PublishStalledAfter { get; set; } = TimeSpan.FromMinutes(30);
 
     /// <summary>
     /// File that keeps open alerts across restarts. A relative path is resolved against the working

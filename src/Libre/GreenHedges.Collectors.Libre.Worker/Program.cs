@@ -1,4 +1,7 @@
 using System.Net;
+using GreenHedges.Collectors.Common.Alerts;
+using GreenHedges.Collectors.Common.Heartbeat;
+using GreenHedges.Collectors.Common.Hosting;
 using GreenHedges.Collectors.Libre.LibreLinkUp;
 using GreenHedges.Collectors.Libre.LibreView;
 using GreenHedges.Collectors.Libre.Nightscout;
@@ -8,25 +11,10 @@ using GreenHedges.Collectors.Libre.Worker.Alerts;
 using GreenHedges.Collectors.Libre.Worker.Backups;
 using GreenHedges.Collectors.Libre.Worker.Publishing;
 using Microsoft.Extensions.Options;
-using Serilog;
 
-// Config (appsettings.json) always loads from the app directory. Data (database, logs) goes in the
-// working directory, so the install can stay read-only (systemd WorkingDirectory=/var/lib/...).
-var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
-{
-    Args = args,
-    ContentRootPath = AppContext.BaseDirectory,
-});
-
-// Runs as a Windows Service or under systemd; does nothing when run from a console.
-builder.Services.AddWindowsService(options => options.ServiceName = "LibreCollector");
-builder.Services.AddSystemd();
-
-builder.Services.AddSerilog((services, logger) => logger
-    .ReadFrom.Configuration(builder.Configuration)
-    .ReadFrom.Services(services));
-
-builder.Services.AddSingleton(TimeProvider.System);
+var builder = CollectorHost.CreateBuilder(args, "LibreCollector");
+builder.AddAlerting();
+builder.AddHeartbeat();
 
 builder.Services.AddOptions<LibreLinkUpOptions>()
     .BindConfiguration(LibreLinkUpOptions.SectionName)
@@ -36,12 +24,7 @@ builder.Services.AddOptions<LibreLinkUpOptions>()
     .ValidateOnStart();
 builder.Services.AddOptions<CollectorOptions>().BindConfiguration(CollectorOptions.SectionName);
 builder.Services.AddOptions<ArchiveOptions>().BindConfiguration(ArchiveOptions.SectionName);
-builder.Services.AddOptions<AlertOptions>()
-    .BindConfiguration(AlertOptions.SectionName)
-    .Validate(
-        o => !o.EmailEnabled || (!string.IsNullOrWhiteSpace(o.From) && o.To.Length > 0),
-        "Alerts:From and Alerts:To must be set when Alerts:ResendApiKey is set.")
-    .ValidateOnStart();
+builder.Services.AddOptions<LibreAlertOptions>().BindConfiguration(AlertOptions.SectionName);
 builder.Services.AddOptions<BackupOptions>().BindConfiguration(BackupOptions.SectionName);
 // Not validated at startup: a bad off-site setting is reported by OffsiteBackupService (log + immediate
 // alert) instead of stopping the collector.
@@ -52,13 +35,6 @@ builder.Services.AddOptions<NightscoutOptions>()
         o => !o.Enabled
             || (Uri.TryCreate(o.BaseUrl, UriKind.Absolute, out _) && o.ApiSecret is { Length: >= 12 } && o.BatchSize > 0),
         "Nightscout:BaseUrl must be an absolute URL, and Nightscout:ApiSecret at least 12 characters, when publishing is on.")
-    .ValidateOnStart();
-builder.Services.AddOptions<HeartbeatOptions>()
-    .BindConfiguration(HeartbeatOptions.SectionName)
-    .Validate(
-        o => string.IsNullOrWhiteSpace(o.PingUrl)
-            || (Uri.TryCreate(o.PingUrl, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps),
-        "Heartbeat:PingUrl must be an absolute https URL.")
     .ValidateOnStart();
 
 // The client holds the auth session, so it's a singleton with a long-lived HttpClient.
@@ -82,28 +58,11 @@ builder.Services.AddSingleton(services =>
     return new GlucoseArchive(Path.GetFullPath(path));
 });
 
-// Email via Resend if an API key is configured; otherwise alerts are only logged.
-if (builder.Configuration.GetSection(AlertOptions.SectionName).Get<AlertOptions>()?.EmailEnabled == true)
-{
-    builder.Services.AddSingleton<IAlertSender>(services => new ResendAlertSender(
-        new HttpClient(new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(5) })
-        {
-            Timeout = TimeSpan.FromSeconds(30),
-        },
-        services.GetRequiredService<IOptions<AlertOptions>>()));
-}
-else
-{
-    builder.Services.AddSingleton<IAlertSender, LoggingAlertSender>();
-}
-
 builder.Services.AddSingleton<CollectorHealth>();
-builder.Services.AddSingleton(services => new AlertStateStore(
-    Path.GetFullPath(services.GetRequiredService<IOptions<AlertOptions>>().Value.StateFile),
-    services.GetRequiredService<ILogger<AlertStateStore>>()));
+builder.Services.AddSingleton<IHeartbeatSource>(services => services.GetRequiredService<CollectorHealth>());
 builder.Services.AddSingleton<SensorTracker>();
 builder.Services.AddHostedService<CollectorService>();
-builder.Services.AddHostedService<AlertMonitorService>();
+builder.Services.AddHostedService<LibreAlertMonitor>();
 builder.Services.AddHostedService<BackupService>();
 builder.Services.AddSingleton<IBackupEncryptor>(services =>
 {
@@ -123,26 +82,12 @@ builder.Services.AddSingleton(services => new NightscoutClient(
     services.GetRequiredService<IOptions<NightscoutOptions>>()));
 builder.Services.AddSingleton<NightscoutPublisher>();
 builder.Services.AddHostedService<NightscoutPublisherService>();
-builder.Services.AddHostedService(services => new HeartbeatService(
-    new HttpClient(new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(5) })
-    {
-        Timeout = TimeSpan.FromSeconds(15),
-    },
-    services.GetRequiredService<CollectorHealth>(),
-    services.GetRequiredService<IOptions<HeartbeatOptions>>(),
-    services.GetRequiredService<TimeProvider>(),
-    services.GetRequiredService<ILogger<HeartbeatService>>()));
 
 var host = builder.Build();
 
 // `--test-alert` sends one alert through the configured sender and exits, to check the Resend setup.
-if (args.Contains("--test-alert"))
+if (await host.TrySendTestAlertAsync(args))
 {
-    await host.Services.GetRequiredService<IAlertSender>().SendAsync(
-        "[LibreCollector] Test alert",
-        $"Test alert from {Environment.MachineName} at {DateTimeOffset.UtcNow:u}. If you can read this, alerts work.",
-        CancellationToken.None);
-    Console.WriteLine("Test alert sent.");
     return 0;
 }
 

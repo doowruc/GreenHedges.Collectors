@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Options;
 
-namespace GreenHedges.Collectors.Libre.Worker.Alerts;
+namespace GreenHedges.Collectors.Common.Heartbeat;
 
 public sealed class HeartbeatOptions
 {
@@ -16,15 +16,24 @@ public sealed class HeartbeatOptions
     public TimeSpan Interval { get; set; } = TimeSpan.FromMinutes(5);
 }
 
+/// <summary>What the heartbeat asks the collector before each ping.</summary>
+public interface IHeartbeatSource
+{
+    /// <summary>
+    /// A short status for the ping if the collector has worked within the last <paramref name="interval"/>,
+    /// or null to skip the ping.
+    /// </summary>
+    string? HealthyStatus(DateTimeOffset now, TimeSpan interval);
+}
+
 /// <summary>
-/// Off-machine dead man's switch. Pings an external monitor while the collector is polling
-/// successfully. If this machine is off, stuck at the LUKS prompt, offline, or the collector
-/// keeps failing, the pings stop and the external service sends the alert, which the on-machine
-/// <see cref="AlertMonitorService"/> can't do in those cases.
+/// Off-machine dead man's switch. Pings an external monitor while the collector is working. If this
+/// machine is off, stuck at the LUKS prompt, offline, or the collector keeps failing, the pings stop
+/// and the external service sends the alert, which the on-machine alert monitor can't do in those cases.
 /// </summary>
 public sealed class HeartbeatService(
     HttpClient http,
-    CollectorHealth health,
+    IHeartbeatSource source,
     IOptions<HeartbeatOptions> options,
     TimeProvider time,
     ILogger<HeartbeatService> logger) : BackgroundService
@@ -53,22 +62,18 @@ public sealed class HeartbeatService(
         }
     }
 
-    /// <summary>Pings if the collector has polled successfully within the last interval. Never throws.</summary>
-    internal async Task<bool> PingIfHealthyAsync(CancellationToken cancellationToken)
+    /// <summary>Pings if the collector has worked within the last interval. Never throws.</summary>
+    public async Task<bool> PingIfHealthyAsync(CancellationToken cancellationToken)
     {
-        var snapshot = health.Snapshot();
-        var now = time.GetUtcNow();
-
-        if (snapshot.LastSuccessAt is not { } lastSuccess || now - lastSuccess > _options.Interval)
+        if (source.HealthyStatus(time.GetUtcNow(), _options.Interval) is not { } status)
         {
-            logger.LogDebug("Heartbeat skipped: no successful poll in the last {Interval}", _options.Interval);
+            logger.LogDebug("Heartbeat skipped: not healthy in the last {Interval}", _options.Interval);
             return false;
         }
 
         try
         {
-            using var content = new StringContent(
-                $"Last successful poll {lastSuccess:u}; newest reading {snapshot.LatestReadingAt:u}");
+            using var content = new StringContent(status);
             using var response = await http.PostAsync(_options.PingUrl, content, cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
