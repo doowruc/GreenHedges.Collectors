@@ -97,7 +97,7 @@ From your computer:
 deploy/libre/deploy.sh you@your-host
 ```
 
-To avoid typing the host every time, copy [`deploy/local.env.example`](../../deploy/local.env.example) to `deploy/local.env` (git-ignored) and set `LIBRECOLLECTOR_SSH`; then `deploy/libre/deploy.sh` needs no argument.
+To avoid typing the host every time, copy [`deploy/local.env.example`](../../deploy/local.env.example) to `deploy/local.env` (git-ignored) and set `COLLECTORS_SSH`; then `deploy/libre/deploy.sh` needs no argument.
 
 It publishes a self-contained Linux build, installs it to `/opt/librecollector` with the systemd unit, and restarts the service (data lives in `/var/lib/librecollector`). The output ends with the service status and recent log lines. Then send yourself a test email from the host:
 
