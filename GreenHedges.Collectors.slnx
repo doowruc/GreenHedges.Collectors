@@ -1,0 +1,18 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/Libre/">
+    <Project Path="src/Libre/GreenHedges.Collectors.Libre.LibreLinkUp/GreenHedges.Collectors.Libre.LibreLinkUp.csproj" />
+    <Project Path="src/Libre/GreenHedges.Collectors.Libre.LibreView/GreenHedges.Collectors.Libre.LibreView.csproj" />
+    <Project Path="src/Libre/GreenHedges.Collectors.Libre.Nightscout/GreenHedges.Collectors.Libre.Nightscout.csproj" />
+    <Project Path="src/Libre/GreenHedges.Collectors.Libre.Storage/GreenHedges.Collectors.Libre.Storage.csproj" />
+    <Project Path="src/Libre/GreenHedges.Collectors.Libre.Worker/GreenHedges.Collectors.Libre.Worker.csproj" />
+  </Folder>
+  <Folder Name="/tests/" />
+  <Folder Name="/tests/Libre/">
+    <Project Path="tests/Libre/GreenHedges.Collectors.Libre.LibreLinkUp.Tests/GreenHedges.Collectors.Libre.LibreLinkUp.Tests.csproj" />
+    <Project Path="tests/Libre/GreenHedges.Collectors.Libre.LibreView.Tests/GreenHedges.Collectors.Libre.LibreView.Tests.csproj" />
+    <Project Path="tests/Libre/GreenHedges.Collectors.Libre.Nightscout.Tests/GreenHedges.Collectors.Libre.Nightscout.Tests.csproj" />
+    <Project Path="tests/Libre/GreenHedges.Collectors.Libre.Storage.Tests/GreenHedges.Collectors.Libre.Storage.Tests.csproj" />
+    <Project Path="tests/Libre/GreenHedges.Collectors.Libre.Worker.Tests/GreenHedges.Collectors.Libre.Worker.Tests.csproj" />
+  </Folder>
+</Solution>

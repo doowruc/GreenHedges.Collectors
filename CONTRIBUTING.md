@@ -1,8 +1,18 @@
 # Contributing
 
+## Build and test
+
+```bash
+dotnet build
+dotnet test
+```
+
+.NET 10 SDK (pinned in `global.json`). One solution (`GreenHedges.Collectors.slnx`) holds every collector. Warnings are errors, and a NuGet vulnerability advisory fails the restore.
+
 ## Workflow
 
 - Never commit to `main` directly. Create a branch, push it, and open a pull request.
+- **CI** (`.github/workflows/ci.yml`) builds and runs all tests on every pull request and on `main`. Merge only when it's green.
 - PRs are merged with a merge commit; branches are kept.
 
 A **local guard** blocks pushes to `main` and force pushes. Enable it once per clone:
