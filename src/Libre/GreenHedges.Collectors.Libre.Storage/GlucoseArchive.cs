@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
+using GreenHedges.Collectors.Common.Sqlite;
 using Microsoft.Data.Sqlite;
 
 namespace GreenHedges.Collectors.Libre.Storage;
@@ -126,47 +127,14 @@ public sealed class GlucoseArchive
         """,
     ];
 
-    private readonly string _connectionString;
+    private readonly SqliteDatabase _database;
 
-    public GlucoseArchive(string databasePath)
-    {
-        _connectionString = new SqliteConnectionStringBuilder
-        {
-            DataSource = databasePath,
-            Mode = SqliteOpenMode.ReadWriteCreate,
-        }.ToString();
-    }
+    public GlucoseArchive(string databasePath) => _database = new SqliteDatabase(databasePath, Migrations);
 
     public static int SchemaVersion => Migrations.Length;
 
     /// <summary>Creates the database if needed and applies any pending migrations.</summary>
-    public async Task InitialiseAsync(CancellationToken cancellationToken)
-    {
-        await using var connection = await OpenAsync(cancellationToken);
-
-        await using (var wal = connection.CreateCommand())
-        {
-            wal.CommandText = "PRAGMA journal_mode = WAL;";
-            await wal.ExecuteNonQueryAsync(cancellationToken);
-        }
-
-        var version = await GetUserVersionAsync(connection, cancellationToken);
-        if (version > Migrations.Length)
-        {
-            throw new InvalidOperationException(
-                $"Database schema version {version} is newer than this build supports ({Migrations.Length}).");
-        }
-
-        for (var next = version; next < Migrations.Length; next++)
-        {
-            await using var transaction = (SqliteTransaction)await connection.BeginTransactionAsync(cancellationToken);
-            await using var command = connection.CreateCommand();
-            command.Transaction = transaction;
-            command.CommandText = $"{Migrations[next]}\nPRAGMA user_version = {next + 1};";
-            await command.ExecuteNonQueryAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
-        }
-    }
+    public Task InitialiseAsync(CancellationToken cancellationToken) => _database.InitialiseAsync(cancellationToken);
 
     /// <summary>Inserts readings, ignoring any already archived. Returns the number of new rows.</summary>
     public async Task<int> InsertAsync(IReadOnlyCollection<ArchivedReading> readings, CancellationToken cancellationToken)
@@ -249,33 +217,8 @@ public sealed class GlucoseArchive
     /// safe while the collector is writing. The copy uses a rollback journal, so it's a single
     /// self-contained file, and it's integrity-checked before returning.
     /// </summary>
-    public async Task BackupToAsync(string destinationPath, CancellationToken cancellationToken)
-    {
-        File.Delete(destinationPath);
-
-        await using var source = await OpenAsync(cancellationToken);
-        await using (var destination = new SqliteConnection(new SqliteConnectionStringBuilder
-        {
-            DataSource = destinationPath,
-            Mode = SqliteOpenMode.ReadWriteCreate,
-            Pooling = false,
-        }.ToString()))
-        {
-            await destination.OpenAsync(cancellationToken);
-            source.BackupDatabase(destination);
-
-            await using var command = destination.CreateCommand();
-            command.CommandText = "PRAGMA journal_mode = DELETE;";
-            await command.ExecuteNonQueryAsync(cancellationToken);
-
-            command.CommandText = "PRAGMA integrity_check;";
-            var result = await command.ExecuteScalarAsync(cancellationToken) as string;
-            if (result != "ok")
-            {
-                throw new InvalidOperationException($"Backup integrity check failed: {result}");
-            }
-        }
-    }
+    public Task BackupToAsync(string destinationPath, CancellationToken cancellationToken) =>
+        _database.BackupToAsync(destinationPath, cancellationToken);
 
     /// <summary>
     /// Readings with an id greater than <paramref name="afterId"/>, in insertion (id) order.
@@ -502,19 +445,7 @@ public sealed class GlucoseArchive
             reader.GetString(6));
     }
 
-    private async Task<SqliteConnection> OpenAsync(CancellationToken cancellationToken)
-    {
-        var connection = new SqliteConnection(_connectionString);
-        await connection.OpenAsync(cancellationToken);
-        return connection;
-    }
-
-    private static async Task<long> GetUserVersionAsync(SqliteConnection connection, CancellationToken cancellationToken)
-    {
-        await using var command = connection.CreateCommand();
-        command.CommandText = "PRAGMA user_version;";
-        return (long)(await command.ExecuteScalarAsync(cancellationToken))!;
-    }
+    private Task<SqliteConnection> OpenAsync(CancellationToken cancellationToken) => _database.OpenAsync(cancellationToken);
 
     private static string FormatTimestamp(DateTimeOffset value) =>
         value.UtcDateTime.ToString(TimestampFormat, CultureInfo.InvariantCulture);
