@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\Common\GreenHedges.Collectors.Common\GreenHedges.Collectors.Common.csproj" />
+    <ProjectReference Include="..\..\..\src\Common\GreenHedges.Collectors.Common.Sqlite\GreenHedges.Collectors.Common.Sqlite.csproj" />
   </ItemGroup>
 
 </Project>

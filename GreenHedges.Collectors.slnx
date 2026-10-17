@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/" />
   <Folder Name="/src/Common/">
+    <Project Path="src/Common/GreenHedges.Collectors.Common.Sqlite/GreenHedges.Collectors.Common.Sqlite.csproj" />
     <Project Path="src/Common/GreenHedges.Collectors.Common/GreenHedges.Collectors.Common.csproj" />
   </Folder>
   <Folder Name="/src/Libre/">
@@ -12,6 +13,7 @@
   </Folder>
   <Folder Name="/src/Weather/">
     <Project Path="src/Weather/GreenHedges.Collectors.Weather.Rtl433/GreenHedges.Collectors.Weather.Rtl433.csproj" />
+    <Project Path="src/Weather/GreenHedges.Collectors.Weather.Storage/GreenHedges.Collectors.Weather.Storage.csproj" />
   </Folder>
   <Folder Name="/tests/" />
   <Folder Name="/tests/Common/">
@@ -26,5 +28,6 @@
   </Folder>
   <Folder Name="/tests/Weather/">
     <Project Path="tests/Weather/GreenHedges.Collectors.Weather.Rtl433.Tests/GreenHedges.Collectors.Weather.Rtl433.Tests.csproj" />
+    <Project Path="tests/Weather/GreenHedges.Collectors.Weather.Storage.Tests/GreenHedges.Collectors.Weather.Storage.Tests.csproj" />
   </Folder>
 </Solution>
