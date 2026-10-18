@@ -63,14 +63,14 @@ Outdoor sensor ──868 MHz──► Station console ──► Weather Undergro
 | `battery_ok` | 1 = OK, 0 = low | `flags` 0 only. **Reliable:** observed 0 while the console showed low battery |
 | `wind_avg_m_s`, `wind_max_m_s` | Average and gust, m/s (0.1) | Every message |
 | `wind_dir_deg` | Degrees | 16 points, 22.5° steps, truncated (112 = ESE 112.5°) |
-| `rain_mm` | Running total since the sensor's power-on, mm (0.1) | `flags` 1 only. Bucket steps reportedly 0.4 mm |
+| `rain_mm` | Running total since the sensor's power-on, mm (0.1) | `flags` 1 only. Steps of 0.4 mm (observed) |
 | `uvi` | Always 0.000 | This model has no UV sensor; stored but ignored |
 | `startup` | Observed 1 | Meaning unclear; to be watched across a battery change |
 | `mic` | `CRC` | Messages failing the CRC are dropped by rtl_433 |
 | `freq1`, `freq2`, `rssi`, `snr`, `noise` | Signal metadata from `-M level` | Useful for reception monitoring |
 | `time` | rtl_433's timestamp | Local time **without a zone** by default; see below |
 
-**Rain counter:** the decoder reads 6 BCD digits (rollover at 99,999.9 mm), but the hardware may wrap at 999.9 mm as the older sensors do. **The total resets to 0 when the batteries are changed.** So rain per period is always computed from differences between consecutive totals, with resets and possible rollover detected (see Derived data).
+**Rain counter:** the decoder reads 6 BCD digits (rollover at 99,999.9 mm). **Observed: it does not wrap at 999.9 mm** as the older 5-in-1 sensors do: on 2026-10-18 it went 999.6 → 1000.0 → 1005.6 mm. So in practice it never wraps (about 100 years of UK rain). **The total resets to 0 when the batteries are changed** (to be confirmed). So rain per period is always computed from differences between consecutive totals, with resets and possible rollover detected (see Derived data).
 
 **Not on the radio:** barometric pressure and indoor temperature/humidity are measured inside the console, which doesn't transmit them. See Open questions.
 
@@ -123,7 +123,7 @@ Kept in the same database, rebuilt by the worker on demand, and refreshed increm
 - **`minute_summaries`** per station and UTC minute: temperature avg/min/max, humidity avg, wind average, gust max, vector-mean wind direction, rain increment, message count (completeness).
 - **Rain increments:** for consecutive rain totals `prev` → `cur` from the station:
   - `cur ≥ prev`: increment `cur − prev`.
-  - `cur < prev`: either a **reset** (battery change; increment `cur`) or a **rollover** at 999.9 mm (increment `1000 − prev + cur`). Treat it as a rollover only when `prev` is within a few mm of 999.9. Recorded as an event either way. Confirm with real data.
+  - `cur < prev`: a **reset** (battery change): increment `cur`. Recorded as an event. (A rollover would only happen at 99,999.9 mm; see Rain counter.)
   - A gap (service down) just puts the whole difference in the first minute after it.
 - Higher rollups (hour, day) are Grafana queries over minutes, or views.
 
@@ -170,4 +170,4 @@ From the private 2021 WeatherLogger project, both as one-off CLI modes, idempote
 ## Open questions
 
 - **Pressure and indoor readings** aren't on the radio. Options: do without; poll the station's own Weather Underground current observations for pressure only; or add a sensor of our own (e.g. a Bresser 868 MHz indoor sensor that rtl_433 decodes, or an I²C pressure sensor). Decide after Phase 2.
-- What `startup` means, whether the id changes on a battery change, and whether rain wraps at 999.9: observe at the next battery change and update this document.
+- What `startup` means, whether the id changes on a battery change, and whether the rain total resets: observe at the next battery change and update this document. (Rain doesn't wrap at 999.9: answered 2026-10-18.)
