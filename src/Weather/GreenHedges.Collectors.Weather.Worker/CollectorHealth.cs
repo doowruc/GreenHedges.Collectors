@@ -1,3 +1,4 @@
+using GreenHedges.Collectors.Common.Heartbeat;
 using GreenHedges.Collectors.Weather.Rtl433;
 
 namespace GreenHedges.Collectors.Weather.Worker;
@@ -6,12 +7,13 @@ namespace GreenHedges.Collectors.Weather.Worker;
 /// What the collector has archived lately, for the alert checks and the heartbeat. The receiver's own
 /// state (rtl_433 running, restarts, dongle) is in <see cref="ReceiverHealth"/>.
 /// </summary>
-public sealed class CollectorHealth(TimeProvider time)
+public sealed class CollectorHealth(TimeProvider time) : IHeartbeatSource
 {
     private readonly Lock _lock = new();
     private DateTimeOffset? _lastStationMessageAt;
     private string? _lastStationDeviceId;
     private int? _lastBatteryOk;
+    private DateTimeOffset? _batteryLowSince;
     private DateTimeOffset? _lastArchivedAt;
     private Exception? _lastArchiveError;
     private DateTimeOffset? _lastArchiveErrorAt;
@@ -37,6 +39,7 @@ public sealed class CollectorHealth(TimeProvider time)
             if (weather.BatteryOk is { } batteryOk)
             {
                 _lastBatteryOk = batteryOk;
+                _batteryLowSince = batteryOk == 0 ? _batteryLowSince ?? at : null;
             }
         }
     }
@@ -50,23 +53,35 @@ public sealed class CollectorHealth(TimeProvider time)
         }
     }
 
+    /// <summary>Healthy for the heartbeat if a station message arrived within the interval.</summary>
+    public string? HealthyStatus(DateTimeOffset now, TimeSpan interval)
+    {
+        var snapshot = Snapshot();
+        return snapshot.LastStationMessageAt is { } last && now - last <= interval
+            ? $"Last station message {last:u}"
+            : null;
+    }
+
     public CollectorHealthSnapshot Snapshot()
     {
         lock (_lock)
         {
             return new CollectorHealthSnapshot(
-                StartedAt, _lastStationMessageAt, _lastStationDeviceId, _lastBatteryOk, _lastArchivedAt, _lastArchiveError, _lastArchiveErrorAt);
+                StartedAt, _lastStationMessageAt, _lastStationDeviceId, _lastBatteryOk, _batteryLowSince,
+                _lastArchivedAt, _lastArchiveError, _lastArchiveErrorAt);
         }
     }
 }
 
 /// <param name="LastBatteryOk">The station's latest <c>battery_ok</c> (1 OK, 0 low), if seen since startup.</param>
+/// <param name="BatteryLowSince">When the station's <c>battery_ok</c> turned 0, while it stays 0; null once it's 1 (or not seen).</param>
 /// <param name="LastArchiveError">The latest failure to archive a line, cleared by the next success.</param>
 public sealed record CollectorHealthSnapshot(
     DateTimeOffset StartedAt,
     DateTimeOffset? LastStationMessageAt,
     string? LastStationDeviceId,
     int? LastBatteryOk,
+    DateTimeOffset? BatteryLowSince,
     DateTimeOffset? LastArchivedAt,
     Exception? LastArchiveError,
     DateTimeOffset? LastArchiveErrorAt);

@@ -140,11 +140,13 @@ Shared with the Libre collector through `Common`: nightly SQLite backup API → 
 
 | Alert | Raised when |
 |---|---|
-| No station messages | Nothing from the station's id for 5 minutes |
-| Receiver problem | Dongle missing, or rtl_433 restarting repeatedly |
-| Station id changed | A new id of the station's model appears while the configured one is silent |
-| Sensor battery low | `battery_ok` = 0 for an hour |
+| No station messages | Nothing from the station's ids for 5 minutes (from startup, so a restart gets a grace period) |
+| Receiver problem | rtl_433 reports no usable dongle, or 3 rtl_433 runs ended (exit, silence, failed start) in the last hour |
+| Station id changed | The station's ids silent for 5 minutes while an id of the same model is heard that was first heard after them (so a neighbour heard all along doesn't count) |
+| Sensor battery low | `battery_ok` = 0 for an hour (only the temperature messages carry it) |
 | Backups failing / off-site failing | No good copy for 36 hours |
+
+Thresholds are `Alerts:StationSilentAfter`, `Alerts:ReceiverEndsPerHour` and `Alerts:BatteryLowAfter`. An alert resolves only on positive evidence since startup: a station message from a configured id, rtl_433 writing lines with no missing dongle and fewer restarts, `battery_ok` = 1. While a receiver or station-id alert is open, "No station messages" isn't raised as well.
 
 ## History import
 
