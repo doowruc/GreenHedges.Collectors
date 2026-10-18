@@ -38,12 +38,13 @@ public sealed class OffsiteBackupTests : IDisposable
         Backup("20261017T023000Z", "newest");
 
         Assert.True(await Copier().CopyNewestAsync(CancellationToken.None));
+        // Checked before the second call, which counts the marker file's (real-clock) time instead.
+        Assert.Equal(_time.GetUtcNow(), _health.Snapshot().LastOffsiteAt);
         Assert.False(await Copier().CopyNewestAsync(CancellationToken.None));
 
         var (key, content) = Assert.Single(_store.Uploads);
         Assert.Equal("librecollector/librecollector-20261017T023000Z.db.gz.age", key);
         Assert.Equal("ENCRYPTED(newest)", content);
-        Assert.Equal(_time.GetUtcNow(), _health.Snapshot().LastOffsiteAt);
         Assert.Empty(Directory.GetFiles(_dir, "*.tmp"));
     }
 
