@@ -1,0 +1,79 @@
+# WeatherCollector
+
+*Part of [GreenHedges.Collectors](../../README.md). Code in `src/Weather/`, deployment in `deploy/weather/`.*
+
+An always-on service that keeps **your own complete, permanent archive** of a weather station's outdoor sensor, received off the air with an RTL-SDR dongle and [rtl_433](https://github.com/merbanan/rtl_433). It only listens: the station's console keeps working and uploading as before.
+
+- Setting up a host: [deploy/weather/HOST-SETUP.md](../../deploy/weather/HOST-SETUP.md)
+- How it works and why: [DESIGN.md](DESIGN.md)
+
+---
+
+## Day to day
+
+Once it's running there's nothing to do. You'll hear from it only when something needs attention.
+
+### Emails you might get
+
+Subjects start `[WeatherCollector]`. Every PROBLEM email is followed by one RESOLVED email, including across restarts (open alerts are kept in `/var/lib/weathercollector/alert-state.json`). An alert resolves only on real evidence, such as a new message from the station.
+
+| Subject | Meaning | What to do |
+|---|---|---|
+| **No station messages** | Nothing from the station's ids for 5 minutes (it sends every 12 s) | Usually the sensor: batteries, or out of range. Not sent while a receiver or station-id alert already explains it. |
+| **Receiver problem** | rtl_433 finds no usable RTL-SDR dongle, or has restarted 3 times in an hour | Check the dongle is plugged in (`lsusb \| grep 2838`) and the DVB-T driver isn't loaded ([HOST-SETUP §2](../../deploy/weather/HOST-SETUP.md)). rtl_433 is retried with a back-off. |
+| **Station id changed** | The station's ids are silent and a new sensor of the same model is being heard, first heard after the station went quiet (a neighbour's sensor heard all along doesn't count) | After a battery change the sensor may pick a new id; the email names it. See [Battery changes](#battery-changes). |
+| **Sensor battery low** | The sensor has reported `battery_ok` = 0 for an hour | Change its batteries. |
+| **Backups failing** | No good backup for 36 hours | Check disk space and the log. |
+| **Off-site backup failing** | No off-site copy for 36 hours, or straight away if the off-site settings are wrong | Check the log (`Off-site copy … failed` or `Off-site backup is misconfigured`): AWS key, bucket, or `age` missing. Fix the env file and restart. Collection and local backups are unaffected. |
+| healthchecks.io "down" | No ping for 5 minutes plus grace | The collector pings only while the station is being heard, so: host off or offline, collector stopped, or no reception. |
+
+Thresholds are in the `Alerts` section of [`appsettings.json`](../../src/Weather/GreenHedges.Collectors.Weather.Worker/appsettings.json) (`StationSilentAfter`, `ReceiverEndsPerHour`, `BatteryLowAfter`) and can be overridden in the env file. Without `Station:DeviceIds` the station alerts are off and the heartbeat stays silent.
+
+### Useful commands (on the host)
+
+```bash
+systemctl status weathercollector                                  # running?
+journalctl -u weathercollector -f                                  # live log
+journalctl -u weathercollector --since today -p warning            # problems today
+sqlite3 -readonly /var/lib/weathercollector/weathercollector.db \
+  "SELECT COUNT(*), MAX(received_at_utc) FROM messages; SELECT * FROM devices;"
+```
+
+### Updating
+
+```bash
+git pull
+deploy/weather/deploy.sh
+```
+
+Migrations run at startup, and a backup is taken at startup if none exists from the last day. Messages that arrive while the service restarts are lost (the sensor doesn't repeat them), so a deploy costs a message or two.
+
+### Battery changes
+
+After changing the sensor's batteries, check `devices` (above) for a new id of the same model. If there is one, **add** it to `/etc/weathercollector/env` as the next item (`Station__DeviceIds__1=…`), keeping the old one so its history stays the station's, then `sudo systemctl restart weathercollector`. Until then its messages are archived, but not as the station's.
+
+---
+
+## Backups
+
+| Copy | Where | Kept |
+|---|---|---|
+| Nightly (03:30) | `/var/lib/weathercollector/backups/weathercollector-<UTC time>.db.gz` on the host: SQLite online backup, integrity-checked, gzipped | 7 |
+| Off-site | `s3://<bucket>/weathercollector/…db.gz.age`, encrypted with `age` on the host before upload. The host has only the public key, and its AWS key may only upload under `weathercollector/`. Older copies move to Glacier Deep Archive ([deploy/aws](../../deploy/aws/README.md)) | All |
+| On the Mac | `~/Backups/WeatherCollector`, pulled daily at 09:10 (or on wake) by [`deploy/mac/install-backup-pull.sh weather`](../../deploy/mac/install-backup-pull.sh) with a key the host limits to read-only rsync of the backups folder; a healthchecks.io check catches a missed pull | 30 |
+
+Backups grow with the archive (about 1.2 GB a year before compression).
+
+The collectors can share one `age` key pair (one private key to keep safe) or have one each; HOST-SETUP copies the Libre collector's public key. For a separate pair, generate one as in step 1 of [Libre's HOST-SETUP §8b](../../deploy/libre/HOST-SETUP.md).
+
+**Restore test** (once after setting up, then occasionally): download the newest `weathercollector/` object (if it's in Deep Archive, first **Initiate restore** and wait), put the private key from your password manager in a file, then:
+
+```bash
+age --decrypt --identity offsite.key --output restored.db.gz weathercollector-<timestamp>.db.gz.age
+gunzip -k restored.db.gz && sqlite3 restored.db "PRAGMA integrity_check; SELECT COUNT(*), MAX(received_at_utc) FROM messages;"
+rm offsite.key
+```
+
+`ok` and a plausible count mean the copy is good.
+
+**Restoring** a backup: `sudo systemctl stop weathercollector`, `gunzip -k` it, copy the `.db` over `/var/lib/weathercollector/weathercollector.db` (owner `weathercollector`, mode 0640; remove any `-wal`/`-shm` files next to it), then `sudo systemctl start weathercollector`. Messages received since the backup are lost, so restore only when the database is broken.
