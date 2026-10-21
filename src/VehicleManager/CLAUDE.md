@@ -68,7 +68,7 @@ VehicleManager/
   ViewModels/  What pages use: *View (output, with calculated figures) and *Input (form/import input)
   Data/        AppDbContext (per-user query filters, audit stamping), DatabaseMigrator, ConcurrencyExtensions,
                DesignTimeDbContextFactory, Migrations/
-  Services/    FuelStatsService (summaries), FuelImportService (ClosedXML .xlsx import), FuelCalculations,
+  Services/    FuelStatsService (summaries), SpendStats (dashboard spend by month/year and vehicle, year on year), FuelImportService (ClosedXML .xlsx import), FuelCalculations,
                CurrentUser, AllowedUsers, ExistingDataClaim, FuelStops (typed names → stops),
                BackupFile (backup JSON format: read/validate/write) + BackupService (create, restore, record),
                BackupEmailer (emails a backup via Resend), ScheduledBackups (Coravel invocable, nightly),
@@ -79,7 +79,8 @@ VehicleManager/
   Pages/       Index (dashboard, with a "Coming up" due-dates list), Owners/*, Vehicles/* (+ Services/* per vehicle), FuelLog/* (log + fill-up pages), Import/*, Backup/* (Index, Restore), Settings/* (user menu), FuelBrands/* (+ Stations/* per brand),
                Account/* (Login, Logout, SignedOut), Shared/ (layout + partials)
   wwwroot/     css/site.css, js/color-mode.js, js/period-toggle.js, js/data-table.js (DataTables setup), js/typeahead.js (dropdown suggestions),
-               js/price-chart.js (station price charts), js/mileage-chart.js (mileage over time: vehicle Services and MOT tabs)
+               js/price-chart.js (station price charts), js/mileage-chart.js (mileage over time: vehicle Services and MOT tabs),
+               js/spend-chart.js (dashboard fuel spending charts)
 VehicleManager.AppHost/   AppHost.cs: runs the app with the Aspire dashboard, for local development only
 ```
 

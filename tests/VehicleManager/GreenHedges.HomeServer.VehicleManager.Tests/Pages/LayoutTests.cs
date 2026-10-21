@@ -77,7 +77,7 @@ public class LayoutTests(AppFactory app) : DatabaseTest, IClassFixture<AppFactor
         }
         var client = app.ClientFor(UserId);
         var brands = await client.GetAsync("/FuelBrands");
-        var pages = new[] { "/FuelLog", $"/Vehicles/Details/{vehicleId}", "/Vehicles", "/Owners", "/FuelBrands", brands.RowLink("Shell", "Stations")! };
+        var pages = new[] { "/", "/FuelLog", $"/Vehicles/Details/{vehicleId}", "/Vehicles", "/Owners", "/FuelBrands", brands.RowLink("Shell", "Stations")! };
 
         foreach (var url in pages)
         {

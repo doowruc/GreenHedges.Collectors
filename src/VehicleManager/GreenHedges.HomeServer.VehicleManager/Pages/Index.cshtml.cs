@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using VehicleManager.Data;
@@ -14,6 +15,14 @@ public class IndexModel(AppDbContext db, FuelStatsService stats) : PageModel
 
     /// <summary>Due dates within <see cref="Reminders.SoonDays"/> days, or overdue, for every vehicle, soonest first.</summary>
     public List<DueDateView> ComingUp { get; private set; } = [];
+
+    /// <summary>Fuel spend charts (wwwroot/js/spend-chart.js): the last 12 months by month, and all time by year.</summary>
+    public string? MonthlySpendJson { get; private set; }
+    public string? YearlySpendJson { get; private set; }
+
+    /// <summary>Each year's spend, newest first: the year-on-year chart (<see cref="YearOnYearJson"/>) and table.</summary>
+    public List<YearSpend> Years { get; private set; } = [];
+    public string? YearOnYearJson { get; private set; }
 
     public async Task OnGetAsync()
     {
@@ -44,5 +53,23 @@ public class IndexModel(AppDbContext db, FuelStatsService stats) : PageModel
                 dueDates[v.Id]))
             .OrderByDescending(c => c.Last?.Date)
             .ToList();
+
+        Years = SpendStats.Years(entries.SelectMany(e => e), today);
+        if (Years.Count > 0)
+        {
+            // Every vehicle keeps its colour (an index into the script's palette) and name in both charts.
+            var duplicateNames = vehicles.GroupBy(v => v.DisplayName).Where(g => g.Count() > 1).Select(g => g.Key).ToHashSet();
+            var series = vehicles.Select((v, i) => (v.Id, Colour: i, Name: duplicateNames.Contains(v.DisplayName) ? $"{v.DisplayName} ({v.RegistrationNumber})" : v.DisplayName))
+                .ToDictionary(v => v.Id);
+            var ids = vehicles.Select(v => v.Id).ToList();
+            string Json(SpendBreakdown spend) => JsonSerializer.Serialize(new
+            {
+                labels = spend.Labels,
+                vehicles = spend.Vehicles.Select(v => new { name = series[v.VehicleId].Name, colour = series[v.VehicleId].Colour, amounts = v.Amounts })
+            });
+            MonthlySpendJson = Json(SpendStats.Monthly(entries.SelectMany(e => e), ids, today));
+            YearlySpendJson = Json(SpendStats.Yearly(entries.SelectMany(e => e), ids, today));
+            YearOnYearJson = JsonSerializer.Serialize(Years.Select(y => new { year = y.Year, cumulative = y.Cumulative }));
+        }
     }
 }
