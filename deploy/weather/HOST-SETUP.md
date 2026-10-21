@@ -96,12 +96,12 @@ Expect `Archive ready (schema v1)`, `rtl_433 started`, `New device heard: … (t
 sqlite3 -readonly /var/lib/weathercollector/weathercollector.db "SELECT COUNT(*), MAX(received_at_utc) FROM messages; SELECT * FROM devices;"
 ```
 
-## 8. Off-site access key and heartbeat check
+## 8. Off-site access key and heartbeat check (in a browser)
 
 1. **AWS console:** IAM → Users → `<stack>-weather` → Security credentials → **Create access key** ("Application running outside AWS"). Save both values in your password manager.
 2. **healthchecks.io:** create a new check with period **5 minutes** and grace **15 minutes**, and add your email integration. Keep its ping URL.
 
-## 9. Alert, heartbeat and off-site settings
+## 9. Alert, heartbeat and off-site settings (on the server)
 
 ```bash
 sudo apt install -y age
@@ -134,11 +134,13 @@ Offsite__AgeRecipient=age1…
 
 ## 10. Deploy and check (on the Mac, then the server)
 
+**On the Mac**, from the repository:
+
 ```bash
 deploy/weather/deploy.sh
 ```
 
-On the server, send a test email:
+**On the server**, send a test email and check the log:
 
 ```bash
 sudo systemd-run --quiet --wait --pipe --uid=weathercollector -p EnvironmentFile=/etc/weathercollector/env -p WorkingDirectory=/var/lib/weathercollector /opt/weathercollector/GreenHedges.Collectors.Weather.Worker --test-alert
@@ -152,7 +154,7 @@ Expect `Backup written: …`, `Off-site backup to s3://<bucket>/weathercollector
 
 Restore-test the first off-site copy: [README: Backups](../../docs/weather/README.md#backups).
 
-## 11. Backup pull to the Mac
+## 11. Backup pull (on the Mac, then the server)
 
 **On the Mac** (needs `brew install rsync`, and `COLLECTORS_USER` / `COLLECTORS_HOST` in `deploy/local.env`):
 
@@ -166,7 +168,7 @@ deploy/mac/install-backup-pull.sh weather
 nano ~/.ssh/authorized_keys
 ```
 
-**healthchecks.io:** create another check (period **1 day**, grace **1 day**), then on the Mac:
+**In a browser**, create another healthchecks.io check (period **1 day**, grace **1 day**). Then **on the Mac**, save its ping URL and test a pull:
 
 ```bash
 printf '%s\n' 'https://hc-ping.com/<uuid>' > ~/.config/weathercollector/backup-ping-url && chmod 600 ~/.config/weathercollector/backup-ping-url
