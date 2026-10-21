@@ -1,17 +1,23 @@
 #!/usr/bin/env bash
-# Pull one collector's backups from the host to this Mac. Run daily by launchd (see install-backup-pull.sh,
-# which installs this as ~/.local/bin/<collector>-pull-backups and sets the variables below in the job).
+# Pull one collector's backups from the host to this Mac. Run daily by launchd, or by hand to test (see
+# install-backup-pull.sh, which installs this as ~/.local/bin/<collector>-pull-backups).
 # Uses a dedicated SSH key that the host restricts to read-only rsync of that collector's backups folder.
 set -euo pipefail
 
 # Braces make bash read the whole script before running it, so editing the file mid-run can't break a run.
 {
 
-# Jobs installed before the scripts were shared set only the LIBRECOLLECTOR_* variables.
-NAME="${COLLECTOR_NAME:-librecollector}"
-HOST="${BACKUP_HOST:-${LIBRECOLLECTOR_HOST:?BACKUP_HOST not set; re-run deploy/mac/install-backup-pull.sh}}"
-REMOTE_USER="${BACKUP_USER:-${LIBRECOLLECTOR_USER:?BACKUP_USER not set; re-run deploy/mac/install-backup-pull.sh}}"
-DEST="${BACKUP_DIR:-${LIBRECOLLECTOR_BACKUP_DIR:?BACKUP_DIR not set; re-run deploy/mac/install-backup-pull.sh}}"
+# The collector comes from this script's installed name (<collector>-pull-backups), and the settings from
+# the file the installer writes. Jobs installed before the scripts were shared set LIBRECOLLECTOR_* instead.
+NAME="$(basename "$0")"; NAME="${NAME%-pull-backups}"
+case "$NAME" in librecollector|weathercollector) ;; *) NAME=librecollector ;; esac
+CONFIG="$HOME/.config/$NAME/backup-pull.env"
+if [ -f "$CONFIG" ]; then . "$CONFIG"; fi
+HOST="${BACKUP_HOST:-${LIBRECOLLECTOR_HOST:-}}"
+REMOTE_USER="${BACKUP_USER:-${LIBRECOLLECTOR_USER:-}}"
+[ -n "$HOST" ] && [ -n "$REMOTE_USER" ] || {
+  echo "No settings for $NAME in $CONFIG: run deploy/mac/install-backup-pull.sh ${NAME%collector}" >&2; exit 2; }
+DEST="${BACKUP_DIR:-${LIBRECOLLECTOR_BACKUP_DIR:-$HOME/Backups/LibreCollector}}"
 KEY="$HOME/.ssh/${NAME}_backup"
 KEEP=30                                                  # the host keeps 7; the Mac keeps a month
 PING_URL_FILE="$HOME/.config/$NAME/backup-ping-url"
