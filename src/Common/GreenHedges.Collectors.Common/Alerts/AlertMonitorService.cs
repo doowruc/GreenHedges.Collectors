@@ -23,6 +23,8 @@ public abstract class AlertMonitorService(
 
     protected TimeProvider Time { get; } = time;
 
+    protected ILogger Logger { get; } = logger;
+
     /// <summary>Every key this collector raises. Saved alerts with other keys are dropped at startup.</summary>
     protected abstract IReadOnlyCollection<string> AlertKeys { get; }
 
@@ -36,7 +38,7 @@ public abstract class AlertMonitorService(
     {
         if (!_options.EmailEnabled)
         {
-            logger.LogWarning("Alerts:ResendApiKey is not set; alerts will only be logged");
+            Logger.LogWarning("Alerts:ResendApiKey is not set; alerts will only be logged");
         }
 
         await LoadStateAsync(stoppingToken);
@@ -52,7 +54,7 @@ public abstract class AlertMonitorService(
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
-                    logger.LogError(ex, "Alert check failed");
+                    Logger.LogError(ex, "Alert check failed");
                 }
             }
         }

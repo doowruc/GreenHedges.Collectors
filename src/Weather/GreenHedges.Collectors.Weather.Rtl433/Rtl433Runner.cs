@@ -8,7 +8,8 @@ namespace GreenHedges.Collectors.Weather.Rtl433;
 /// <summary>
 /// Runs rtl_433 once as a child process and hands each stdout line to the caller, until it exits, goes
 /// silent for <see cref="Rtl433Options.SilenceTimeout"/> (then it's killed), or the collector stops.
-/// stderr goes to the log, and is watched for rtl_433's "no device" messages.
+/// stderr goes to the log, and is watched for rtl_433's "no device" messages; exit code 2 with no output also
+/// means no usable dongle.
 /// </summary>
 public sealed class Rtl433Runner(Rtl433Options options, ReceiverHealth health, TimeProvider time, ILogger<Rtl433Runner> logger)
 {
@@ -21,6 +22,10 @@ public sealed class Rtl433Runner(Rtl433Options options, ReceiverHealth health, T
         "usb_open error",
         "usb_claim_interface error",
     ];
+
+    // With -F json, rtl_433 prints none of those (only with -F log, and then on stdout, mixed with the data).
+    // What's left is its exit code: 2, at once, when it finds no usable device.
+    internal const int NoDeviceExitCode = 2;
 
     /// <param name="onLine">Called for each stdout line, in order. It should not throw; if it does, the error is logged and reading carries on.</param>
     public async Task<RunResult> RunOnceAsync(Func<string, Task> onLine, CancellationToken stoppingToken)
@@ -116,6 +121,7 @@ public sealed class Rtl433Runner(Rtl433Options options, ReceiverHealth health, T
         await process.WaitForExitAsync(CancellationToken.None);
         await stderr;
 
+        dongleMissing |= end == RunEnd.Exited && process.ExitCode == NoDeviceExitCode && lines == 0;
         var result = new RunResult(end, process.ExitCode, dongleMissing, lines, startedAt, time.GetUtcNow());
         switch (end)
         {

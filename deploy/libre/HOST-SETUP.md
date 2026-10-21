@@ -214,17 +214,17 @@ Check that the restricted-rsync helper is present (from the `rsync` package):
 ls -l /usr/bin/rrsync
 ```
 
-**On the Mac**, install Homebrew's rsync (macOS's built-in one is a different implementation), then the pull job. The installer creates a dedicated key, installs a daily launchd job (09:00, or on wake if the Mac was asleep) that pulls over the home network from `librecollector.lan`, and prints an `authorized_keys` line:
+**On the Mac**, install Homebrew's rsync (macOS's built-in one is a different implementation), then the pull job. The installer creates a dedicated key, installs a daily launchd job (09:00, or on wake if the Mac was asleep) that pulls over the home network, and prints an `authorized_keys` line:
 
 ```bash
 brew install rsync
 ```
 
 ```bash
-deploy/libre/mac/install-backup-pull.sh
+deploy/mac/install-backup-pull.sh libre
 ```
 
-It takes your server user (and host, if not `librecollector.lan`) from `deploy/local.env` (`LIBRECOLLECTOR_USER`, `LIBRECOLLECTOR_HOST`; see `deploy/local.env.example`) or the environment, and saves them into the scheduled job.
+It takes your server user and host from `deploy/local.env` (`COLLECTORS_USER` and `COLLECTORS_HOST`, or the older `LIBRECOLLECTOR_USER` and `LIBRECOLLECTOR_HOST`; see `deploy/local.env.example`) or the environment, and saves them into the scheduled job. The same scripts pull the Weather collector's backups (`… weather`; see its HOST-SETUP).
 
 **On the server**, append the printed line to `~/.ssh/authorized_keys` (as one line). It limits that key to **read-only rsync of the backups folder**: no shell, no forwarding, nothing else readable.
 

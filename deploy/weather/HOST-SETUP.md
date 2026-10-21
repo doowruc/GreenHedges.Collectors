@@ -2,7 +2,7 @@
 
 Adds the Weather collector to a host already prepared with [the Libre collector's HOST-SETUP](../libre/HOST-SETUP.md) sections 0–7 (updates, SSH keys, firewall, unattended upgrades, Tailscale). Run everything on the server unless a step says **on the Mac**. `<your-user>` is your login on the server.
 
-Design and reasoning: [docs/weather/DESIGN.md](../../docs/weather/DESIGN.md).
+What it does day to day (alerts, backups, restoring): [docs/weather/README.md](../../docs/weather/README.md). Design and reasoning: [docs/weather/DESIGN.md](../../docs/weather/DESIGN.md).
 
 ## 1. rtl_433 and the RTL-SDR tools
 
@@ -96,6 +96,84 @@ Expect `Archive ready (schema v1)`, `rtl_433 started`, `New device heard: … (t
 sqlite3 -readonly /var/lib/weathercollector/weathercollector.db "SELECT COUNT(*), MAX(received_at_utc) FROM messages; SELECT * FROM devices;"
 ```
 
-## Later
+## 8. Off-site access key and heartbeat check (in a browser)
 
-Backups, off-site copies, alerts and the heartbeat follow, shared with the Libre collector; their setup will be added here.
+1. **AWS console:** IAM → Users → `<stack>-weather` → Security credentials → **Create access key** ("Application running outside AWS"). Save both values in your password manager.
+2. **healthchecks.io:** create a new check with period **5 minutes** and grace **15 minutes**, and add your email integration. Keep its ping URL.
+
+## 9. Alert, heartbeat and off-site settings (on the server)
+
+```bash
+sudo apt install -y age
+```
+
+Copy the Libre collector's Resend settings, bucket, region and age public key:
+
+```bash
+sudo grep -E '^(Alerts__|Offsite__(Bucket|Region|AgeRecipient)=)' /etc/librecollector/env | sudo tee -a /etc/weathercollector/env > /dev/null
+```
+
+```bash
+sudo nano /etc/weathercollector/env
+```
+
+Change the `Alerts__From` name to `WeatherCollector`, and add the three new lines, so the file has:
+
+```
+Station__DeviceIds__0=<your station's id>
+Alerts__ResendApiKey=re_...
+Alerts__From=WeatherCollector <alerts@example.com>
+Alerts__To__0=you@example.com
+Heartbeat__PingUrl=https://hc-ping.com/<uuid>
+Offsite__Bucket=<bucket>
+Offsite__Region=eu-west-2
+Offsite__AccessKeyId=AKIA…
+Offsite__SecretAccessKey=…
+Offsite__AgeRecipient=age1…
+```
+
+## 10. Deploy and check (on the Mac, then the server)
+
+**On the Mac**, from the repository:
+
+```bash
+deploy/weather/deploy.sh
+```
+
+**On the server**, send a test email and check the log:
+
+```bash
+sudo systemd-run --quiet --wait --pipe --uid=weathercollector -p EnvironmentFile=/etc/weathercollector/env -p WorkingDirectory=/var/lib/weathercollector /opt/weathercollector/GreenHedges.Collectors.Weather.Worker --test-alert
+```
+
+```bash
+journalctl -u weathercollector -n 40 --no-pager -o cat
+```
+
+Expect `Backup written: …`, `Off-site backup to s3://<bucket>/weathercollector` and `Off-site copy uploaded: …`, with no `is not set` warnings. The healthchecks.io check turns green within 5 minutes.
+
+Restore-test the first off-site copy: [README: Backups](../../docs/weather/README.md#backups).
+
+## 11. Backup pull (on the Mac, then the server)
+
+**On the Mac** (needs `brew install rsync`, and `COLLECTORS_USER` / `COLLECTORS_HOST` in `deploy/local.env`):
+
+```bash
+deploy/mac/install-backup-pull.sh weather
+```
+
+**On the server**, append the line it prints to `~/.ssh/authorized_keys`:
+
+```bash
+nano ~/.ssh/authorized_keys
+```
+
+**In a browser**, create another healthchecks.io check (period **1 day**, grace **1 day**). Then **on the Mac**, save its ping URL and test a pull:
+
+```bash
+printf '%s\n' 'https://hc-ping.com/<uuid>' > ~/.config/weathercollector/backup-ping-url && chmod 600 ~/.config/weathercollector/backup-ping-url
+```
+
+```bash
+~/.local/bin/weathercollector-pull-backups
+```

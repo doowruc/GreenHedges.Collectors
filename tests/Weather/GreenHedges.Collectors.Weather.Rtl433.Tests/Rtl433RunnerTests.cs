@@ -121,6 +121,34 @@ public sealed class Rtl433RunnerTests : IDisposable
     }
 
     [Fact]
+    public async Task Exit_code_2_with_no_output_is_a_missing_dongle()
+    {
+        // What rtl_433 25.12 does with -F json and no dongle: banner on stderr, nothing on stdout, exit 2.
+        var missing = FakeRtl433("""
+            echo 'rtl_433 version 25.12 (2025-12-12) inputs file rtl_tcp RTL-SDR SoapySDR' >&2
+            echo 'Use "-F log" if you want any messages, warnings, and errors in the console.' >&2
+            exit 2
+            """);
+
+        var result = await Runner(missing).RunOnceAsync(Collect, CancellationToken.None);
+
+        Assert.Equal(2, result.ExitCode);
+        Assert.True(result.DongleMissing);
+        Assert.NotNull(_health.Snapshot().DongleMissingSince);
+    }
+
+    [Theory]
+    [InlineData("echo '{}'; exit 2")]   // it ran and wrote lines first
+    [InlineData("exit 1")]              // another failure
+    public async Task Other_exits_are_not_a_missing_dongle(string script)
+    {
+        var result = await Runner(FakeRtl433(script)).RunOnceAsync(Collect, CancellationToken.None);
+
+        Assert.False(result.DongleMissing);
+        Assert.Null(_health.Snapshot().DongleMissingSince);
+    }
+
+    [Fact]
     public async Task Missing_executable_is_a_failed_start()
     {
         var options = new Rtl433Options { Path = Path.Combine(_dir, "no-such-rtl_433") };
