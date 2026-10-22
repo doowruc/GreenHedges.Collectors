@@ -49,7 +49,9 @@ Ideas for future features and improvements, roughly in order of how useful they'
 - [ ] **Prefill the fill-up form** with the last vehicle, station and pump price used, and today's date.
 - [ ] **Station comparison:** a table of the cheapest stations over the last 3 months for each fuel type, building on
       the station pages' price data.
-- [ ] **Monthly and annual spend chart** on the dashboard, plus a year-on-year comparison.
+- [x] **Fuel spending on the dashboard:** spend each month (last 12 months) or year (all time), stacked by vehicle, and
+      a year-on-year chart of each year's running total, with a table of yearly totals and the change on the year before
+      (this year against last year to the same day). Running costs can join it once they're recorded.
 - [ ] **Installable on a phone (PWA):** a manifest and icons so it opens like an app from the home screen.
 - [ ] **Receipt photo** on a fill-up, stored in Azure Blob Storage. Only if it'd actually be used: it adds storage,
       backup format changes and some cost.

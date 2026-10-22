@@ -35,6 +35,47 @@ else
         </div>
     }
     <partial name="_PeriodToggle" />
+    if (Model.Years.Count > 0)
+    {
+        <div class="card shadow-sm mb-3" id="spending">
+            <div class="card-header bg-body fw-semibold"><i class="bi bi-currency-pound me-2"></i>Fuel spending</div>
+            <div class="card-body">
+                <div class="row g-4">
+                    <div class="col-lg-6">
+                        <div class="period-stats" data-period="12m">
+                            <h2 class="h6 text-muted">Each month</h2>
+                            <div class="chart-box"><canvas data-spend-chart="@Model.MonthlySpendJson" role="img" aria-label="Fuel spend each month for the last 12 months"></canvas></div>
+                        </div>
+                        <div class="period-stats" data-period="all">
+                            <h2 class="h6 text-muted">Each year</h2>
+                            <div class="chart-box"><canvas data-spend-chart="@Model.YearlySpendJson" role="img" aria-label="Fuel spend each year"></canvas></div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <h2 class="h6 text-muted">Year on year</h2>
+                        <div class="chart-box"><canvas data-spend-trend="@Model.YearOnYearJson" role="img" aria-label="Running total of fuel spend through each year"></canvas></div>
+                    </div>
+                </div>
+                <div class="table-responsive mt-3">
+                    <table class="table table-sm table-data mb-0 w-auto">
+                        <thead class="table-head"><tr><th>Year</th><th class="text-end">Spent</th><th class="text-end">Change</th><th class="text-end">Fill-Ups</th></tr></thead>
+                        <tbody>
+                        @foreach (var y in Model.Years)
+                        {
+                            <tr>
+                                <td>@y.Year@if (y.ToDate is { } to) { <span class="text-muted small ms-1">to @to.ToString("d MMM")</span> }</td>
+                                <td class="text-end">@y.Total.ToString("C0")</td>
+                                <td class="text-end @(y.Change > 0 ? "text-danger" : y.Change < 0 ? "text-success" : null)"
+                                    title="@(y.ToDate is { } d ? $"Against {y.Year - 1} up to {d:d MMM}" : null)">@(y.Change?.ToString("+0%;−0%;0%") ?? "–")</td>
+                                <td class="text-end">@y.FillUps</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
 }
 
 <div class="row g-3">
@@ -84,3 +125,11 @@ else
     </div>
 }
 </div>
+
+@section Scripts {
+    @if (Model.Years.Count > 0)
+    {
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.js"></script>
+        <script src="~/js/spend-chart.js" asp-append-version="true"></script>
+    }
+}
