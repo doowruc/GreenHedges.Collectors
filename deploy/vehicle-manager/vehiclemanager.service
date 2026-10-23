@@ -19,6 +19,10 @@ ExecStart=/opt/vehiclemanager/GreenHedges.HomeServer.VehicleManager
 EnvironmentFile=/etc/vehiclemanager/env
 Environment=DOTNET_ENVIRONMENT=Production
 Environment=ASPNETCORE_ENVIRONMENT=Production
+# appsettings.json is in the install folder, not the working directory (which holds the data: keys, backups, alert
+# state). Without this ASP.NET looks for it in the working directory, and e.g. HttpClient request logging (which would
+# write registrations to the journal) isn't turned down.
+Environment=ASPNETCORE_CONTENTROOT=/opt/vehiclemanager
 # Localhost only: `tailscale serve --service=svc:vehicles` publishes it on the tailnet, with HTTPS.
 Environment=ASPNETCORE_URLS=http://127.0.0.1:5080
 Environment=DataProtection__KeysFolder=keys

@@ -230,6 +230,9 @@ GreenHedges.HomeServer.VehicleManager.AppHost/   AppHost.cs: runs the app with t
 - `UseForwardedHeaders` runs first: `X-Forwarded-Proto` and `-For` are trusted from loopback proxies only (ASP.NET's
   default `KnownProxies`/`KnownIPNetworks`); never widen that. `tailscale serve` keeps the `Host` header, so
   `X-Forwarded-Host` isn't used.
+- On the server the unit sets `ASPNETCORE_CONTENTROOT=/opt/vehiclemanager` (where `appsettings.json` is) while the
+  working directory is the data folder; relative data paths (keys, backups, alert state) go through `Path.GetFullPath`,
+  so they resolve against the working directory, not the content root. Keep it that way.
 - `DataProtection:KeysFolder` (on the server) persists data-protection keys there, with the application name
   `VehicleManager`; unset, ASP.NET's default applies (development, tests).
 - `/health` (anonymous, `Services/DatabaseHealthCheck`, 10 s timeout): `Healthy`/`Unhealthy` text only, never details.
