@@ -11,7 +11,8 @@ cd VehicleManager
 dotnet run
 ```
 
-The app needs an Azure SQL database and Auth0 sign-in, so set both up first (see below). Then open
+The app needs a SQL Server database (Azure SQL, or the [local one in Docker](#local-database-sql-server-in-docker)) and
+Auth0 sign-in, so set both up first (see below). Then open
 http://localhost:5080. The tables are created on first run, and any pending schema migrations are
 applied each time the app starts.
 
@@ -58,6 +59,40 @@ Every table has audit columns: `AddedDate`, `AddedBy`, `ModifiedDate` and `Modif
 and Auth0 user ids, set automatically when rows are saved), and a SQL Server `rowversion` column,
 `RowVersion`. If you save an edit to something that was changed after you opened it (e.g. in
 another tab), you're warned instead of overwriting the other change.
+
+## Local database (SQL Server in Docker)
+
+For the tests, and to develop without touching the Azure database, run SQL Server locally in a container. On a Mac,
+install [OrbStack](https://orbstack.dev) (`brew install --cask orbstack`, then open it once) or Docker Desktop; the
+image is x86 only, so on Apple Silicon it runs under Rosetta (OrbStack does this by default; in Docker Desktop turn
+on *Use Rosetta for x86/amd64 emulation*). On Windows, SQL Server Express LocalDB (`(localdb)\MSSQLLocalDB`) works
+too.
+
+1. From the repo root, copy `.env.example` to `.env` and set a strong `MSSQL_SA_PASSWORD` (`.env` is git-ignored).
+2. Start it (`compose.yaml`: SQL Server 2025 Developer edition, on `localhost:1433` only, data kept in a named volume):
+
+   ```bash
+   docker compose up -d --wait
+   ```
+
+3. Tell the tests where it is, from the `VehicleManager` folder (use the password from `.env`):
+
+   ```bash
+   dotnet user-secrets set "ConnectionStrings:VehicleManagerTests" "Server=localhost,1433;Database=master;User ID=sa;Password=<password>;TrustServerCertificate=True"
+   ```
+
+Then `dotnet test` runs everything. `docker compose stop` stops it; `docker compose down -v` also deletes its data.
+
+**Developing against it** instead of Azure: point the app's own connection string at a database on it (created and
+migrated on the next run), then copy your data in with **Backup** from the Azure-backed app and **Restore** into the
+local one (sign in as the same user):
+
+```bash
+dotnet user-secrets set "ConnectionStrings:VehicleManager" "Server=localhost,1433;Database=VehicleManager;User ID=sa;Password=<password>;TrustServerCertificate=True"
+```
+
+This replaces the Azure connection string in your user secrets, so keep a copy of it first. While the app runs
+locally against real data, its scheduled backups and reminders still send email.
 
 ## Signing in (Auth0)
 
@@ -282,9 +317,11 @@ dotnet test
 ```
 
 `VehicleManager.Tests` has unit tests, database tests and page tests. The page tests run the whole
-app in memory, signed in as a test user. The database and page tests use the Azure database from your
-user secrets. Each test runs as its own throwaway `test|…` user, and deletes that user's data
-afterwards, so your data isn't touched. Without a connection string they're skipped.
+app in memory, signed in as a test user. The database and page tests need the local SQL Server (see
+[Local database](#local-database-sql-server-in-docker)): each run creates its own throwaway database there
+(`VehicleManager_Tests_<time>_<id>`), migrated from scratch, and never uses the app's database or Azure SQL. Each
+test also acts as its own throwaway `test|…` user. Test databases more than an hour old are dropped by the next run.
+Without `ConnectionStrings:VehicleManagerTests` the database and page tests are skipped.
 
 ## Database migrations
 

@@ -20,6 +20,7 @@ From the repo root:
 
 ```bash
 dotnet test                  # all tests (VehicleManager.Tests); must all pass
+docker compose up -d --wait  # local SQL Server (compose.yaml; needs OrbStack or Docker Desktop running)
 aspire run                   # the app plus the Aspire dashboard (logs, traces) → https://localhost:17080
                              # (CLI must be ≥ the AppHost's Aspire version: `aspire update --self`;
                              #  or `dotnet run --project VehicleManager.AppHost`)
@@ -31,25 +32,35 @@ aspire run                   # the app plus the Aspire dashboard (logs, traces) 
 so test pages through the in-memory host rather than relying on the browser.
 
 - `Unit/` – pure logic, no database (calculations, stats, allow-list, text splitting, reminders, DVLA/DVSA lookups via the fake).
-- `Data/` – EF Core against the real Azure database: per-user isolation, audit columns, concurrency, stops, brands/stations,
-  scheduled backups and reminders.
+- `Data/` – EF Core against the tests' throwaway database: per-user isolation, audit columns, concurrency, stops,
+  brands/stations, scheduled backups and reminders.
 - `Pages/` – the whole app in memory (`Infrastructure/AppFactory`, a `WebApplicationFactory<Program>`). It loads pages,
   follows links and submits forms through `PageClient`, which sends a form's current values like a browser.
   Auth0 is replaced by a test sign-in, as whichever user the client is for; Auth0 and Resend settings and `AllowedEmails` are
-  overridden with dummy values via environment variables. It sets `MigrateOnStartup=false`, so tests never apply
-  migrations; they refuse to run while any are pending (run the app to apply them, after asking me).
-- Database tests use the real database, so they must never touch real data. Derive from `DatabaseTest`: each test
-  runs as its own throwaway `test|<guid>` user, which the per-user query filters keep apart, and
-  `TestDatabase.DeleteUserDataAsync` removes everything it owns afterwards (it refuses any other user id).
-  Mark them `[DatabaseFact]`/`[DatabaseTheory]` so they're skipped when no connection string is configured.
-- Never test against real data or run unscoped `ExecuteUpdate`/`ExecuteDelete` in tests. For a migration, run its
-  SQL (`dotnet ef migrations script <from> <to> --no-transactions`) inside a transaction against the real database,
-  check the results, and roll back. Then ask me before applying it.
+  overridden with dummy values via environment variables. The app's connection string is overridden with the test
+  database's (or, with no test SQL Server, one that can't connect), so it never reaches the real data, and
+  `MigrateOnStartup=false` (the test database is already migrated). `AppFactoryTests` checks this.
+- Database and page tests run against a **throwaway database** that `Infrastructure/TestDatabase` creates and
+  migrates once per run (`VehicleManager_Tests_<time>_<id>`) on the SQL Server in `ConnectionStrings:VehicleManagerTests`
+  (the local container from `compose.yaml`; see the README's Local database). It refuses Azure SQL. Test databases
+  more than an hour old are dropped at the start of the next run (the test host ends before an end-of-run clean-up
+  could finish).
+- Derive database tests from `DatabaseTest`: each test still runs as its own throwaway `test|<guid>` user, which the
+  per-user query filters keep apart, and `TestDatabase.DeleteUserDataAsync` removes everything it owns afterwards
+  (it refuses any other user id). Mark them `[DatabaseFact]`/`[DatabaseTheory]` so they're skipped when no test
+  SQL Server is configured.
+- Never point tests at the real database, or run unscoped `ExecuteUpdate`/`ExecuteDelete` in tests. Test a new
+  migration against the test database (the tests migrate it from scratch); before applying it to the real database,
+  run its SQL (`dotnet ef migrations script <from> <to> --no-transactions`) inside a transaction against a copy of
+  the real data (local, restored from a backup), check the results, and roll back. Then ask me before applying it.
 - When fixing a bug, add a test that fails without the fix.
 
 ## Stack
 
-- .NET 10, Razor Pages, EF Core 10 + SQL Server (Azure SQL Database). Connection string `ConnectionStrings:VehicleManager` is in user secrets; there is no local database.
+- .NET 10, Razor Pages, EF Core 10 + SQL Server (Azure SQL Database for real data; SQL Server 2025 in Docker locally,
+  from `compose.yaml`, for the tests and optionally for development). Connection strings are in user secrets:
+  `ConnectionStrings:VehicleManager` (the app's) and `ConnectionStrings:VehicleManagerTests` (a server for the tests'
+  throwaway databases). The local `sa` password is in the git-ignored `.env`.
 - Packages: `Microsoft.EntityFrameworkCore.SqlServer`, `Microsoft.EntityFrameworkCore.Design` (PrivateAssets=all), `ClosedXML`, `Auth0.AspNetCore.Authentication`, `Coravel` (scheduler), `Resend` (email), `OpenTelemetry.*` (keep them on one version). Keep EF packages and `dotnet-ef` on the same version.
 - Pinned only to fix vulnerability advisories in transitive packages (remove when the parent package catches up; each has
   a comment): `System.Security.Cryptography.Pkcs` (app, via SqlClient) and `MessagePack` (AppHost, via Aspire).
@@ -89,7 +100,7 @@ VehicleManager.AppHost/   AppHost.cs: runs the app with the Aspire dashboard, fo
 **Database / migrations**
 - Schema changes go through EF Core migrations; never use `EnsureCreated()`.
 - `Data/DatabaseMigrator.cs` runs at startup (`db.MigrateDatabase(logger)` in `Program.cs`) and applies pending migrations. The migrations were restarted for SQL Server (`InitialCreate`); the SQLite-era ones are gone.
-- My real data lives in the Azure SQL database: never drop, recreate or bulk-change it. Tests that write must use a separate database, or rows owned by a fake `test|…` user id that they delete afterwards.
+- My real data lives in the Azure SQL database: never drop, recreate or bulk-change it. Tests use their own throwaway database (`TestDatabase`), never it.
 - `EnableRetryOnFailure` is on, so explicit transactions must run inside `db.Database.CreateExecutionStrategy().ExecuteAsync(...)` (see `ExistingDataClaim`).
 
 **Audit columns** (every table, via `Models/AuditedEntity.cs`)

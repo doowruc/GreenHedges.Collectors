@@ -11,12 +11,15 @@ reasoning and the decisions: [HOMESERVER-MIGRATION.md](HOMESERVER-MIGRATION.md).
 - [x] **Move an unrelated, untracked DNS export file out of the repository folder** (untracked, not part of the
       app), so it can't be committed or copied across. Gone by 2026-10-23.
 - [ ] **Local SQL Server for development and tests** (in this repo first):
-  - [ ] A `compose.yaml` for SQL Server in Docker Desktop on the Mac (`mcr.microsoft.com/mssql/server`, Developer
-        edition, named volume, `127.0.0.1:1433`); document it, and LocalDB for Windows, in the README.
-  - [ ] Database and page tests on a throwaway database per test run (created, migrated, dropped) instead of the real
-        Azure database; keep `[DatabaseFact]` skipping when no SQL Server is configured, and the never-touch-real-data
-        rules as a backstop. Update CLAUDE.md's Tests section.
+  - [x] A `compose.yaml` for SQL Server on the Mac (`mcr.microsoft.com/mssql/server` 2025, Developer edition, named
+        volume, `127.0.0.1:1433`, sa password in a git-ignored `.env`), run with OrbStack; documented, with LocalDB for
+        Windows, in the README's Local database.
+  - [x] Database and page tests on a throwaway database per test run (`TestDatabase`: created and migrated on the
+        server in `ConnectionStrings:VehicleManagerTests`, refuses Azure SQL; older ones dropped by the next run)
+        instead of the real Azure database; the app under test can't reach its own database (`AppFactoryTests`).
+        `[DatabaseFact]` still skips without a test SQL Server. CLAUDE.md's Tests section updated. All 272 tests run.
   - [ ] Point local development at the local database; copy data in with backup and restore when needed.
+        (Documented in the README; switching `ConnectionStrings:VehicleManager` is my call.)
 - [ ] **Import into GreenHedges.HomeServer** (one PR there):
   - [ ] Import this repo with its history (rewritten into `src/VehicleManager/`, `tests/VehicleManager/` and
         `docs/vehicle-manager/`), merged with `--allow-unrelated-histories`.
@@ -125,7 +128,7 @@ reasoning and the decisions: [HOMESERVER-MIGRATION.md](HOMESERVER-MIGRATION.md).
 - [x] **One type per file** throughout, now a rule in CLAUDE.md.
 - [x] **Shared DataTables setup:** `data-table.js` and `_DataTableStyles`/`_DataTableScripts` serve both the fuel log
       and the service history, so a new table follows the same pattern.
-- [ ] ~~**Develop against a local database again,**~~ *Moved to Move to the home server (Local SQL Server for development and tests), as SQL Server in Docker.* Was: instead of the Azure one. It must stay SQL Server, because the
+- [x] ~~**Develop against a local database again,**~~ *Done as Move to the home server's first step: SQL Server in Docker (`compose.yaml`), the tests on it.* Was: instead of the Azure one. It must stay SQL Server, because the
       model relies on it (`rowversion` concurrency, the unique index that counts NULLs as equal, `date` columns,
       retry-on-failure). Support all three platforms, with a setup for each:
   - Windows: SQL Server Express LocalDB (`(localdb)\MSSQLLocalDB`), which comes with Visual Studio or as a small
