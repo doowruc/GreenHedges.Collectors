@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Coravel.Invocable;
 using Microsoft.EntityFrameworkCore;
 using GreenHedges.HomeServer.VehicleManager.Data;
+using GreenHedges.HomeServer.VehicleManager.Monitoring;
 
 namespace GreenHedges.HomeServer.VehicleManager.Services;
 
@@ -9,15 +10,36 @@ namespace GreenHedges.HomeServer.VehicleManager.Services;
 /// Each morning (scheduled in <c>Program.cs</c>), for every user with vehicles: checks their MOT and tax
 /// due dates with whichever of the DVLA and DVSA are set up, then emails any reminders due (if they've set an address).
 /// </summary>
-public class ScheduledReminders(AppDbContext db, IServiceScopeFactory scopes, ILogger<ScheduledReminders> logger) : IInvocable
+public class ScheduledReminders(AppDbContext db, IServiceScopeFactory scopes, AppHealth health, ILogger<ScheduledReminders> logger) : IInvocable
 {
     public async Task Invoke()
     {
-        var today = Reminders.UkToday();
+        List<string> users;
+        try
+        {
+            users = await UsersAsync();
+        }
+        catch (Exception ex)
+        {
+            // The whole run failed (e.g. the database is down): record it for the alerts, and let Coravel log it.
+            health.RecordRun(ScheduledJob.MorningReminders, 0, 1, ex);
+            throw;
+        }
+
+        await RunAsync(users, Reminders.UkToday());
+    }
+
+    /// <summary>
+    /// Runs the reminders for each of <paramref name="users"/>, one failure not stopping the others, and records the
+    /// run in <see cref="AppHealth"/>. Tests call this with their own users; <see cref="Invoke"/> covers everyone.
+    /// </summary>
+    public async Task RunAsync(IReadOnlyCollection<string> users, DateOnly today)
+    {
         // A trace per run with a span per user (Telemetry), so the database, email and lookup calls for each user sit under it.
         using var run = Telemetry.Source.StartActivity("Scheduled reminders");
-        var users = await UsersAsync();
         run?.SetTag("vehiclemanager.users", users.Count);
+        var failures = 0;
+        Exception? lastError = null;
         foreach (var userId in users)
         {
             using var span = Telemetry.Source.StartActivity("Remind user");
@@ -33,10 +55,14 @@ public class ScheduledReminders(AppDbContext db, IServiceScopeFactory scopes, IL
             // One user's failure (e.g. Resend refusing their address) shouldn't stop the others' reminders.
             catch (Exception ex)
             {
+                failures++;
+                lastError = ex;
                 span?.AddException(ex).SetStatus(ActivityStatusCode.Error);
                 logger.LogError(ex, "Reminders for {UserId} failed", userId);
             }
         }
+
+        health.RecordRun(ScheduledJob.MorningReminders, users.Count, failures, lastError);
     }
 
     /// <summary>Everyone with vehicles. Deliberately across all users, so it bypasses the query filters.</summary>

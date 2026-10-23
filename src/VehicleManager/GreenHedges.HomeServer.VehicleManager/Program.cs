@@ -6,10 +6,15 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Localization;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Resend;
+using GreenHedges.HomeServer.Common.Alerts;
+using GreenHedges.HomeServer.Common.Heartbeat;
+using GreenHedges.HomeServer.Common.Hosting;
 using GreenHedges.HomeServer.VehicleManager.Data;
+using GreenHedges.HomeServer.VehicleManager.Monitoring;
 using GreenHedges.HomeServer.VehicleManager.Pages.FuelBrands;
 using GreenHedges.HomeServer.VehicleManager.Services;
 
@@ -117,11 +122,34 @@ builder.Services.AddHttpClient<MotHistoryClient>(http =>
 });
 builder.Services.AddScoped<VehicleLookup>();
 
+// Alert emails (through Resend) and the off-machine heartbeat (healthchecks.io), shared with the collectors
+// (GreenHedges.HomeServer.Common). Both are off until configured: Alerts:ResendApiKey, From and To; Heartbeat:PingUrl.
+builder.Services.TryAddSingleton(TimeProvider.System);
+builder.Services.AddSingleton(new CollectorIdentity("VehicleManager"));
+builder.AddAlerting();
+builder.AddHeartbeat();
+builder.Services.AddOptions<VehicleManagerAlertOptions>()
+    .BindConfiguration(AlertOptions.SectionName)
+    .Validate(o => o.DatabaseDownAfter > TimeSpan.Zero && o.JobOverdueAfter > TimeSpan.Zero,
+        "Alerts:DatabaseDownAfter and Alerts:JobOverdueAfter must be positive.")
+    .ValidateOnStart();
+builder.Services.AddSingleton<AppHealth>();
+builder.Services.AddSingleton<IHeartbeatSource>(services => services.GetRequiredService<AppHealth>());
+builder.Services.AddSingleton<IDatabaseProbe, DatabaseProbe>();
+// The monitor probes the database every minute. On by default outside Development; off in Development, so a local
+// copy left running doesn't keep a pausing database (Azure SQL's free offer) awake. Alerts:Monitor overrides it.
+if (builder.Configuration.GetValue("Alerts:Monitor", !builder.Environment.IsDevelopment()))
+    builder.Services.AddHostedService<VehicleManagerAlertMonitor>();
+
 builder.Services.AddScheduler();
 builder.Services.AddTransient<ScheduledBackups>();
 builder.Services.AddTransient<ScheduledReminders>();
 
 var app = builder.Build();
+
+// `--test-alert` sends one alert through the configured sender and exits, to check the Resend setup.
+if (await app.TrySendTestAlertAsync(args))
+    return;
 
 // Create the tables on first run and apply any pending migrations. The tests turn this off, so
 // only the real app changes the database's schema.

@@ -96,6 +96,8 @@ GreenHedges.HomeServer.VehicleManager/
   wwwroot/     css/site.css, js/color-mode.js, js/period-toggle.js, js/data-table.js (DataTables setup), js/typeahead.js (dropdown suggestions),
                js/price-chart.js (station price charts), js/mileage-chart.js (mileage over time: vehicle Services and MOT tabs),
                js/spend-chart.js (dashboard fuel spending charts)
+  Monitoring/  AppHealth (database probes and job runs; the heartbeat source), VehicleManagerAlertMonitor (the alert rules),
+               DatabaseProbe/IDatabaseProbe, VehicleManagerAlertOptions, ScheduledJob, JobRun
 GreenHedges.HomeServer.VehicleManager.AppHost/   AppHost.cs: runs the app with the Aspire dashboard, for local development only
 ```
 
@@ -159,7 +161,7 @@ GreenHedges.HomeServer.VehicleManager.AppHost/   AppHost.cs: runs the app with t
   used for both backups and reminders.
 - Tests: `AppFactory` swaps `IResend` for `Infrastructure/FakeResend` (records emails; addresses containing "fail" fail)
   and removes Coravel's hosted service (so neither scheduled backups nor reminders run). Never call `ScheduledBackups.Invoke()` in tests: it covers every user, real ones
-  included. Test `BackUpAsync(testUserId)` instead.
+  included. Test `BackUpAsync(testUserId)`, or `RunAsync([testUserIds])` for a whole run (it records the run in `AppHealth`).
 
 **Service history**
 - The vehicle page (`Vehicles/Details`) has Fuel, Services and MOT tabs (Bootstrap `nav-tabs`). The active one is rendered
@@ -195,7 +197,7 @@ GreenHedges.HomeServer.VehicleManager.AppHost/   AppHost.cs: runs the app with t
   accepts the email. The unique index is unfiltered (`HasFilter(null)`), so date-based rows (null mileage) are unique too.
 - `ScheduledReminders` runs at 07:00 UK time for every user with vehicles: `VehicleLookup.RefreshAsync` each vehicle
   (if a service is configured), then `ReminderEmailer` to `UserSettings.ReminderEmail` (none = no emails).
-  Never call `Invoke()` in tests; test `RunForAsync(testUserId, today)`.
+  Never call `Invoke()` in tests; test `RunForAsync(testUserId, today)`, or `RunAsync([testUserIds], today)` for a run.
 - Lookups: tax from the DVLA (SORN clears it), MOT from the DVSA (latest test expiry, or `motTestDueDate` for a new
   vehicle), falling back to the DVLA's `motExpiryDate`. Dates not found are left alone; problems are returned as
   messages (shown via `TempData["Warning"]`), never thrown. `Dvla:ApiKey` and `MotHistory:ClientId/ClientSecret/ApiKey/TokenUrl`
@@ -231,6 +233,24 @@ GreenHedges.HomeServer.VehicleManager.AppHost/   AppHost.cs: runs the app with t
   `VehicleManager`; unset, ASP.NET's default applies (development, tests).
 - `/health` (anonymous, `Services/DatabaseHealthCheck`, 10 s timeout): `Healthy`/`Unhealthy` text only, never details.
 - `HostingTests` cover all three.
+
+**Alerts and heartbeat** (`Monitoring/`, through `GreenHedges.HomeServer.Common`, shared with the collectors)
+- `Program.cs` registers a `CollectorIdentity("VehicleManager")` (alert subjects) and `TimeProvider.System`, then
+  `Common`'s `AddAlerting()` and `AddHeartbeat()`. Both are off until configured (`Alerts:ResendApiKey`/`From`/`To`,
+  `Heartbeat:PingUrl`); without a key, alerts are only logged. `--test-alert` sends one and exits.
+- `VehicleManagerAlertMonitor` (a `Common` `AlertMonitorService`, every `Alerts:CheckInterval`) probes the database and
+  raises, with stable keys: `Database` (not answering for `Alerts:DatabaseDownAfter`, 5 min), `NightlyBackups` and
+  `MorningReminders` (the latest run had failures, or none completed for `Alerts:JobOverdueAfter`, 26 h, from startup).
+  Job alerts wait while the database is failing. Alerts resolve only on positive evidence since startup.
+- The scheduled jobs record each run (users, failures, last error) in `AppHealth`, including a run that fails before
+  reaching any user. A new scheduled job should do the same, and get a `ScheduledJob` value and an alert key.
+- The heartbeat pings while the database answered within `Heartbeat:Interval`.
+- `Alerts:Monitor` turns the monitor on or off: on by default outside Development, off in Development (its
+  every-minute probe would keep a pausing Azure SQL database awake). Without the monitor there are no probes, so no
+  heartbeat either.
+- Alert emails go to the owner of the server, so they may carry error messages; logs and traces still mustn't.
+- Tests: `AppFactory` keeps the alert state file in the temp folder; neither email nor pings are configured.
+  `VehicleManagerAlertMonitorTests` cover the rules with a fake clock and probe.
 
 **Telemetry and logging** (`Services/Telemetry.cs`)
 - OpenTelemetry logs (through `ILogger`), traces and metrics go over OTLP only when `OTEL_EXPORTER_OTLP_ENDPOINT` is set:

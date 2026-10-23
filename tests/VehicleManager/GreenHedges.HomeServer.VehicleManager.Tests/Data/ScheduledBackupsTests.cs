@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Resend;
 using GreenHedges.HomeServer.VehicleManager.Models;
+using GreenHedges.HomeServer.VehicleManager.Monitoring;
 using GreenHedges.HomeServer.VehicleManager.Services;
 using GreenHedges.HomeServer.VehicleManager.Tests.Infrastructure;
 
@@ -121,4 +122,24 @@ public class ScheduledBackupsTests(AppFactory app) : DatabaseTest, IClassFixture
     [DatabaseFact]
     public void The_scheduler_doesnt_run_in_tests() =>
         Assert.DoesNotContain(app.Services.GetServices<IHostedService>(), s => s.GetType().Namespace!.StartsWith("Coravel"));
+
+    [DatabaseFact]
+    public async Task A_run_records_its_users_and_failures_for_the_alerts()
+    {
+        await SetUpAsync();
+        var failing = NewUser();
+        await using (var db = TestDatabase.As(failing))
+        {
+            db.UserSettings.Add(new UserSettings { BackupEmail = FakeResend.NewAddress("fail") });
+            await db.SaveChangesAsync();
+        }
+
+        using var scope = app.Services.CreateScope();
+        await scope.ServiceProvider.GetRequiredService<ScheduledBackups>().RunAsync([UserId, failing]);
+
+        var run = app.Services.GetRequiredService<AppHealth>().Snapshot().LastRuns[ScheduledJob.NightlyBackups];
+        Assert.Equal(2, run.Users);
+        Assert.Equal(1, run.Failures);
+        Assert.StartsWith(nameof(ResendException), run.LastError);
+    }
 }

@@ -5,6 +5,11 @@ using Microsoft.Extensions.Options;
 
 namespace GreenHedges.HomeServer.Common.Hosting;
 
+/// <summary>
+/// The shared services every collector, and Vehicle Manager, registers. They take any <see cref="IHostApplicationBuilder"/>:
+/// a worker's <see cref="HostApplicationBuilder"/> or a web app's <c>WebApplicationBuilder</c>. A host that doesn't start from
+/// <see cref="CollectorHost.CreateBuilder"/> registers a <see cref="TimeProvider"/> and a <see cref="CollectorIdentity"/> itself.
+/// </summary>
 public static class CollectorServices
 {
     /// <summary>
@@ -12,7 +17,8 @@ public static class CollectorServices
     /// is configured (otherwise alerts are only logged), the persisted <see cref="AlertStateStore"/> and
     /// the <see cref="AlertBook"/>. The collector adds its own <see cref="AlertMonitorService"/>.
     /// </summary>
-    public static HostApplicationBuilder AddAlerting(this HostApplicationBuilder builder)
+    public static TBuilder AddAlerting<TBuilder>(this TBuilder builder)
+        where TBuilder : IHostApplicationBuilder
     {
         builder.Services.AddOptions<AlertOptions>()
             .BindConfiguration(AlertOptions.SectionName)
@@ -47,7 +53,8 @@ public static class CollectorServices
     /// The off-machine heartbeat (<see cref="HeartbeatOptions"/>, validated at startup). The collector
     /// registers its <see cref="IHeartbeatSource"/>.
     /// </summary>
-    public static HostApplicationBuilder AddHeartbeat(this HostApplicationBuilder builder)
+    public static TBuilder AddHeartbeat<TBuilder>(this TBuilder builder)
+        where TBuilder : IHostApplicationBuilder
     {
         builder.Services.AddOptions<HeartbeatOptions>()
             .BindConfiguration(HeartbeatOptions.SectionName)
@@ -75,7 +82,7 @@ public static class CollectorServices
     /// one is reported by <see cref="OffsiteBackupService"/> (log and immediate alert) instead of stopping
     /// the collector.
     /// </summary>
-    public static HostApplicationBuilder AddBackups<TSource>(this HostApplicationBuilder builder)
+    public static IHostApplicationBuilder AddBackups<TSource>(this IHostApplicationBuilder builder)
         where TSource : class, IBackupSource
     {
         builder.Services.AddOptions<BackupOptions>().BindConfiguration(BackupOptions.SectionName);

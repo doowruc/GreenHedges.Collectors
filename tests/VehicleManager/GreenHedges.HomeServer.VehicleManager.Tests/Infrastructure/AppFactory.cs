@@ -49,6 +49,12 @@ public sealed class AppFactory : WebApplicationFactory<Program>
         Environment.SetEnvironmentVariable("ConnectionStrings__VehicleManager",
             TestDatabase.IsConfigured ? TestDatabase.ConnectionString : "Server=tests.invalid;Database=none;Connect Timeout=1");
         Environment.SetEnvironmentVariable("MigrateOnStartup", "false");
+
+        // The alert monitor runs (it's off by default in Development), but sends no email and no heartbeat pings
+        // (neither is configured), and keeps open alerts out of the working folder.
+        Environment.SetEnvironmentVariable("Alerts__Monitor", "true");
+        Environment.SetEnvironmentVariable("Alerts__StateFile",
+            Path.Combine(Path.GetTempPath(), $"vehiclemanager-tests-alerts-{Guid.NewGuid():N}.json"));
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)

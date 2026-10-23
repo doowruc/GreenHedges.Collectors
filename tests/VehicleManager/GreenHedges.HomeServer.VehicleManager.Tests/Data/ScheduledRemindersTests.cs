@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Resend;
 using GreenHedges.HomeServer.VehicleManager.Models;
+using GreenHedges.HomeServer.VehicleManager.Monitoring;
 using GreenHedges.HomeServer.VehicleManager.Services;
 using GreenHedges.HomeServer.VehicleManager.Tests.Infrastructure;
 
@@ -180,5 +181,30 @@ public class ScheduledRemindersTests(AppFactory app) : DatabaseTest, IClassFixtu
         await RunAsync(UserId, Today);
         await using var other = TestDatabase.As(NewUser());
         Assert.Empty(await other.SentReminders.ToListAsync());
+    }
+
+    [DatabaseFact]
+    public async Task A_run_records_its_failures_and_a_clean_run_counts_as_a_success()
+    {
+        var (address, _) = await SetUpAsync(FakeResend.NewAddress("fail"));
+        var health = app.Services.GetRequiredService<AppHealth>();
+        using (var scope = app.Services.CreateScope())
+            await scope.ServiceProvider.GetRequiredService<ScheduledReminders>().RunAsync([UserId], Today);
+
+        var failed = health.Snapshot().LastRuns[ScheduledJob.MorningReminders];
+        Assert.Equal((1, 1), (failed.Users, failed.Failures));
+
+        await using (var db = Db())
+        {
+            (await db.UserSettings.SingleAsync()).ReminderEmail = address.Replace("fail", "ok");
+            await db.SaveChangesAsync();
+        }
+
+        using (var scope = app.Services.CreateScope())
+            await scope.ServiceProvider.GetRequiredService<ScheduledReminders>().RunAsync([UserId], Today);
+
+        var snapshot = health.Snapshot();
+        Assert.True(snapshot.LastRuns[ScheduledJob.MorningReminders].Succeeded);
+        Assert.True(snapshot.LastSuccesses.ContainsKey(ScheduledJob.MorningReminders));
     }
 }
