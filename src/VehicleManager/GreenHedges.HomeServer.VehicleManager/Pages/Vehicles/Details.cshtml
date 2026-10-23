@@ -1,0 +1,295 @@
+@page "{id:int}"
+@model GreenHedges.HomeServer.VehicleManager.Pages.Vehicles.DetailsModel
+@{ ViewData["Title"] = Model.Vehicle.DisplayName; }
+
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+    <div>
+        <h1 class="h3 mb-1">@Model.Vehicle.DisplayName <span class="reg-plate fs-6 align-middle">@Model.Vehicle.RegistrationNumber</span></h1>
+        <div class="text-muted small">
+            @Model.Vehicle.Type · @Model.Vehicle.FuelType · Owned by @Model.Vehicle.OwnerName
+            @if (Model.Vehicle.RegistrationDate is { } rd) { <text> · Registered @rd.ToString("dd MMM yyyy")</text> }
+            @if (Model.Vehicle.PurchasedDate is { } pd) { <text> · Purchased @pd.ToString("dd MMM yyyy")</text> }
+            @if (Model.AllTime.LatestOdometer is { } odo) { <text> · @odo.ToString("N0") miles</text> }
+            @if (Model.Mileage is { } trend) { <text> · about @trend.MilesPerMonth.ToString("N0") miles a month lately</text> }
+        </div>
+        <div class="d-flex flex-wrap align-items-center gap-1 mt-2">
+            <partial name="_DueDates" model="Model.DueDates" />
+            @if (Model.UnestimatedServiceMileage is { } serviceMiles)
+            {
+                <span class="text-muted small" title="Needs odometer readings (from fill-ups or MOT tests) at least @MileageTrend.MinDays days apart">Service due at @serviceMiles.ToString("N0") miles (not enough odometer readings to estimate when)</span>
+            }
+            @if (Model.DueDates.Count == 0 && Model.UnestimatedServiceMileage is null)
+            {
+                <span class="text-muted small">No MOT, tax, insurance or service dates. <a asp-page="Edit" asp-route-id="@Model.Vehicle.Id">Add them</a>.</span>
+            }
+            @foreach (var (check, label) in new[]
+            {
+                (Model.ShowHeaderMotCheck ? DetailsModel.CheckMot : null, "MOT"),
+                (Model.ShowHeaderTaxCheck ? DetailsModel.CheckTax : null, "tax")
+            }.Where(c => c.Item1 is not null))
+            {
+                <form method="post" asp-page-handler="Lookup" asp-route-id="@Model.Vehicle.Id" asp-route-check="@check" class="d-inline">
+                    @* Kept on the selected tab by the script below, so the page comes back to it. *@
+                    <input type="hidden" name="tab" value="@Model.Tab" class="lookup-tab" />
+                    <button type="submit" class="btn btn-link btn-sm py-0"><i class="bi bi-arrow-repeat me-1"></i>Check @label</button>
+                </form>
+            }
+        </div>
+    </div>
+    <div class="d-flex flex-wrap align-items-center gap-2">
+        @if (Model.VehicleOptions.Count > 1)
+        {
+            <select id="vehicle-switcher" class="form-select form-select-sm w-auto" aria-label="Switch vehicle" asp-items="Model.VehicleOptions"></select>
+        }
+        <a asp-page="Edit" asp-route-id="@Model.Vehicle.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
+        <a asp-page="Delete" asp-route-id="@Model.Vehicle.Id" class="btn btn-sm btn-outline-danger">Delete</a>
+    </div>
+</div>
+
+@{
+    bool IsActive(string tab) => Model.Tab == tab;
+    string? PaneClass(string tab) => IsActive(tab) ? "show active" : null;
+}
+<ul class="nav nav-tabs mb-3" role="tablist" aria-label="Vehicle details">
+    @* Links to each tab's URL: Bootstrap switches the tab in place, and the script below puts the link in the
+       address bar, so a refresh (or coming back from a service page, with ?tab=services) opens the same tab. *@
+    @foreach (var (tab, icon, name, count) in new[]
+    {
+        (DetailsModel.FuelTab, "bi-fuel-pump", "Fuel", Model.Entries.Count),
+        (DetailsModel.ServicesTab, "bi-wrench", "Services", Model.Services.Count),
+        (DetailsModel.MotTab, "bi-clipboard-check", "MOT", Model.MotTests.Count)
+    }.Where(t => t.Item1 != DetailsModel.MotTab || Model.ShowMotTab))
+    {
+        <li class="nav-item" role="presentation">
+            <a asp-route-id="@Model.Vehicle.Id" asp-route-tab="@tab" class="nav-link @(IsActive(tab) ? "active" : null)" role="tab"
+               data-bs-toggle="tab" data-bs-target="#tab-@tab" aria-controls="tab-@tab" aria-selected="@(IsActive(tab) ? "true" : "false")" data-tab="@tab">
+                <i class="bi @icon me-1"></i>@name <span class="opacity-75">(@count)</span>
+            </a>
+        </li>
+    }
+</ul>
+<div class="tab-content">
+<div class="tab-pane @PaneClass(DetailsModel.FuelTab)" id="tab-fuel" role="tabpanel">
+    @if (Model.Entries.Count == 0)
+    {
+        <div class="alert alert-info">
+            No fill-ups recorded yet. <a asp-page="/FuelLog/Create" asp-route-vehicleId="@Model.Vehicle.Id">Add one</a>
+            or <a asp-page="/Import/Index">import from your spreadsheet</a>.
+        </div>
+    }
+    else
+    {
+        <div class="period-toggle-row d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+            <partial name="_PeriodToggle" />
+            <a asp-page="/FuelLog/Create" asp-route-vehicleId="@Model.Vehicle.Id" class="btn btn-sm btn-success"><i class="bi bi-fuel-pump me-1"></i>Add fill-up</a>
+        </div>
+        <div class="mb-4">
+            <div class="period-stats" data-period="12m"><partial name="_StatCards" model="Model.LastYear" /></div>
+            <div class="period-stats" data-period="all"><partial name="_StatCards" model="Model.AllTime" /></div>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-body fw-semibold">MPG and fuel price over time</div>
+            <div class="card-body"><div class="chart-box"><canvas id="chart"></canvas></div></div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-header bg-body fw-semibold">Fuel Log (@Model.Entries.Count)</div>
+            <div class="card-body py-2"><partial name="_FuelTable" model="Model.Entries" /></div>
+        </div>
+    }
+</div>
+<div class="tab-pane @PaneClass(DetailsModel.ServicesTab)" id="tab-services" role="tabpanel">
+    @* Like the other tabs: the period toggle on the left (with services to show), Add service on the right. *@
+    <div class="period-toggle-row d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+        @if (Model.Services.Count > 0) { <partial name="_PeriodToggle" /> } else { <span></span> }
+        <a asp-page="Services/Create" asp-route-vehicleId="@Model.Vehicle.Id" class="btn btn-sm btn-primary"><i class="bi bi-wrench me-1"></i>Add service</a>
+    </div>
+    @if (Model.ServiceChartJson is { } serviceChart)
+    {
+        <partial name="_MileageChart" model='("Mileage at each service", serviceChart)' />
+    }
+    <div class="card shadow-sm">
+        <div class="card-header bg-body">
+            <span class="fw-semibold">Service history
+                @if (Model.Services.Count > 0)
+                {
+                    <span class="period-stats" data-period="12m">(@Model.ServicesLastYear.Count)</span><span class="period-stats" data-period="all">(@Model.Services.Count)</span>
+                }
+                else { <text>(0)</text> }
+            </span>
+            <span class="text-muted small ms-2">
+                @if (Model.Vehicle.ServiceIntervalMonths is null && Model.Vehicle.ServiceIntervalMiles is null)
+                {
+                    <text>No service interval. <a asp-page="Edit" asp-route-id="@Model.Vehicle.Id">Set one</a> to have the next service worked out.</text>
+                }
+                else
+                {
+                    <text>Every @string.Join(" or ", new[]
+                    {
+                        Model.Vehicle.ServiceIntervalMonths is { } months ? $"{months} month{(months == 1 ? "" : "s")}" : null,
+                        Model.Vehicle.ServiceIntervalMiles is { } miles ? $"{miles:N0} miles" : null
+                    }.Where(p => p is not null))</text>
+                }
+            </span>
+        </div>
+        @if (Model.Services.Count == 0)
+        {
+            <div class="card-body text-muted">No services recorded yet.</div>
+        }
+        else
+        {
+            // Both tables size their columns from all the services, so they line up whichever is shown.
+            var serviceViewData = new ViewDataDictionary(ViewData) { ["SizeColumnsFrom"] = Model.Services };
+            <div class="period-stats" data-period="12m">
+                @if (Model.ServicesLastYear.Count == 0)
+                {
+                    <div class="card-body text-muted">No services in the last 12 months.</div>
+                }
+                else
+                {
+                    <div class="card-body py-2"><partial name="_ServiceTable" model="Model.ServicesLastYear" view-data="serviceViewData" /></div>
+                }
+            </div>
+            <div class="period-stats" data-period="all">
+                <div class="card-body py-2"><partial name="_ServiceTable" model="Model.Services" view-data="serviceViewData" /></div>
+            </div>
+        }
+    </div>
+</div>
+@if (Model.ShowMotTab)
+{
+    <div class="tab-pane @PaneClass(DetailsModel.MotTab)" id="tab-mot" role="tabpanel">
+        @* Like the other tabs: the period toggle on the left (with tests to show), the tab's action on the right. *@
+        @if (Model.MotTests.Count > 0 || Model.CanLookUp)
+        {
+            <div class="period-toggle-row d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                @if (Model.MotTests.Count > 0) { <partial name="_PeriodToggle" /> } else { <span></span> }
+                @if (Model.CanLookUp)
+                {
+                    <form method="post" asp-page-handler="Lookup" asp-route-id="@Model.Vehicle.Id" asp-route-check="@DetailsModel.CheckMot">
+                        <input type="hidden" name="tab" value="@DetailsModel.MotTab" />
+                        <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-arrow-repeat me-1"></i>Check MOT</button>
+                    </form>
+                }
+            </div>
+        }
+        @* Every test with a reading, whichever period is selected: a year's MOT is a single point. *@
+        @if (Model.MotChartJson is { } motChart)
+        {
+            <partial name="_MileageChart" model='("Mileage at each MOT", motChart)' />
+        }
+        <div class="card shadow-sm">
+            <div class="card-header bg-body">
+                <span class="fw-semibold">MOT history
+                    @if (Model.MotTests.Count > 0)
+                    {
+                        <span class="period-stats" data-period="12m">(@Model.MotTestsLastYear.Count)</span><span class="period-stats" data-period="all">(@Model.MotTests.Count)</span>
+                    }
+                    else { <text>(0)</text> }
+                </span>
+                <span class="text-muted small ms-2">
+                    @if (Model.HasMotHistory) { <text>From the DVSA, updated each morning and when you check the MOT.</text> }
+                    else { <text>From the DVSA, when it was set up.</text> }
+                </span>
+            </div>
+            @if (Model.MotTests.Count == 0)
+            {
+                <div class="card-body text-muted">No MOT tests yet.@if (Model.HasMotHistory) { <text> <b>Check MOT</b> fetches them from the DVSA.</text> }</div>
+            }
+            else
+            {
+                var motViewData = new ViewDataDictionary(ViewData) { ["Registration"] = Model.Vehicle.RegistrationNumber };
+                <div class="period-stats" data-period="12m">
+                    @if (Model.MotTestsLastYear.Count == 0)
+                    {
+                        <div class="card-body text-muted">No MOT tests in the last 12 months.</div>
+                    }
+                    else
+                    {
+                        <partial name="_MotTests" model="Model.MotTestsLastYear" view-data="motViewData" />
+                    }
+                </div>
+                <div class="period-stats" data-period="all">
+                    <partial name="_MotTests" model="Model.MotTests" view-data="motViewData" />
+                </div>
+            }
+        </div>
+    </div>
+}
+</div>
+
+@section Styles {
+    @if (Model.Entries.Count > 0 || Model.Services.Count > 0) { <partial name="_DataTableStyles" /> }
+}
+
+@section Scripts {
+    @if (Model.Entries.Count > 0 || Model.Services.Count > 0) { <partial name="_DataTableScripts" /> }
+    <script>
+        document.getElementById('vehicle-switcher')?.addEventListener('change', e => location.href = e.target.value);
+        document.querySelectorAll('[data-bs-toggle="tab"]').forEach(tab => tab.addEventListener('shown.bs.tab', () => {
+            // Keep the address bar on the selected tab (replacing, so Back doesn't step through tabs).
+            history.replaceState(history.state, '', tab.href);
+            document.querySelectorAll('.lookup-tab').forEach(input => input.value = tab.dataset.tab);
+            // So switching vehicle opens the same tab.
+            document.querySelectorAll('#vehicle-switcher option').forEach(option => {
+                const url = new URL(option.value, location.href);
+                url.searchParams.set('tab', tab.dataset.tab);
+                option.value = url.pathname + url.search;
+            });
+        }));
+    </script>
+    @if (Model.Entries.Count > 0 || Model.ServiceChartJson is not null || Model.MotChartJson is not null)
+    {
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.js"></script>
+    }
+    @if (Model.ServiceChartJson is not null || Model.MotChartJson is not null)
+    {
+        <script src="~/js/mileage-chart.js" asp-append-version="true"></script>
+    }
+    @if (Model.Entries.Count > 0)
+    {
+        <script>
+            const data = @Html.Raw(Model.ChartJson);
+            const styleChart = () => {
+                const { text, grid } = window.themeColors();
+                Chart.defaults.color = text;
+                Chart.defaults.borderColor = grid;
+            };
+            styleChart();
+            const chart = new Chart(document.getElementById('chart'), {
+                type: 'line',
+                data: {
+                    labels: data.map(d => d.date),
+                    datasets: [
+                        { label: 'Real MPG', data: data.map(d => d.mpg), borderColor: '#0d6efd', backgroundColor: '#0d6efd', spanGaps: true, tension: .2, pointRadius: 2 },
+                        { label: 'Dash MPG', data: data.map(d => d.dash), borderColor: '#adb5bd', backgroundColor: '#adb5bd', spanGaps: true, tension: .2, pointRadius: 0, borderDash: [4, 4] },
+                        { label: '£ per litre', data: data.map(d => d.price), borderColor: '#fd7e14', backgroundColor: '#fd7e14', yAxisID: 'price', tension: .2, pointRadius: 0 }
+                    ]
+                },
+                options: {
+                    // Fill .chart-box's height rather than a fixed width:height ratio, which left it very short on phones.
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    scales: {
+                        y: { title: { display: true, text: 'MPG' } },
+                        price: { position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: '£ / litre' } }
+                    }
+                }
+            });
+            document.addEventListener('themechange', () => {
+                styleChart();
+                // Scales copy the defaults when created, so update them directly too.
+                const { text, grid } = window.themeColors();
+                for (const scale of Object.values(chart.options.scales)) {
+                    scale.ticks.color = text;
+                    scale.title.color = text;
+                    scale.grid.color = grid;
+                    scale.border.color = grid;
+                }
+                chart.options.plugins.legend.labels.color = text;
+                chart.update('none');
+            });
+        </script>
+    }
+}

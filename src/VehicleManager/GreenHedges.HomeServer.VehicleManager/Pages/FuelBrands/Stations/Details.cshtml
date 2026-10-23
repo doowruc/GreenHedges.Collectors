@@ -1,0 +1,80 @@
+@page "/FuelBrands/{brandId:int}/Stations/{id:int}"
+@model GreenHedges.HomeServer.VehicleManager.Pages.FuelBrands.Stations.DetailsModel
+@{
+    ViewData["Title"] = $"{Model.BrandName} {Model.StationName}";
+    ViewData["ShowVehicle"] = true;
+    // Size every fuel type's table from all of them, so the columns don't move when switching tabs.
+    ViewData["SizeColumnsFrom"] = Model.Sections.SelectMany(s => s.Entries).ToList();
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+    <h1 class="h3 mb-0">@Model.BrandName @Model.StationName</h1>
+    <div class="d-flex flex-wrap gap-2">
+        <a asp-page="Edit" asp-route-brandId="@Model.BrandId" asp-route-id="@Model.StationId" class="btn btn-sm btn-outline-secondary">Edit</a>
+        <a asp-page="Merge" asp-route-brandId="@Model.BrandId" asp-route-id="@Model.StationId" class="btn btn-sm btn-outline-secondary">Merge</a>
+        @* Reached from fuel tables all over the app, so Back returns there; else to the brand's stations. *@
+        <partial name="_BackButton" model='new BackButton(Url.Page("/FuelBrands/Stations/Index", new { brandId = Model.BrandId })!, History: true)' />
+    </div>
+</div>
+
+@if (Model.Sections.Count == 0)
+{
+    <div class="alert alert-info">No fill-ups at this station yet.</div>
+}
+else
+{
+    @if (Model.Sections.Count > 1)
+    {
+        <ul class="nav nav-pills nav-pills-sm mb-2" role="tablist" aria-label="Fuel type">
+            @foreach (var s in Model.Sections)
+            {
+                var active = s.FuelType == Model.Selected;
+                <li class="nav-item" role="presentation">
+                    @* A link to this fuel type's URL: Bootstrap switches the tab in place, and the script below puts
+                       the link in the address bar so a refresh stays on it. *@
+                    <a asp-route-fuelType="@s.FuelType" class="nav-link @(active ? "active" : null)" role="tab" data-bs-toggle="tab"
+                       data-bs-target="#fuel-@s.FuelType" aria-controls="fuel-@s.FuelType" aria-selected="@(active ? "true" : "false")">
+                        @s.FuelType <span class="opacity-75">(@s.Entries.Count)</span>
+                    </a>
+                </li>
+            }
+        </ul>
+    }
+    <div class="tab-content">
+        @foreach (var s in Model.Sections)
+        {
+            <div class="tab-pane @(s.FuelType == Model.Selected ? "show active" : null)" id="fuel-@s.FuelType" role="tabpanel" data-fuel-type="@s.FuelType">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-body fw-semibold">@s.FuelType pump price per litre</div>
+                    <div class="card-body"><div class="chart-box"><canvas data-price-chart="@s.ChartJson"></canvas></div></div>
+                </div>
+                <div class="card shadow-sm">
+                    <div class="card-header bg-body fw-semibold">@s.FuelType fill-ups (@s.Entries.Count)</div>
+                    <div class="card-body py-2"><partial name="_FuelTable" model="s.Entries" /></div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@section Styles {
+    @if (Model.Sections.Count > 0) { <partial name="_DataTableStyles" /> }
+}
+
+@section Scripts {
+    @if (Model.Sections.Count > 0)
+    {
+        <partial name="_DataTableScripts" />
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.js"></script>
+        <script src="~/js/price-chart.js" asp-append-version="true"></script>
+    }
+    @if (Model.Sections.Count > 1)
+    {
+        <script>
+            document.querySelectorAll('[data-bs-toggle="tab"]').forEach(tab => tab.addEventListener('shown.bs.tab', () => {
+                // Keep the address bar on the selected fuel type (replacing, so Back doesn't step through tabs).
+                history.replaceState(history.state, '', tab.href);
+            }));
+        </script>
+    }
+}

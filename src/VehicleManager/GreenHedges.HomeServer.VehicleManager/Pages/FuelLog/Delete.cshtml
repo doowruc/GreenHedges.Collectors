@@ -1,0 +1,14 @@
+@page "{id:int}"
+@model GreenHedges.HomeServer.VehicleManager.Pages.FuelLog.DeleteModel
+@{ ViewData["Title"] = "Delete fill-up"; }
+
+<h1 class="h3 mb-3">Delete fill-up</h1>
+<div class="card shadow-sm border-danger"><div class="card-body">
+    <p>Delete the fill-up for <strong>@Model.Entry.VehicleName</strong> on
+       <strong>@Model.Entry.Date.ToString("dd/MM/yyyy")</strong> –
+       @Model.Entry.Litres.ToString("0.00") litres at @Model.Entry.Station (@Model.Entry.TotalCost.ToString("C"))?</p>
+    <form method="post">
+        <button type="submit" class="btn btn-danger">Delete</button>
+        <a asp-page="/Vehicles/Details" asp-route-id="@Model.Entry.VehicleId" class="btn btn-outline-secondary">Cancel</a>
+    </form>
+</div></div>

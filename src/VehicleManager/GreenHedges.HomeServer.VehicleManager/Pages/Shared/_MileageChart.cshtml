@@ -1,0 +1,7 @@
+@model (string Title, string Json)
+@* A mileage-over-time chart card, drawn by wwwroot/js/mileage-chart.js (the page loads it after Chart.js).
+   Json is the readings, oldest first: [{ date: "yyyy-MM-dd", miles, note, failed }]. *@
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-body fw-semibold">@Model.Title</div>
+    <div class="card-body"><div class="chart-box"><canvas data-mileage-chart="@Model.Json"></canvas></div></div>
+</div>

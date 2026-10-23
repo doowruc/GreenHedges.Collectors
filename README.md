@@ -2,14 +2,13 @@
 
 The services that run on a small always-on home server, in one repository and one .NET solution. Each deploys and runs as its own service.
 
-So far they're **collectors**: each keeps **your own complete, permanent archive** of data that otherwise only lives in someone else's cloud, with dashboards built on top.
-
-| Collector | Archives | Status |
+| Service | What | Status |
 |---|---|---|
-| **Libre** ([docs](docs/libre/README.md)) | FreeStyle Libre glucose readings, fetched once a minute through LibreLinkUp, with Nightscout dashboards and Apple Health sync | Running |
-| **Weather** ([docs](docs/weather/README.md)) | Every radio message from a home weather station's outdoor sensor, received with an RTL-SDR dongle and [rtl_433](https://github.com/merbanan/rtl_433), with Grafana dashboards | Archiving, with alerts, heartbeat and backups (Phase 1); dashboards next |
+| **Libre collector** ([docs](docs/libre/README.md)) | Keeps a complete, permanent archive of FreeStyle Libre glucose readings, fetched once a minute through LibreLinkUp, with Nightscout dashboards and Apple Health sync | Running |
+| **Weather collector** ([docs](docs/weather/README.md)) | Archives every radio message from a home weather station's outdoor sensor, received with an RTL-SDR dongle and [rtl_433](https://github.com/merbanan/rtl_433), with Grafana dashboards | Archiving, with alerts, heartbeat and backups (Phase 1); dashboards next |
+| **Vehicle Manager** ([docs](docs/vehicle-manager/README.md)) | A web app for the vehicles I own: fuel log and MPG, services, MOT history from the DVSA, due-date reminders | Moving onto the home server ([plan](docs/vehicle-manager/HOMESERVER-MIGRATION.md)); runs locally for now |
 
-Shared by the collectors: a .NET 10 Worker Service under systemd, SQLite archives that keep the data as received, nightly backups pulled off the host, encrypted off-site copies, email alerts and an external heartbeat, and remote access over Tailscale only.
+The **collectors** keep my own copy of data that otherwise only lives in someone else's cloud. They share a .NET 10 Worker Service under systemd, SQLite archives that keep the data as received, nightly backups pulled off the host, encrypted off-site copies, email alerts and an external heartbeat. **Vehicle Manager** is an ASP.NET Core Razor Pages app on SQL Server. Everything is reached over Tailscale only.
 
 ## Layout
 
@@ -19,6 +18,9 @@ Shared by the collectors: a .NET 10 Worker Service under systemd, SQLite archive
 | `src/Common/`, `tests/Common/` | Shared by every service (`GreenHedges.HomeServer.Common`): host setup, email alerts, heartbeat, backups and off-site copies |
 | `src/Collectors/Libre/`, `tests/Collectors/Libre/` | The Libre collector (`GreenHedges.HomeServer.Collectors.Libre.*`) |
 | `src/Collectors/Weather/`, `tests/Collectors/Weather/` | The Weather collector (`GreenHedges.HomeServer.Collectors.Weather.*`) |
+| `src/VehicleManager/`, `tests/VehicleManager/` | Vehicle Manager (`GreenHedges.HomeServer.VehicleManager`, `.AppHost` for local development, `.Tests`) |
+| `docs/vehicle-manager/` | Its README, backlog and the plan for moving it onto the home server |
+| `compose.yaml`, `.env.example` | SQL Server in Docker for local development and Vehicle Manager's tests |
 | `deploy/deploy.sh` | Publishes a collector and installs it on the host (`deploy/<collector>/deploy.sh` for short) |
 | `deploy/libre/` | The Libre collector's systemd unit, deploy script, host setup and Nightscout stack |
 | `docs/libre/` | Its README (setup and use) and design notes |

@@ -1,0 +1,104 @@
+@model VehicleInput
+@{
+    var owners = (List<SelectListItem>)ViewData["OwnerOptions"]!;
+    var lookupNote = ViewData["LookupNote"] as string;   // which dates are looked up, and from where (VehicleLookup.MorningCheck)
+}
+<input type="hidden" asp-for="RowVersion" />
+<div class="row g-3">
+    <div class="col-md-4">
+        <label asp-for="OwnerId" class="form-label"></label>
+        @if (owners.Count == 0)
+        {
+            <div class="form-control-plaintext">No owners yet – <a asp-page="/Owners/Create">add one</a> first.</div>
+        }
+        else
+        {
+            <select asp-for="OwnerId" asp-items="owners" class="form-select">
+                <option value="0" disabled>Choose an owner…</option>
+            </select>
+        }
+        <span asp-validation-for="OwnerId" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="Type" class="form-label"></label>
+        <select asp-for="Type" asp-items="Html.GetEnumSelectList<VehicleType>()" class="form-select"></select>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="FuelType" class="form-label"></label>
+        <select asp-for="FuelType" asp-items="Html.GetEnumSelectList<FuelType>()" class="form-select"></select>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="Make" class="form-label"></label>
+        <input asp-for="Make" class="form-control" placeholder="e.g. Mercedes" />
+        <span asp-validation-for="Make" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="Model" class="form-label"></label>
+        <input asp-for="Model" class="form-control" placeholder="e.g. A-Class" />
+        <span asp-validation-for="Model" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="RegistrationNumber" class="form-label"></label>
+        <input asp-for="RegistrationNumber" class="form-control text-uppercase" placeholder="AB12 CDE" />
+        <span asp-validation-for="RegistrationNumber" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="RegistrationDate" class="form-label"></label>
+        <input asp-for="RegistrationDate" class="form-control" />
+        <span asp-validation-for="RegistrationDate" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="PurchasedDate" class="form-label"></label>
+        <input asp-for="PurchasedDate" class="form-control" />
+        <span asp-validation-for="PurchasedDate" class="text-danger small"></span>
+    </div>
+    <div class="col-12">
+        <h2 class="h6 mt-2 mb-0">Due dates</h2>
+        <div class="form-text mt-0">
+            You're emailed a reminder 30 and 7 days before each one, if you've set a reminder address in <a asp-page="/Settings/Index">Settings</a>.
+            @lookupNote
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <label asp-for="MotDueDate" class="form-label"></label>
+        <input asp-for="MotDueDate" class="form-control" />
+        <span asp-validation-for="MotDueDate" class="text-danger small"></span>
+    </div>
+    <div class="col-6 col-md-3">
+        <label asp-for="TaxDueDate" class="form-label"></label>
+        <input asp-for="TaxDueDate" class="form-control" />
+        <span asp-validation-for="TaxDueDate" class="text-danger small"></span>
+    </div>
+    <div class="col-6 col-md-3">
+        <label asp-for="InsuranceDueDate" class="form-label"></label>
+        <input asp-for="InsuranceDueDate" class="form-control" />
+        <span asp-validation-for="InsuranceDueDate" class="text-danger small"></span>
+    </div>
+    <div class="col-6 col-md-3">
+        <label asp-for="ServiceDueDate" class="form-label"></label>
+        <input asp-for="ServiceDueDate" class="form-control" />
+        <span asp-validation-for="ServiceDueDate" class="text-danger small"></span>
+    </div>
+    <div class="col-6 col-md-3">
+        <label asp-for="ServiceDueMileage" class="form-label"></label>
+        <input asp-for="ServiceDueMileage" class="form-control" inputmode="numeric" placeholder="e.g. 45000" />
+        <span asp-validation-for="ServiceDueMileage" class="text-danger small"></span>
+    </div>
+    <div class="col-12 col-md-9 form-text align-self-end">
+        A service is due at the date or the mileage, whichever comes first. The mileage's date is estimated from the
+        miles per month in your recent fill-ups.
+    </div>
+    <div class="col-6 col-md-3">
+        <label asp-for="ServiceIntervalMonths" class="form-label"></label>
+        <input asp-for="ServiceIntervalMonths" class="form-control" inputmode="numeric" placeholder="e.g. 12" />
+        <span asp-validation-for="ServiceIntervalMonths" class="text-danger small"></span>
+    </div>
+    <div class="col-6 col-md-3">
+        <label asp-for="ServiceIntervalMiles" class="form-label"></label>
+        <input asp-for="ServiceIntervalMiles" class="form-control" inputmode="numeric" placeholder="e.g. 10000" />
+        <span asp-validation-for="ServiceIntervalMiles" class="text-danger small"></span>
+    </div>
+    <div class="col-12 col-md-6 form-text align-self-end">
+        When you add a service, the next one's due date and mileage are worked out from it and these.
+    </div>
+</div>

@@ -1,5 +1,6 @@
-# Build and test on every pull request and on main. Warnings are errors (Directory.Build.props),
-# and a NuGet vulnerability advisory fails restore, so this also flags vulnerable packages.
+# Build and test on every pull request and on main, with a SQL Server container for Vehicle Manager's tests.
+# Warnings are errors (Directory.Build.props), and a NuGet vulnerability advisory fails restore, so this also flags
+# vulnerable packages.
 name: CI
 
 on:
@@ -19,7 +20,24 @@ concurrency:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
+    env:
+      # Throwaway, for this run's SQL Server container only (not a secret: it's reachable only from the runner).
+      MSSQL_SA_PASSWORD: CiOnly${{ github.run_id }}Sql
+    services:
+      # For Vehicle Manager's database and page tests, which create their own throwaway database on it.
+      # Same image as compose.yaml.
+      sqlserver:
+        image: mcr.microsoft.com/mssql/server:2025-CU10-ubuntu-24.04
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_PID: Developer
+          MSSQL_SA_PASSWORD: CiOnly${{ github.run_id }}Sql
+        ports:
+          - 1433:1433
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P $MSSQL_SA_PASSWORD -Q 'SELECT 1' -b -o /dev/null"
+          --health-interval 10s --health-timeout 5s --health-retries 18 --health-start-period 20s
     steps:
       - uses: actions/checkout@v7
 
@@ -40,4 +58,6 @@ jobs:
         run: dotnet build --no-restore -c Release
 
       - name: Test
+        env:
+          ConnectionStrings__VehicleManagerTests: Server=localhost,1433;Database=master;User ID=sa;Password=${{ env.MSSQL_SA_PASSWORD }};TrustServerCertificate=True
         run: dotnet test --no-build -c Release --logger "console;verbosity=normal"

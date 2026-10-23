@@ -1,0 +1,9 @@
+@model List<DueDateView>
+@* A vehicle's due dates as badges, coloured by how soon they are (see DueDateView.BadgeClass). A service due by
+   mileage shows its estimated date (≈) and the mileage. *@
+@foreach (var d in Model)
+{
+    <span class="badge @d.BadgeClass due-date" title="@d.Name due @(d.Detail ?? d.Date.ToString("dd/MM/yyyy"))">
+        @d.Name @d.DateText · @d.When@if (d.DueMileage is { } miles) { <text> · @miles.ToString("N0") mi</text> }
+    </span>
+}

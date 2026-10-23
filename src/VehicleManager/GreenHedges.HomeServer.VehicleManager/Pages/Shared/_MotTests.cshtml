@@ -1,0 +1,39 @@
+@model IEnumerable<MotTestView>
+@* A vehicle's MOT history from the DVSA, newest first: one item per test, with its defects and advisories.
+   ViewData["Registration"] is the vehicle's registration now, so an earlier number plate can be pointed out. *@
+@{ var registration = ViewData["Registration"] is string current ? VehicleLookup.Compact(current) : null; }
+<ul class="list-group list-group-flush">
+@foreach (var t in Model)
+{
+    <li class="list-group-item" data-chart-ref="@MotTestView.ChartRef(t.Id)">
+        <div class="d-flex flex-wrap align-items-baseline column-gap-3 row-gap-1">
+            <span class="fw-semibold">@t.Date.ToString("dd/MM/yyyy")</span>
+            @if (t.Passed) { <span class="badge text-bg-success">Pass</span> }
+            else { <span class="badge text-bg-danger">Fail</span> }
+            @if (t.OdometerText is { } odometer) { <span class="small">@odometer</span> }
+            else { <span class="small text-muted">Odometer not read</span> }
+            @if (t.ExpiryDate is { } expiry) { <span class="small text-muted">Expires @expiry.ToString("dd/MM/yyyy")</span> }
+            @if (t.RegistrationAtTest is { } reg && VehicleLookup.Compact(reg) != registration) { <span class="small text-muted">Tested as <span class="reg-plate">@reg</span></span> }
+            @if (t.BoughtAfter is { } bought) { <span class="badge text-bg-secondary" title="Before the vehicle was bought on @bought.ToString("dd/MM/yyyy")">Previous owner</span> }
+            @if (t.MotTestNumber is { } number) { <span class="small text-muted ms-sm-auto">Test @number</span> }
+        </div>
+        @if (t.Defects.Count > 0)
+        {
+            <ul class="list-unstyled small mb-0 mt-2">
+            @foreach (var d in t.Defects)
+            {
+                <li class="d-flex align-items-baseline gap-2 mb-1">
+                    <span class="badge flex-shrink-0 @d.BadgeClass">@d.Label</span>
+                    @if (d.ShowDangerous) { <span class="badge flex-shrink-0 text-bg-danger">Dangerous</span> }
+                    <span>@d.Text</span>
+                </li>
+            }
+            </ul>
+        }
+        else if (t.HasDefectDetails)
+        {
+            <div class="small text-muted mt-1">No defects or advisories.</div>
+        }
+    </li>
+}
+</ul>

@@ -1,0 +1,42 @@
+@page "/FuelBrands/{brandId:int}/Stations"
+@model GreenHedges.HomeServer.VehicleManager.Pages.FuelBrands.Stations.IndexModel
+@{ ViewData["Title"] = $"{Model.BrandName} stations"; }
+
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+    <h1 class="h3 mb-0">@Model.BrandName stations</h1>
+    <partial name="_BackButton" model='new BackButton(Url.Page("/FuelBrands/Index")!)' />
+</div>
+<p class="text-muted small">
+    Stations are added by typing them on a fill-up. Merge duplicates (e.g. a misspelling) into the right one; only unused
+    stations can be deleted. If a station was rebranded, record it under the new brand so earlier fill-ups keep the old one.
+</p>
+
+@if (Model.Rows.Count == 0)
+{
+    <div class="alert alert-info">@Model.BrandName has no stations.</div>
+}
+else
+{
+    <div class="card shadow-sm"><div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-head">
+                <tr><th>Name</th><th class="text-end">Fill-Ups</th><th></th></tr>
+            </thead>
+            <tbody>
+            @foreach (var s in Model.Rows)
+            {
+                <tr>
+                    <td>@s.Name</td>
+                    <td class="text-end">@s.FillUps</td>
+                    <td class="text-end text-nowrap">
+                        <a asp-page="Details" asp-route-brandId="@Model.BrandId" asp-route-id="@s.Id" class="btn btn-sm btn-outline-secondary" title="Fill-ups and prices"><i class="bi bi-graph-up"></i></a>
+                        <a asp-page="Edit" asp-route-brandId="@Model.BrandId" asp-route-id="@s.Id" class="btn btn-sm btn-outline-secondary" title="Edit"><i class="bi bi-pencil"></i></a>
+                        <a asp-page="Merge" asp-route-brandId="@Model.BrandId" asp-route-id="@s.Id" class="btn btn-sm btn-outline-secondary" title="Merge into another"><i class="bi bi-sign-merge-left"></i></a>
+                        <a asp-page="Delete" asp-route-brandId="@Model.BrandId" asp-route-id="@s.Id" class="btn btn-sm btn-outline-danger" title="Delete"><i class="bi bi-trash"></i></a>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div></div>
+}

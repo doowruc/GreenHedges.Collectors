@@ -1,0 +1,32 @@
+@page
+@model GreenHedges.HomeServer.VehicleManager.Pages.FuelLog.CreateModel
+@{ ViewData["Title"] = "Add fill-up"; }
+
+<h1 class="h3 mb-3">Add fill-up</h1>
+@if (Model.VehicleOptions.Count == 0)
+{
+    <div class="alert alert-info">You need to <a asp-page="/Vehicles/Create">add a vehicle</a> first.</div>
+}
+else
+{
+    <div class="card shadow-sm"><div class="card-body">
+        <form method="post">
+            <partial name="_FuelForm" model="Model" />
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary">Save</button>
+                <button type="submit" name="addAnother" value="true" class="btn btn-outline-primary">Save &amp; add another</button>
+                <a asp-page="/Vehicles/Details" asp-route-id="@Model.Entry.VehicleId" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div></div>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        // Reload when the vehicle changes so the odometer hint matches it.
+        document.getElementById('Entry_VehicleId')?.addEventListener('change', e => {
+            if (e.target.value) location.search = '?vehicleId=' + e.target.value;
+        });
+    </script>
+}

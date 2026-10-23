@@ -1,0 +1,35 @@
+@page "/FuelBrands/{brandId:int}/Stations/Edit/{id:int}"
+@model GreenHedges.HomeServer.VehicleManager.Pages.FuelBrands.Stations.EditModel
+@{ ViewData["Title"] = "Edit station"; }
+
+<h1 class="h3 mb-3">Edit station</h1>
+<div class="card shadow-sm"><div class="card-body">
+    <form method="post">
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+        <input type="hidden" asp-for="Place.RowVersion" />
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label asp-for="Place.Name" class="form-label"></label>
+                <input asp-for="Place.Name" class="form-control" maxlength="@GreenHedges.HomeServer.VehicleManager.Models.FuelStation.MaxNameLength" autofocus />
+                <span asp-validation-for="Place.Name" class="text-danger small"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Place.BrandId" class="form-label">Fuel brand</label>
+                <select asp-for="Place.BrandId" asp-items="Model.BrandOptions" class="form-select">
+                    <option value="">— choose —</option>
+                </select>
+                <span asp-validation-for="Place.BrandId" class="text-danger small"></span>
+            </div>
+        </div>
+        <p class="form-text">
+            Every fill-up at this station shows the change. Change the brand only to correct a mistake: if the station was
+            rebranded, record it under the new brand instead, so earlier fill-ups keep the old one.
+        </p>
+        <div class="mt-4">
+            <button type="submit" class="btn btn-primary">Save</button>
+            <a asp-page="Index" asp-route-brandId="@Model.BrandId" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+    </form>
+</div></div>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

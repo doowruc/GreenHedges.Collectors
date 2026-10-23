@@ -442,6 +442,14 @@ alert-state.json
 alert-state.json.tmp
 # Our backup *source* folders, which the Visual Studio template's "Backup*/" rule would otherwise exclude.
 !src/**/Backups/
+!src/**/Pages/Backup/
+
+# Vehicle Manager: its fuel spreadsheet, downloaded backups and SQL Server backups never go in the repository
+src/VehicleManager/**/*.xlsx
+src/VehicleManager/**/*.json.gz
+*.bak
+# The local SQL Server's sa password (compose.yaml); *.env above covers it, this says why
+.env
 
 # Personal, never committed: script defaults and the private notes repo (cloned into notes/)
 deploy/local.env
