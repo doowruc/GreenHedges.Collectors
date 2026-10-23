@@ -5,7 +5,9 @@ server, alongside the Libre and Weather collectors. The individual steps, and wh
 [TODO.md](TODO.md) under **Move to the home server**.
 
 **Progress:** step 1 (local SQL Server, tests off Azure) was done in the old repository (its PR #2), step 2 (this
-import, with its history) on 2026-10-23, then step 3: hosting basics (PR #19), alerts and heartbeat (PR #20), and database backups. Where the text below says "this repo", it means the old `doowruc/VehicleManager`.
+import, with its history) on 2026-10-23, then step 3: hosting basics (PR #19), alerts and heartbeat (PR #20) and database backups (PR #21); steps 4 and 5
+(SQL Server, Tailscale Services, the app's service and the data from Azure: PRs #22-#24) on the evening of 2026-10-23.
+Vehicle Manager runs on the home server; step 6 (deleting the Azure database, retiring the old repository) remains. Where the text below says "this repo", it means the old `doowruc/VehicleManager`.
 
 **Decided (2026-10-23):**
 
