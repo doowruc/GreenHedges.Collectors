@@ -331,6 +331,49 @@ The app won't start without them (elsewhere, use `Resend__ApiKey` and `Resend__F
 runs inside the app (Coravel), so the app must be running at 01:00 UTC; if several copies are running
 (e.g. locally and deployed), each one sends. The same goes for reminders at 07:00 UK time.
 
+### Database backups (the home server)
+
+Separately from those per-user emails, the whole database is backed up each night at 03:30 (server time), as the home
+server's collectors are, through `GreenHedges.HomeServer.Common`:
+
+1. SQL Server writes a full backup (`BACKUP DATABASE … WITH CHECKSUM, COPY_ONLY`: every page's checksum is checked as
+   it's read) to `vehiclemanager-latest.bak` in a folder it shares with the app, overwriting the last one.
+2. The app copies it to `backups/vehiclemanager-<UTC time>.bak.gz` (gzipped; 7 kept).
+3. Each new one is encrypted with `age` and uploaded to the off-site bucket under `vehiclemanager/`
+   ([deploy/aws](../../deploy/aws/README.md): IAM user `<stack>-vehicles`), and the Mac pulls the folder daily
+   (`deploy/mac/install-backup-pull.sh vehicle-manager`).
+
+"Backups failing" and "Off-site backup failing" emails follow after 36 hours without a good one. Settings (environment
+variables on the server):
+
+```
+Backup__Enabled=true
+Backup__SqlServerFolder=/var/opt/mssql/backups        # the shared folder as SQL Server sees it (in its container)
+Backup__SqlServerFolderOnHost=/var/lib/sqlserver/backups   # the same folder as the app sees it
+Offsite__Bucket=<bucket>
+Offsite__Region=eu-west-2
+Offsite__AccessKeyId=AKIA…
+Offsite__SecretAccessKey=…
+Offsite__AgeRecipient=age1…
+```
+
+SQL Server writes the file readable by its owner and group only, so the shared folder must give the app's account
+group access to new files (the setgid bit with the app's group); the server's setup covers that. Backups are off by
+default (`Backup:Enabled`), so development and the tests don't take them. Locally, `compose.yaml` shares
+`.sqlserver-backups/` (git-ignored) the same way, for the backup test.
+
+**Restore test** (once after setting up, then occasionally): decrypt and unzip a copy, put the `.bak` in the shared
+folder, and check it as SQL Server's `sa` (the local container is fine):
+
+```sql
+RESTORE VERIFYONLY FROM DISK = '/var/opt/mssql/backups/restored.bak' WITH CHECKSUM;
+RESTORE FILELISTONLY FROM DISK = '/var/opt/mssql/backups/restored.bak';
+```
+
+**Restoring** over the live database: stop the app, then as `sa`
+`RESTORE DATABASE [<database>] FROM DISK = '…/restored.bak' WITH REPLACE` (add `MOVE` clauses for the file names from
+`FILELISTONLY` when restoring into a different server or name), start the app. Data entered since that backup is lost.
+
 ## Project layout
 
 ```
@@ -344,6 +387,7 @@ src/VehicleManager/GreenHedges.HomeServer.VehicleManager/
                  Reminders + ReminderEmailer + ScheduledReminders (due-date reminders), VehicleLookup + DvlaClient +
                  MotHistoryClient (MOT and tax dates from the DVLA and DVSA), MotTests (stored MOT history),
                  Telemetry (OpenTelemetry setup)
+  Backups/       SqlServerBackupSource (+ options): the nightly database backup, for Common's BackupService
   Monitoring/    AppHealth + VehicleManagerAlertMonitor: database probes, scheduled jobs' runs, alerts and the heartbeat
   Pages/         Dashboard, Owners/*, Vehicles/* (and each vehicle's Services/*), FuelLog/* (log + fill-up pages), Import/*, Backup/* (backup + restore), Settings/*, FuelBrands/* (and each brand's Stations/*),
                  Account/* (sign in/out)

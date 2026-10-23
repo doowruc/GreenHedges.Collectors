@@ -448,6 +448,8 @@ alert-state.json.tmp
 src/VehicleManager/**/*.xlsx
 src/VehicleManager/**/*.json.gz
 *.bak
+# The local SQL Server's backups folder (compose.yaml)
+.sqlserver-backups/
 # The local SQL Server's sa password (compose.yaml); *.env above covers it, this says why
 .env
 

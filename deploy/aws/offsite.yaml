@@ -1,16 +1,16 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: >-
   Off-site backups for GreenHedges.HomeServer: one private, versioned S3 bucket shared by every
-  collector, each uploading age-encrypted nightly backups under its own prefix with a write-only IAM
+  service, each uploading age-encrypted nightly backups under its own prefix with a write-only IAM
   user, so a compromised host can add copies but never read, list or delete them.
 
 Metadata:
   AWSToolsMetrics:
     AWSAgentToolkit: aws-cloudformation@3
   com.aws.cloudformation.Context:
-    arch: collector on home host -> age encrypt (public key only on host) -> s3:PutObject <prefix>/<file>.age -> Deep Archive after N days
+    arch: service on home host -> age encrypt (public key only on host) -> s3:PutObject <prefix>/<file>.age -> Deep Archive after N days
     must:
-      - backups are only ever added; nothing in this stack may grant read, list or delete to a collector
+      - backups are only ever added; nothing in this stack may grant read, list or delete to a service
       - access keys are created by hand after deploy (CLI or console) straight into the password manager; never in this template or its outputs
     ref:
       - at: deploy/aws/README.md
@@ -36,6 +36,11 @@ Parameters:
     Default: weathercollector
     Description: Key prefix for the Weather collector's copies (its Offsite:Prefix setting).
     AllowedPattern: "^[a-z0-9][a-z0-9-]*$"
+  VehicleManagerPrefix:
+    Type: String
+    Default: vehiclemanager
+    Description: Key prefix for Vehicle Manager's copies (its Offsite:Prefix setting).
+    AllowedPattern: "^[a-z0-9][a-z0-9-]*$"
 
 Resources:
   OffsiteBucket:
@@ -44,7 +49,7 @@ Resources:
     UpdateReplacePolicy: Retain
     Metadata:
       com.aws.cloudformation.Context:
-        why: single bucket for all collectors, split by prefix; versioning keeps any overwritten copy; Deep Archive keeps years of copies for pennies (restore 12-48 h, fine for disaster recovery)
+        why: single bucket for all services, split by prefix; versioning keeps any overwritten copy; Deep Archive keeps years of copies for pennies (restore 12-48 h, fine for disaster recovery)
         must:
           - never public
           - no expiration rule: copies are kept forever
@@ -139,9 +144,28 @@ Resources:
                 Action: s3:PutObject
                 Resource: !Sub "${OffsiteBucket.Arn}/${WeatherPrefix}/*"
 
+  VehicleManagerUploader:
+    Type: AWS::IAM::User
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: Vehicle Manager's off-site key; same shape as LibreUploader
+        must:
+          - s3:PutObject on its own prefix only
+    Properties:
+      UserName: !Sub "${AWS::StackName}-vehicles"
+      Policies:
+        - PolicyName: UploadOffsiteBackupsOnly
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: UploadOffsiteBackupsOnly
+                Effect: Allow
+                Action: s3:PutObject
+                Resource: !Sub "${OffsiteBucket.Arn}/${VehicleManagerPrefix}/*"
+
 Outputs:
   BucketName:
-    Description: Offsite:Bucket for every collector.
+    Description: Offsite:Bucket for every service.
     Value: !Ref OffsiteBucket
   LibreUser:
     Description: IAM user to create the Libre collector's access key for.
@@ -149,3 +173,6 @@ Outputs:
   WeatherUser:
     Description: IAM user to create the Weather collector's access key for.
     Value: !Ref WeatherUploader
+  VehicleManagerUser:
+    Description: IAM user to create Vehicle Manager's access key for.
+    Value: !Ref VehicleManagerUploader

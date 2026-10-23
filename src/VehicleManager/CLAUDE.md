@@ -96,6 +96,7 @@ GreenHedges.HomeServer.VehicleManager/
   wwwroot/     css/site.css, js/color-mode.js, js/period-toggle.js, js/data-table.js (DataTables setup), js/typeahead.js (dropdown suggestions),
                js/price-chart.js (station price charts), js/mileage-chart.js (mileage over time: vehicle Services and MOT tabs),
                js/spend-chart.js (dashboard fuel spending charts)
+  Backups/     SqlServerBackupSource + SqlServerBackupOptions: the nightly SQL Server backup for Common's BackupService
   Monitoring/  AppHealth (database probes and job runs; the heartbeat source), VehicleManagerAlertMonitor (the alert rules),
                DatabaseProbe/IDatabaseProbe, VehicleManagerAlertOptions, ScheduledJob, JobRun
 GreenHedges.HomeServer.VehicleManager.AppHost/   AppHost.cs: runs the app with the Aspire dashboard, for local development only
@@ -233,6 +234,19 @@ GreenHedges.HomeServer.VehicleManager.AppHost/   AppHost.cs: runs the app with t
   `VehicleManager`; unset, ASP.NET's default applies (development, tests).
 - `/health` (anonymous, `Services/DatabaseHealthCheck`, 10 s timeout): `Healthy`/`Unhealthy` text only, never details.
 - `HostingTests` cover all three.
+
+**Database backups** (`Backups/`, through `GreenHedges.HomeServer.Common`'s `AddBackups`, as the collectors)
+- `SqlServerBackupSource` is `Common`'s `IBackupSource` (`FileExtension` `.bak`): `BACKUP DATABASE … WITH CHECKSUM,
+  COPY_ONLY, INIT, FORMAT` to `Backup:SqlServerFolder/vehiclemanager-latest.bak` (SQL Server's path, in its container),
+  then copies it from `Backup:SqlServerFolderOnHost` (the app's path to the same folder). `BackupService` gzips it as
+  `backups/vehiclemanager-<UTC>.bak.gz`, keeps 7; off-site copies go to `Offsite:*` (prefix `vehiclemanager`).
+- Off by default (`Backup:Enabled`): only the server takes them. `Backup:SqlServerFolder` is required when on.
+- Never `RESTORE VERIFYONLY` in app code: it needs a login that can create databases. The tests do it as `sa`.
+- `Common`'s `BackupMonitor` alerts ("Backups failing", "Off-site backup failing") run in `VehicleManagerAlertMonitor`.
+- `Common` has its own `BackupService`/`BackupOptions`, unrelated to `Services/BackupService` (the per-user JSON
+  backups): `Program.cs` aliases `CommonBackupOptions`.
+- Tests: `Data/SqlServerBackupSourceTests` take a real backup on the local container through `.sqlserver-backups/`
+  (shared by `compose.yaml`) and check it as `sa`; `[SqlServerBackupFact]` skips them without that folder (as in CI).
 
 **Alerts and heartbeat** (`Monitoring/`, through `GreenHedges.HomeServer.Common`, shared with the collectors)
 - `Program.cs` registers a `CollectorIdentity("VehicleManager")` (alert subjects) and `TimeProvider.System`, then

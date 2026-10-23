@@ -5,7 +5,7 @@ server, alongside the Libre and Weather collectors. The individual steps, and wh
 [TODO.md](TODO.md) under **Move to the home server**.
 
 **Progress:** step 1 (local SQL Server, tests off Azure) was done in the old repository (its PR #2), step 2 (this
-import, with its history) on 2026-10-23, then step 3's hosting basics (PR #19) and alerts and heartbeat. Where the text below says "this repo", it means the old `doowruc/VehicleManager`.
+import, with its history) on 2026-10-23, then step 3: hosting basics (PR #19), alerts and heartbeat (PR #20), and database backups. Where the text below says "this repo", it means the old `doowruc/VehicleManager`.
 
 **Decided (2026-10-23):**
 

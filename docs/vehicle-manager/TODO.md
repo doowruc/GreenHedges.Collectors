@@ -55,13 +55,17 @@ reasoning and the decisions: [HOMESERVER-MIGRATION.md](HOMESERVER-MIGRATION.md).
         (plain-text alerts, no package); this app uses Resend's .NET SDK (`IResend`: backup attachments, reminder
         emails, `FakeResend` in tests). Either keep both (each the simpler tool for its job) or move `Common` onto the
         SDK so there's one client. Decide when the alerts above go through `Common`.
-  - [ ] Nightly backups through `Common`: an `IBackupSource` running `BACKUP DATABASE … WITH CHECKSUM, COPY_ONLY` into a
-        folder shared with the container (**decided 2026-10-23**: `.bak`, not a `.bacpac`); let a source choose its file extension (`.bak.gz`, not `.db.gz`); off-site
-        copies (a `vehiclemanager/` prefix and write-only IAM user in `deploy/aws/offsite.yaml`) and the Mac's pull
-        (`vehicle-manager` in `deploy/mac/install-backup-pull.sh`). Keep the emailed JSON backups as a user-level copy.
+  - [x] Nightly backups through `Common`: `Backups/SqlServerBackupSource` (`BACKUP DATABASE … WITH CHECKSUM,
+        COPY_ONLY` into a folder shared with the container, decided 2026-10-23: `.bak`, not a `.bacpac`); `Common` lets
+        a source choose its file extension (`.bak.gz`); off-site copies (`<stack>-vehicles`, prefix `vehiclemanager/`, in
+        `deploy/aws/offsite.yaml`) and the Mac's pull (`install-backup-pull.sh vehicle-manager`); "Backups failing" and
+        "Off-site backup failing" alerts. The emailed JSON backups stay as a user-level copy.
+  - [ ] After merging: update the `greenhedges-offsite` stack (the new IAM user), then create its access key.
 - [ ] **The server's side** (read and update `notes/server/SERVER.md`):
   - [ ] `deploy/sqlserver/`: `compose.yaml` (pinned image tag, Express edition, memory limit about 1.5 GB,
-        `127.0.0.1:1433`, data in `/var/lib/sqlserver`, a backups folder shared with the app) and `HOST-SETUP.md`;
+        `127.0.0.1:1433`, data in `/var/lib/sqlserver`, a backups folder shared with the app) and `HOST-SETUP.md`.
+        The backups folder (`/var/lib/sqlserver/backups`, `/var/opt/mssql/backups` in the container): owner uid 10001
+        (`mssql`), group `vehiclemanager`, mode `2770` (setgid), as SQL Server writes files `0660`;
         `sa` only for setup, a `vehiclemanager` login owning only its own database.
   - [ ] Tailscale Services, one-off: tag the server and re-authenticate it, an access rule for `svc:*` on 443,
         auto-approval of the server as a host (a server task in the notes).

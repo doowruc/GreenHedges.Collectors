@@ -1,22 +1,24 @@
 #!/usr/bin/env bash
-# Pull one collector's backups from the host to this Mac. Run daily by launchd, or by hand to test (see
-# install-backup-pull.sh, which installs this as ~/.local/bin/<collector>-pull-backups).
-# Uses a dedicated SSH key that the host restricts to read-only rsync of that collector's backups folder.
+# Pull one service's backups from the host to this Mac. Run daily by launchd, or by hand to test (see
+# install-backup-pull.sh, which installs this as ~/.local/bin/<service>-pull-backups).
+# Uses a dedicated SSH key that the host restricts to read-only rsync of that service's backups folder.
+# Backups are <name>-<UTC time>.<extension>.gz: .db.gz for the collectors (SQLite), .bak.gz for Vehicle Manager (SQL Server).
 set -euo pipefail
 
 # Braces make bash read the whole script before running it, so editing the file mid-run can't break a run.
 {
 
-# The collector comes from this script's installed name (<collector>-pull-backups), and the settings from
+# The service comes from this script's installed name (<service>-pull-backups), and the settings from
 # the file the installer writes. Jobs installed before the scripts were shared set LIBRECOLLECTOR_* instead.
 NAME="$(basename "$0")"; NAME="${NAME%-pull-backups}"
-case "$NAME" in librecollector|weathercollector) ;; *) NAME=librecollector ;; esac
+case "$NAME" in librecollector|weathercollector|vehiclemanager) ;; *) NAME=librecollector ;; esac
 CONFIG="$HOME/.config/$NAME/backup-pull.env"
 if [ -f "$CONFIG" ]; then . "$CONFIG"; fi
 HOST="${BACKUP_HOST:-${LIBRECOLLECTOR_HOST:-}}"
 REMOTE_USER="${BACKUP_USER:-${LIBRECOLLECTOR_USER:-}}"
 [ -n "$HOST" ] && [ -n "$REMOTE_USER" ] || {
-  echo "No settings for $NAME in $CONFIG: run deploy/mac/install-backup-pull.sh ${NAME%collector}" >&2; exit 2; }
+  case "$NAME" in vehiclemanager) ARG=vehicle-manager ;; *) ARG="${NAME%collector}" ;; esac
+  echo "No settings for $NAME in $CONFIG: run deploy/mac/install-backup-pull.sh $ARG" >&2; exit 2; }
 DEST="${BACKUP_DIR:-${LIBRECOLLECTOR_BACKUP_DIR:-$HOME/Backups/LibreCollector}}"
 KEY="$HOME/.ssh/${NAME}_backup"
 KEEP=30                                                  # the host keeps 7; the Mac keeps a month
@@ -35,17 +37,17 @@ trap 'ping_hc /fail' ERR
 echo "$(date '+%Y-%m-%d %H:%M:%S') pulling $NAME backups from $HOST"
 mkdir -p "$DEST"
 
-"$RSYNC" -a --ignore-existing --include="$NAME-*.db.gz" --exclude='*' \
+"$RSYNC" -a --ignore-existing --include="$NAME-*.gz" --exclude='*' \
   -e "ssh -i $KEY -o IdentitiesOnly=yes -o BatchMode=yes -o ConnectTimeout=20" \
   "$REMOTE_USER@$HOST:./" "$DEST/"
 
 # Keep the newest $KEEP backups (names sort by timestamp).
-find "$DEST" -maxdepth 1 -name "$NAME-*.db.gz" | sort -r | tail -n +$((KEEP + 1)) | while read -r old; do
+find "$DEST" -maxdepth 1 -name "$NAME-*.gz" | sort -r | tail -n +$((KEEP + 1)) | while read -r old; do
   rm -f "$old" && echo "deleted $old"
 done
 
 # Sanity check: the newest copy must be a valid gzip and no more than 2 days old.
-newest="$(find "$DEST" -maxdepth 1 -name "$NAME-*.db.gz" | sort -r | head -1)"
+newest="$(find "$DEST" -maxdepth 1 -name "$NAME-*.gz" | sort -r | head -1)"
 [ -n "$newest" ] || { echo "no backups found" >&2; false; }
 gzip -t "$newest"
 [ -z "$(find "$newest" -mtime +2)" ] || { echo "newest backup is more than 2 days old: $newest" >&2; false; }
