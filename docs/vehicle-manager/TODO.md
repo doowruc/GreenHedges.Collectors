@@ -136,7 +136,9 @@ reasoning and the decisions: [HOMESERVER-MIGRATION.md](HOMESERVER-MIGRATION.md).
 - [x] **Fuel spending on the dashboard:** spend each month (last 12 months) or year (all time), stacked by vehicle, and
       a year-on-year chart of each year's running total, with a table of yearly totals and the change on the year before
       (this year against last year to the same day). Running costs can join it once they're recorded.
-- [ ] **Installable on a phone (PWA):** a manifest and icons so it opens like an app from the home screen.
+- [x] **Installable on a phone (PWA):** a manifest and icons so it opens like an app from the home screen. *Done
+      2026-10-24: favicon (tabs), Apple touch icon, `site.webmanifest` (`standalone`, "Vehicles"); no service worker, as it
+      needs the server anyway.*
 - [ ] **Receipt photo** on a fill-up, stored on the server's disk (under the data folder, so it's backed up; was Azure Blob Storage before the move to the home server). Only if it'd actually be used: it adds storage,
       backup format changes and some cost.
 

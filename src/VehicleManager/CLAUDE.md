@@ -95,7 +95,8 @@ GreenHedges.HomeServer.VehicleManager/
                Account/* (Login, Logout, SignedOut), Shared/ (layout + partials)
   wwwroot/     css/site.css, js/color-mode.js, js/period-toggle.js, js/data-table.js (DataTables setup), js/typeahead.js (dropdown suggestions),
                js/price-chart.js (station price charts), js/mileage-chart.js (mileage over time: vehicle Services and MOT tabs),
-               js/spend-chart.js (dashboard fuel spending charts)
+               js/spend-chart.js (dashboard fuel spending charts), favicon.svg/.ico + icons/ + site.webmanifest (made by
+               ../make-icons.py: Bootstrap Icons' car on the navbar's dark grey; re-run it to change them)
   Backups/     SqlServerBackupSource + SqlServerBackupOptions: the nightly SQL Server backup for Common's BackupService
   Monitoring/  AppHealth (database probes and job runs; the heartbeat source), VehicleManagerAlertMonitor (the alert rules),
                DatabaseProbe/IDatabaseProbe, VehicleManagerAlertOptions, ScheduledJob, JobRun
@@ -286,6 +287,13 @@ GreenHedges.HomeServer.VehicleManager.AppHost/   AppHost.cs: runs the app with t
 - `[AllowAnonymous]` only on `Account/Login`, `Account/Logout`, `Account/SignedOut`, `Account/AccessDenied`, `Error`, `/health` and static assets. New pages are protected automatically. The layout shows the nav only when the user passes the `AllowedUser` policy.
 - `Account/Login` challenges Auth0 and only accepts local return URLs. `Account/Logout` is POST-only and anonymous (so a denied user can switch account). It signs out of both the cookie and Auth0, returning to `Account/SignedOut`.
 - To test locally without real credentials, set `AllowedEmails` and the `Auth0__*` env vars to dummy values (e.g. `samples.auth0.com`). Pages then redirect to Auth0 but you can't get past sign-in. Don't sign in with a real account from automated tests.
+
+**Icons and the web app manifest** (`Pages/Shared/_Layout.cshtml`, `wwwroot`)
+- Every page links `favicon.ico` and `favicon.svg` (tabs), `icons/apple-touch-icon.png` (iOS home screen; 180 px,
+  full-bleed, no transparency) and `site.webmanifest` (name, short name "Vehicles", `standalone`, 192/512 and maskable
+  icons). The layout's `~/` links come out fingerprinted (static assets), so a changed icon gets a new address; the
+  manifest's own icon paths are plain. All are static assets, so anonymous (phones fetch them without the cookie).
+- `AppIconTests` cover the links, anonymity, types, the touch icon and the manifest's icon sizes.
 
 **Routing**: path ids, e.g. `/Vehicles/Details/1`, `/FuelLog/Edit/5`.
 
