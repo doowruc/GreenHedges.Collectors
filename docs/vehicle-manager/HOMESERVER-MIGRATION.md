@@ -1,8 +1,11 @@
 # Moving Vehicle Manager into GreenHedges.HomeServer
 
 The plan for bringing this app into the public `doowruc/GreenHedges.HomeServer` repository and running it on the home
-server, alongside the Libre and Weather collectors. Nothing here is done yet; the individual steps are in
+server, alongside the Libre and Weather collectors. The individual steps, and which are done, are in
 [TODO.md](TODO.md) under **Move to the home server**.
+
+**Progress:** step 1 (local SQL Server, tests off Azure) was done in the old repository (its PR #2), and step 2 (this
+import, with its history) on 2026-10-23. Where the text below says "this repo", it means the old `doowruc/VehicleManager`.
 
 **Decided (2026-10-23):**
 

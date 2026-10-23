@@ -4,7 +4,7 @@ Ideas for future features and improvements, roughly in order of how useful they'
 
 ## Move to the home server
 
-Bringing the app into the public `GreenHedges.HomeServer` repository and running it on the home server, on SQL Server
+Bringing the app into the public `GreenHedges.HomeServer` repository (done: this is it) and running it on the home server, on SQL Server
 Express in Docker instead of Azure SQL, at `https://vehicles.<tailnet>.ts.net` (Tailscale Services). The plan, with the
 reasoning and the decisions: [HOMESERVER-MIGRATION.md](HOMESERVER-MIGRATION.md). In order:
 
@@ -20,21 +20,21 @@ reasoning and the decisions: [HOMESERVER-MIGRATION.md](HOMESERVER-MIGRATION.md).
         `[DatabaseFact]` still skips without a test SQL Server. CLAUDE.md's Tests section updated. All 272 tests run.
   - [ ] Point local development at the local database; copy data in with backup and restore when needed.
         (Documented in the README; switching `ConnectionStrings:VehicleManager` is my call.)
-- [ ] **Import into GreenHedges.HomeServer** (one PR there):
-  - [ ] Import this repo with its history (rewritten into `src/VehicleManager/`, `tests/VehicleManager/` and
+- [x] **Import into GreenHedges.HomeServer** (one PR there, 2026-10-23):
+  - [x] Import this repo with its history (rewritten into `src/VehicleManager/`, `tests/VehicleManager/` and
         `docs/vehicle-manager/`), merged with `--allow-unrelated-histories`.
-  - [ ] Rename namespaces and projects to `GreenHedges.HomeServer.VehicleManager` (`.AppHost`, `.Tests`), including
+  - [x] Rename namespaces and projects to `GreenHedges.HomeServer.VehicleManager` (`.AppHost`, `.Tests`), including
         Razor `_ViewImports`, `RootNamespace`, `InternalsVisibleTo` and the EF migrations; keep the `UserSecretsId`.
-  - [ ] Package versions into `Directory.Packages.props`; `dotnet-ef` into the root tool manifest; `aspire.config.json`
+  - [x] Package versions into `Directory.Packages.props`; `dotnet-ef` into the root tool manifest; `aspire.config.json`
         to the new AppHost path; projects into `GreenHedges.HomeServer.slnx`.
-  - [ ] CI: a SQL Server service container in `build-and-test`, so the database and page tests run on every PR; check
+  - [x] CI: a SQL Server service container in `build-and-test`, so the database and page tests run on every PR; check
         the Aspire AppHost builds there.
-  - [ ] Docs: README and TODO to `docs/vehicle-manager/` (README rewritten for SQL Server in Docker and the server);
+  - [x] Docs: README and TODO to `docs/vehicle-manager/` (README rewritten for SQL Server in Docker and the server);
         HomeServer README lists services rather than collectors.
-  - [ ] CLAUDE.md: a new short root `CLAUDE.md` for the whole repo (build and test, branch/PR/merge rules, nothing
+  - [x] CLAUDE.md: a new short root `CLAUDE.md` for the whole repo (build and test, branch/PR/merge rules, nothing
         personal in the public repo, never run deploy scripts, read-only SSH, read `notes/server/SERVER.md` first); this
         one moves to `src/VehicleManager/CLAUDE.md` without its Git section.
-  - [ ] Ignore `*.xlsx`, `*.json.gz` and `*.bak` under `src/VehicleManager/`, so a spreadsheet or backup can't be
+  - [x] Ignore `*.xlsx`, `*.json.gz` and `*.bak` under `src/VehicleManager/`, so a spreadsheet or backup can't be
         committed.
 - [ ] **Ready to run on the server:**
   - [ ] Persist ASP.NET data-protection keys under the data folder (else each restart signs everyone out).

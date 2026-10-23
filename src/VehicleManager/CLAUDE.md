@@ -1,11 +1,14 @@
 # Vehicle Manager
 
-Personal .NET 10 Razor Pages app for tracking the vehicles I own and their fuel history.
-See `README.md` for user-facing features and the fuel spreadsheet import.
+Personal .NET 10 Razor Pages app for tracking the vehicles I own and their fuel history. Part of
+GreenHedges.HomeServer: the repo-wide rules (Git, privacy, the server) are in the root `CLAUDE.md`; this file is only
+about this app. See `docs/vehicle-manager/README.md` for user-facing features and the fuel spreadsheet import, and
+`docs/vehicle-manager/TODO.md` for the backlog.
 
 ## Commands
 
-Run from `VehicleManager/` (the project folder; the solution is `VehicleManager.slnx` at the repo root):
+Run from `GreenHedges.HomeServer.VehicleManager/` (the project folder, next to this file; the solution is
+`GreenHedges.HomeServer.slnx` at the repo root):
 
 ```bash
 dotnet watch                 # run with hot reload → http://localhost:5080 (what I normally use)
@@ -19,16 +22,17 @@ dotnet list package --vulnerable --include-transitive
 From the repo root:
 
 ```bash
-dotnet test                  # all tests (VehicleManager.Tests); must all pass
+dotnet test tests/VehicleManager/GreenHedges.HomeServer.VehicleManager.Tests   # this app's tests; must all pass
+dotnet test                  # the whole repo's tests (what CI runs)
 docker compose up -d --wait  # local SQL Server (compose.yaml; needs OrbStack or Docker Desktop running)
 aspire run                   # the app plus the Aspire dashboard (logs, traces) → https://localhost:17080
                              # (CLI must be ≥ the AppHost's Aspire version: `aspire update --self`;
-                             #  or `dotnet run --project VehicleManager.AppHost`)
+                             #  or `dotnet run --project src/VehicleManager/GreenHedges.HomeServer.VehicleManager.AppHost`)
 ```
 
 ## Tests
 
-`VehicleManager.Tests` (xUnit) is the main way to verify changes. I can't sign in to the running app for you,
+`GreenHedges.HomeServer.VehicleManager.Tests` (in `tests/VehicleManager/`, xUnit) is the main way to verify changes. I can't sign in to the running app for you,
 so test pages through the in-memory host rather than relying on the browser.
 
 - `Unit/` – pure logic, no database (calculations, stats, allow-list, text splitting, reminders, DVLA/DVSA lookups via the fake).
@@ -64,7 +68,7 @@ so test pages through the in-memory host rather than relying on the browser.
 - Packages: `Microsoft.EntityFrameworkCore.SqlServer`, `Microsoft.EntityFrameworkCore.Design` (PrivateAssets=all), `ClosedXML`, `Auth0.AspNetCore.Authentication`, `Coravel` (scheduler), `Resend` (email), `OpenTelemetry.*` (keep them on one version). Keep EF packages and `dotnet-ef` on the same version.
 - Pinned only to fix vulnerability advisories in transitive packages (remove when the parent package catches up; each has
   a comment): `System.Security.Cryptography.Pkcs` (app, via SqlClient) and `MessagePack` (AppHost, via Aspire).
-- `VehicleManager.AppHost` uses `Aspire.AppHost.Sdk` (13.6) for local development only; it suppresses ASPIRE010 (no
+- `GreenHedges.HomeServer.VehicleManager.AppHost` uses `Aspire.AppHost.Sdk` (13.6) for local development only; it suppresses ASPIRE010 (no
   Aspire CLI bundle), so `dotnet run` works whatever CLI version is installed; `aspire run` needs a CLI at least as new
   as the AppHost's Aspire version.
 - Front end: Bootstrap 5.3, Bootstrap Icons, Chart.js 4 and DataTables 3 (Bootstrap 5 styling, no jQuery; fuel log tables) from the jsDelivr CDN (no npm/bundler). Pages add CSS via the layout's `Styles` section. Small vanilla JS files in `wwwroot/js`.
@@ -73,7 +77,7 @@ so test pages through the in-memory host rather than relying on the browser.
 ## Layout
 
 ```
-VehicleManager/
+GreenHedges.HomeServer.VehicleManager/
   Models/      EF Core entities: Owner, Vehicle, FuelEntry, FuelEntryStop, FuelBrand, FuelStation, ServiceRecord, UserSettings (storage only),
                SentReminder (+ DueDateKind), MotTest (+ MotDefect), AuditedEntity, IUserOwned, IFuelPlace
   ViewModels/  What pages use: *View (output, with calculated figures) and *Input (form/import input)
@@ -92,7 +96,7 @@ VehicleManager/
   wwwroot/     css/site.css, js/color-mode.js, js/period-toggle.js, js/data-table.js (DataTables setup), js/typeahead.js (dropdown suggestions),
                js/price-chart.js (station price charts), js/mileage-chart.js (mileage over time: vehicle Services and MOT tabs),
                js/spend-chart.js (dashboard fuel spending charts)
-VehicleManager.AppHost/   AppHost.cs: runs the app with the Aspire dashboard, for local development only
+GreenHedges.HomeServer.VehicleManager.AppHost/   AppHost.cs: runs the app with the Aspire dashboard, for local development only
 ```
 
 ## Conventions and how things work
@@ -221,7 +225,7 @@ VehicleManager.AppHost/   AppHost.cs: runs the app with the Aspire dashboard, fo
 
 **Telemetry and logging** (`Services/Telemetry.cs`)
 - OpenTelemetry logs (through `ILogger`), traces and metrics go over OTLP only when `OTEL_EXPORTER_OTLP_ENDPOINT` is set:
-  by `VehicleManager.AppHost` (the Aspire dashboard) locally, or the standard `OTEL_*` settings for another destination
+  by `GreenHedges.HomeServer.VehicleManager.AppHost` (the Aspire dashboard) locally, or the standard `OTEL_*` settings for another destination
   (Grafana Cloud is a TODO). Otherwise nothing is set up: `dotnet watch` and the tests log to the console only.
 - Logs and traces may leave the app, so never log or tag emails, registrations, tokens or connection strings; use the
   Auth0 user id (`enduser.id` on spans). `Telemetry.RedactUrl` takes registrations out of the DVSA's request URLs in
@@ -299,8 +303,3 @@ VehicleManager.AppHost/   AppHost.cs: runs the app with the Aspire dashboard, fo
   It also can't read the page model (its model is the input); pass extras in `ViewData`.
 - Avoid visible flicker on page load: render initial state server-side where possible.
 - Check pages at phone width as well as desktop.
-
-## Git
-
-- This repo's local git config sets the identity to `doowruc <8654129+doowruc@users.noreply.github.com>`. Commits must use it.
-- Only commit or push when I ask.

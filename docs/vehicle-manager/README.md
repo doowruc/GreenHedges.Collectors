@@ -1,5 +1,9 @@
 # Vehicle Manager
 
+*Part of [GreenHedges.HomeServer](../../README.md); formerly the private repository `doowruc/VehicleManager`. Code
+in `src/VehicleManager/`, tests in `tests/VehicleManager/`, backlog in [TODO.md](TODO.md), and the move onto the home
+server in [HOMESERVER-MIGRATION.md](HOMESERVER-MIGRATION.md).*
+
 A .NET 10 Razor Pages app for tracking the vehicles I own and their fuel history.
 
 ## Running it
@@ -7,7 +11,7 @@ A .NET 10 Razor Pages app for tracking the vehicles I own and their fuel history
 Requires the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0).
 
 ```bash
-cd VehicleManager
+cd src/VehicleManager/GreenHedges.HomeServer.VehicleManager
 dotnet run
 ```
 
@@ -29,7 +33,7 @@ It starts the app (still on http://localhost:5080, with the same user secrets) a
 [Aspire dashboard](https://aspire.dev) at https://localhost:17080. Open the dashboard with the login link printed in
 the console. No Docker is needed. The CLI must be at least the AppHost's Aspire version (13.6): an older one hangs at
 "Connecting to apphost", so update it with `aspire update --self`. Without the CLI,
-`dotnet run --project VehicleManager.AppHost` does the same.
+`dotnet run --project src/VehicleManager/GreenHedges.HomeServer.VehicleManager.AppHost` does the same.
 
 The app sends telemetry over OpenTelemetry (OTLP) only when `OTEL_EXPORTER_OTLP_ENDPOINT` is set, as the AppHost does
 for the dashboard. Plain `dotnet run`/`dotnet watch` and the tests log to the console only. Each nightly job run is a
@@ -45,7 +49,7 @@ Data is stored in an Azure SQL Database (SQL Server). To set one up:
    **SQL authentication** and note the admin login and password.
 2. On the server's **Networking** page, allow public access and add your client IP address to the
    firewall rules.
-3. Store the connection string in user secrets, from the `VehicleManager` folder:
+3. Store the connection string in user secrets, from the `src/VehicleManager/GreenHedges.HomeServer.VehicleManager` folder:
 
    ```bash
    dotnet user-secrets set "ConnectionStrings:VehicleManager" "Server=tcp:<server>.database.windows.net,1433;Initial Catalog=<database>;User ID=<login>;Password=<password>;Encrypt=True;Connection Timeout=60;"
@@ -75,13 +79,13 @@ too.
    docker compose up -d --wait
    ```
 
-3. Tell the tests where it is, from the `VehicleManager` folder (use the password from `.env`):
+3. Tell the tests where it is, from the `src/VehicleManager/GreenHedges.HomeServer.VehicleManager` folder (use the password from `.env`):
 
    ```bash
    dotnet user-secrets set "ConnectionStrings:VehicleManagerTests" "Server=localhost,1433;Database=master;User ID=sa;Password=<password>;TrustServerCertificate=True"
    ```
 
-Then `dotnet test` runs everything. `docker compose stop` stops it; `docker compose down -v` also deletes its data.
+Then `dotnet test` (from the repo root) runs everything, including the database and page tests. `docker compose stop` stops it; `docker compose down -v` also deletes its data.
 
 **Developing against it** instead of Azure: point the app's own connection string at a database on it (created and
 migrated on the next run), then copy your data in with **Backup** from the Azure-backed app and **Restore** into the
@@ -104,7 +108,7 @@ Application** and set:
 | Allowed Callback URLs | `https://localhost:7080/callback, http://localhost:5080/callback` |
 | Allowed Logout URLs | `https://localhost:7080/Account/SignedOut, http://localhost:5080/Account/SignedOut` |
 
-Then store its settings in user secrets, from the `VehicleManager` folder:
+Then store its settings in user secrets, from the `src/VehicleManager/GreenHedges.HomeServer.VehicleManager` folder:
 
 ```bash
 dotnet user-secrets set "Auth0:Domain" "<your-tenant>.auth0.com"
@@ -277,7 +281,7 @@ changed since the last scheduled backup. Settings also has **Email a backup now*
 like downloading a backup, it doesn't affect the schedule. Leave the address blank to turn scheduled backups off. Settings aren't part of a backup.
 
 Email is sent through [Resend](https://resend.com). Create an API key (sending access is enough) and
-verify the domain you'll send from, then store both in user secrets, from the `VehicleManager` folder:
+verify the domain you'll send from, then store both in user secrets, from the `src/VehicleManager/GreenHedges.HomeServer.VehicleManager` folder:
 
 ```bash
 dotnet user-secrets set "Resend:ApiKey" "re_..."
@@ -291,7 +295,7 @@ runs inside the app (Coravel), so the app must be running at 01:00 UTC; if sever
 ## Project layout
 
 ```
-VehicleManager/
+src/VehicleManager/GreenHedges.HomeServer.VehicleManager/
   Models/        EF Core entities: Owner, Vehicle, FuelEntry, FuelEntryStop, FuelBrand, FuelStation, ServiceRecord, UserSettings, SentReminder,
                  MotTest + MotDefect
   ViewModels/    View (output) and input models used by the pages, with the calculated figures
@@ -303,8 +307,8 @@ VehicleManager/
                  Telemetry (OpenTelemetry setup)
   Pages/         Dashboard, Owners/*, Vehicles/* (and each vehicle's Services/*), FuelLog/* (log + fill-up pages), Import/*, Backup/* (backup + restore), Settings/*, FuelBrands/* (and each brand's Stations/*),
                  Account/* (sign in/out)
-VehicleManager.AppHost/   Aspire AppHost: runs the app with the Aspire dashboard (logs, traces, metrics) locally
-VehicleManager.Tests/
+src/VehicleManager/GreenHedges.HomeServer.VehicleManager.AppHost/   Aspire AppHost: runs the app with the Aspire dashboard (logs, traces, metrics) locally
+tests/VehicleManager/GreenHedges.HomeServer.VehicleManager.Tests/
   Unit/, Data/, Pages/   unit, database and in-memory page tests; Infrastructure/ holds the helpers
 ```
 
@@ -316,7 +320,7 @@ Bootstrap, Bootstrap Icons and Chart.js are loaded from the jsDelivr CDN.
 dotnet test
 ```
 
-`VehicleManager.Tests` has unit tests, database tests and page tests. The page tests run the whole
+`GreenHedges.HomeServer.VehicleManager.Tests` has unit tests, database tests and page tests. The page tests run the whole
 app in memory, signed in as a test user. The database and page tests need the local SQL Server (see
 [Local database](#local-database-sql-server-in-docker)): each run creates its own throwaway database there
 (`VehicleManager_Tests_<time>_<id>`), migrated from scratch, and never uses the app's database or Azure SQL. Each
@@ -325,14 +329,14 @@ Without `ConnectionStrings:VehicleManagerTests` the database and page tests are 
 
 ## Database migrations
 
-The schema is managed with EF Core migrations in `VehicleManager/Data/Migrations`, applied
+The schema is managed with EF Core migrations in `src/VehicleManager/GreenHedges.HomeServer.VehicleManager/Data/Migrations`, applied
 automatically at startup. The `dotnet-ef` tool is pinned in `dotnet-tools.json`; restore it once with:
 
 ```bash
 dotnet tool restore
 ```
 
-After changing a model or `AppDbContext`, add a migration from the `VehicleManager` folder:
+After changing a model or `AppDbContext`, add a migration from the `src/VehicleManager/GreenHedges.HomeServer.VehicleManager` folder:
 
 ```bash
 dotnet ef migrations add <Name> --output-dir Data/Migrations
