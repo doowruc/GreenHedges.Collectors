@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using GreenHedges.HomeServer.Common.Alerts;
+using GreenHedges.HomeServer.Common.Backups;
 using GreenHedges.HomeServer.Common.Hosting;
 using GreenHedges.HomeServer.VehicleManager.Monitoring;
 
@@ -13,7 +14,9 @@ public sealed class VehicleManagerAlertMonitorTests : IDisposable
     private readonly RecordingSender _sender = new();
     private readonly FakeProbe _database = new();
     private readonly string _statePath = Path.Combine(Path.GetTempPath(), $"vehiclemanager-alerts-{Guid.NewGuid():N}.json");
+    private bool _backupsEnabled;
     private AppHealth _health = null!;
+    private BackupHealth _backupHealth = null!;
     private VehicleManagerAlertMonitor _monitor = null!;
 
     public VehicleManagerAlertMonitorTests() => Start();
@@ -24,9 +27,14 @@ public sealed class VehicleManagerAlertMonitorTests : IDisposable
     private void Start()
     {
         _health = new AppHealth(_time);
+        _backupHealth = new BackupHealth(_time);
         _monitor = new VehicleManagerAlertMonitor(
             _health,
             _database,
+            new BackupMonitor(
+                _backupHealth,
+                Options.Create(new BackupOptions { Enabled = _backupsEnabled }),
+                Options.Create(new OffsiteOptions())),
             new AlertBook(
                 _sender,
                 new AlertStateStore(_statePath, NullLogger<AlertStateStore>.Instance),
@@ -138,6 +146,25 @@ public sealed class VehicleManagerAlertMonitorTests : IDisposable
         Run(ScheduledJob.NightlyBackups);
         await CheckAfter(TimeSpan.FromMinutes(1));
         Assert.Equal("[VehicleManager] RESOLVED: Nightly backups failing", _sender.Sent[^1].Subject);
+    }
+
+    [Fact]
+    public async Task Database_backups_are_checked_too()
+    {
+        _backupsEnabled = true;
+        Start();
+        for (var hour = 0; hour < 37; hour++)
+        {
+            Run(ScheduledJob.NightlyBackups);
+            Run(ScheduledJob.MorningReminders);
+            await CheckAfter(TimeSpan.FromHours(1));
+        }
+
+        Assert.Equal("[VehicleManager] PROBLEM: Backups failing", Assert.Single(_sender.Sent).Subject);
+
+        _backupHealth.RecordBackup(_time.GetUtcNow());
+        await CheckAfter(TimeSpan.FromMinutes(1));
+        Assert.Equal("[VehicleManager] RESOLVED: Backups failing", _sender.Sent[^1].Subject);
     }
 
     [Fact]

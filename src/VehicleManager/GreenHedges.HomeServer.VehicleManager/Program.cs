@@ -11,8 +11,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Resend;
 using GreenHedges.HomeServer.Common.Alerts;
+using CommonBackupOptions = GreenHedges.HomeServer.Common.Backups.BackupOptions;
 using GreenHedges.HomeServer.Common.Heartbeat;
 using GreenHedges.HomeServer.Common.Hosting;
+using GreenHedges.HomeServer.VehicleManager.Backups;
 using GreenHedges.HomeServer.VehicleManager.Data;
 using GreenHedges.HomeServer.VehicleManager.Monitoring;
 using GreenHedges.HomeServer.VehicleManager.Pages.FuelBrands;
@@ -133,6 +135,15 @@ builder.Services.AddOptions<VehicleManagerAlertOptions>()
     .Validate(o => o.DatabaseDownAfter > TimeSpan.Zero && o.JobOverdueAfter > TimeSpan.Zero,
         "Alerts:DatabaseDownAfter and Alerts:JobOverdueAfter must be positive.")
     .ValidateOnStart();
+// Nightly database backups (03:30), gzipped and kept 7, with age-encrypted off-site copies, through Common as for the
+// collectors. Off by default (Backup:Enabled): on the server, where SQL Server shares a folder with the app.
+builder.Services.AddOptions<SqlServerBackupOptions>()
+    .BindConfiguration(CommonBackupOptions.SectionName)
+    .Validate(o => !builder.Configuration.GetValue<bool>("Backup:Enabled") || !string.IsNullOrWhiteSpace(o.SqlServerFolder),
+        "Backup:SqlServerFolder must be set when Backup:Enabled is true.")
+    .ValidateOnStart();
+builder.AddBackups<SqlServerBackupSource>();
+
 builder.Services.AddSingleton<AppHealth>();
 builder.Services.AddSingleton<IHeartbeatSource>(services => services.GetRequiredService<AppHealth>());
 builder.Services.AddSingleton<IDatabaseProbe, DatabaseProbe>();

@@ -1,12 +1,14 @@
 using System.Text;
 using Microsoft.Extensions.Options;
 using GreenHedges.HomeServer.Common.Alerts;
+using GreenHedges.HomeServer.Common.Backups;
 
 namespace GreenHedges.HomeServer.VehicleManager.Monitoring;
 
 /// <summary>
-/// Vehicle Manager's checks, every <c>Alerts:CheckInterval</c>: the database answering, and the nightly backups and
-/// morning reminders completing without failures. Emails and their persistence are the shared <see cref="AlertBook"/>'s.
+/// Vehicle Manager's checks, every <c>Alerts:CheckInterval</c>: the database answering, the nightly emailed backups and
+/// morning reminders completing without failures, and (through <see cref="BackupMonitor"/>) the nightly database
+/// backups and their off-site copies. Emails and their persistence are the shared <see cref="AlertBook"/>'s.
 /// </summary>
 /// <remarks>
 /// <see cref="AppHealth"/> starts empty after a restart while open alerts are restored, so alerts resolve only on
@@ -15,13 +17,14 @@ namespace GreenHedges.HomeServer.VehicleManager.Monitoring;
 public sealed class VehicleManagerAlertMonitor(
     AppHealth health,
     IDatabaseProbe database,
+    BackupMonitor backups,
     AlertBook alerts,
     IOptions<AlertOptions> alertOptions,
     IOptions<VehicleManagerAlertOptions> options,
     TimeProvider time,
     ILogger<VehicleManagerAlertMonitor> logger) : AlertMonitorService(alerts, alertOptions, time, logger)
 {
-    private static readonly string[] Keys = [.. Enum.GetNames<AlertKind>()];
+    private static readonly string[] Keys = [.. Enum.GetNames<AlertKind>(), .. BackupMonitor.Keys];
 
     private readonly VehicleManagerAlertOptions _options = options.Value;
 
@@ -59,6 +62,8 @@ public sealed class VehicleManagerAlertMonitor(
             await CheckJobAsync(ScheduledJob.NightlyBackups, AlertKind.NightlyBackups, snapshot, now, context, cancellationToken);
             await CheckJobAsync(ScheduledJob.MorningReminders, AlertKind.MorningReminders, snapshot, now, context, cancellationToken);
         }
+
+        await backups.CheckAsync(Alerts, now, context, cancellationToken);
     }
 
     private async Task CheckDatabaseAsync(AppHealthSnapshot snapshot, DateTimeOffset now, string context, CancellationToken cancellationToken)

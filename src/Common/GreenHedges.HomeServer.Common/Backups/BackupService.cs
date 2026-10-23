@@ -32,11 +32,18 @@ public interface IBackupSource
     /// <paramref name="destinationPath"/> (replacing any file there).
     /// </summary>
     Task BackupToAsync(string destinationPath, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// The backup file's extension before <c>.gz</c>: <c>.db</c> for a SQLite database (the default), e.g. <c>.bak</c>
+    /// for a SQL Server backup.
+    /// </summary>
+    string FileExtension => ".db";
 }
 
 /// <summary>
 /// Daily gzipped copy of the collector's archive, kept for <see cref="BackupOptions.Retain"/> days.
-/// Files are named <c>&lt;collector name in lower case&gt;-&lt;UTC time&gt;.db.gz</c>. Off-machine copies are
+/// Files are named <c>&lt;collector name in lower case&gt;-&lt;UTC time&gt;&lt;the source's extension&gt;.gz</c>, e.g.
+/// <c>librecollector-20261023T023000Z.db.gz</c>. Off-machine copies are
 /// pulled from this folder by the Mac, and <see cref="OffsiteBackupService"/> sends encrypted copies off-site.
 /// </summary>
 public sealed class BackupService(
@@ -47,8 +54,8 @@ public sealed class BackupService(
     TimeProvider time,
     ILogger<BackupService> logger) : BackgroundService
 {
-    private const string FileSuffix = ".db.gz";
     private const string FileTimestampFormat = "yyyyMMdd'T'HHmmss'Z'";
+    private const int FileTimestampLength = 16; // yyyyMMddTHHmmssZ
 
     private readonly BackupOptions _options = options.Value;
     private readonly string _directory = Path.GetFullPath(options.Value.Directory);
@@ -103,7 +110,7 @@ public sealed class BackupService(
         var startedAt = time.GetUtcNow();
         var finalPath = Path.Combine(
             _directory,
-            _filePrefix + startedAt.UtcDateTime.ToString(FileTimestampFormat, CultureInfo.InvariantCulture) + FileSuffix);
+            _filePrefix + startedAt.UtcDateTime.ToString(FileTimestampFormat, CultureInfo.InvariantCulture) + source.FileExtension + ".gz");
         var dbTemp = Path.ChangeExtension(finalPath, ".snapshot.tmp");
         var gzTemp = finalPath + ".tmp";
 
@@ -173,13 +180,18 @@ public sealed class BackupService(
         }
     }
 
-    /// <summary>Backups in <paramref name="directory"/>, newest first, timed by the timestamp in the file name.</summary>
+    /// <summary>
+    /// Backups in <paramref name="directory"/> (<c>&lt;prefix&gt;&lt;UTC time&gt;.&lt;extension&gt;.gz</c>, any extension), newest
+    /// first, timed by the timestamp in the file name.
+    /// </summary>
     internal static IEnumerable<BackupFile> ListBackups(string directory, string filePrefix) =>
         Directory.Exists(directory)
-            ? Directory.EnumerateFiles(directory, filePrefix + "*" + FileSuffix)
+            ? Directory.EnumerateFiles(directory, filePrefix + "*.gz")
                 .Select(path => (path, name: Path.GetFileName(path)))
+                .Where(f => f.name.Length > filePrefix.Length + FileTimestampLength
+                            && f.name[filePrefix.Length + FileTimestampLength] == '.')
                 .Select(f => DateTimeOffset.TryParseExact(
-                        f.name[filePrefix.Length..^FileSuffix.Length],
+                        f.name.Substring(filePrefix.Length, FileTimestampLength),
                         FileTimestampFormat,
                         CultureInfo.InvariantCulture,
                         DateTimeStyles.AssumeUniversal,

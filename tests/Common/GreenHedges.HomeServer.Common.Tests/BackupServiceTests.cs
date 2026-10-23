@@ -116,6 +116,40 @@ public sealed class BackupServiceTests : IDisposable
         Assert.Empty(Directory.GetFiles(Path.Combine(_root, "backups")));
     }
 
+    [Fact]
+    public async Task A_source_names_its_files_extension_and_they_are_listed_and_pruned_like_any_other()
+    {
+        var directory = Path.Combine(_root, "sqlserver");
+        var service = new BackupService(
+            new FakeSqlServerSource(),
+            _health,
+            Options.Create(new BackupOptions { Directory = directory, Retain = 2 }),
+            new CollectorIdentity("VehicleManager"),
+            _time,
+            NullLogger<BackupService>.Instance);
+        Directory.CreateDirectory(directory);
+        await File.WriteAllTextAsync(Path.Combine(directory, "vehiclemanager-notes.gz"), "not a backup");
+
+        for (var day = 0; day < 3; day++)
+        {
+            Assert.EndsWith(".bak.gz", await service.RunBackupAsync(CancellationToken.None));
+            _time.Advance(TimeSpan.FromDays(1));
+        }
+
+        Assert.Equal(
+            ["vehiclemanager-20261018T023000Z.bak.gz", "vehiclemanager-20261019T023000Z.bak.gz"],
+            BackupService.ListBackups(directory, "vehiclemanager-").Select(b => Path.GetFileName(b.Path)).Order());
+        Assert.True(File.Exists(Path.Combine(directory, "vehiclemanager-notes.gz"))); // not a backup, so left alone
+    }
+
+    private sealed class FakeSqlServerSource : IBackupSource
+    {
+        public string FileExtension => ".bak";
+
+        public Task BackupToAsync(string destinationPath, CancellationToken cancellationToken) =>
+            File.WriteAllTextAsync(destinationPath, "TAPE (pretend)", cancellationToken);
+    }
+
     private sealed class FakeSource : IBackupSource
     {
         public const string Content = "SQLite format 3 (pretend)";
