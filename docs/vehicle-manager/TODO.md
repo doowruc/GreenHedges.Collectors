@@ -44,6 +44,10 @@ reasoning and the decisions: [HOMESERVER-MIGRATION.md](HOMESERVER-MIGRATION.md).
   - [ ] Heartbeat (healthchecks.io) and email alerts through `GreenHedges.HomeServer.Common` for failed nightly backups
         and reminder runs (covers "Alert on failures" below). Decide whether `Common` gets a web-app host variant or the
         app calls its registrations directly.
+  - [ ] **Decide how Resend is used across the repo.** `Common`'s `ResendAlertSender` calls Resend's REST API directly
+        (plain-text alerts, no package); this app uses Resend's .NET SDK (`IResend`: backup attachments, reminder
+        emails, `FakeResend` in tests). Either keep both (each the simpler tool for its job) or move `Common` onto the
+        SDK so there's one client. Decide when the alerts above go through `Common`.
   - [ ] Nightly backups through `Common`: an `IBackupSource` running `BACKUP DATABASE … WITH CHECKSUM, COPY_ONLY` into a
         folder shared with the container; let a source choose its file extension (`.bak.gz`, not `.db.gz`); off-site
         copies (a `vehiclemanager/` prefix and write-only IAM user in `deploy/aws/offsite.yaml`) and the Mac's pull
