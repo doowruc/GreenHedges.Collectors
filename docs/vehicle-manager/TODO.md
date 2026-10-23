@@ -2,6 +2,68 @@
 
 Ideas for future features and improvements, roughly in order of how useful they'd be.
 
+## Move to the home server
+
+Bringing the app into the public `GreenHedges.HomeServer` repository and running it on the home server, on SQL Server
+Express in Docker instead of Azure SQL, at `https://vehicles.<tailnet>.ts.net` (Tailscale Services). The plan, with the
+reasoning and the decisions: [HOMESERVER-MIGRATION.md](HOMESERVER-MIGRATION.md). In order:
+
+- [x] **Move an unrelated, untracked DNS export file out of the repository folder** (untracked, not part of the
+      app), so it can't be committed or copied across. Gone by 2026-10-23.
+- [ ] **Local SQL Server for development and tests** (in this repo first):
+  - [ ] A `compose.yaml` for SQL Server in Docker Desktop on the Mac (`mcr.microsoft.com/mssql/server`, Developer
+        edition, named volume, `127.0.0.1:1433`); document it, and LocalDB for Windows, in the README.
+  - [ ] Database and page tests on a throwaway database per test run (created, migrated, dropped) instead of the real
+        Azure database; keep `[DatabaseFact]` skipping when no SQL Server is configured, and the never-touch-real-data
+        rules as a backstop. Update CLAUDE.md's Tests section.
+  - [ ] Point local development at the local database; copy data in with backup and restore when needed.
+- [ ] **Import into GreenHedges.HomeServer** (one PR there):
+  - [ ] Import this repo with its history (rewritten into `src/VehicleManager/`, `tests/VehicleManager/` and
+        `docs/vehicle-manager/`), merged with `--allow-unrelated-histories`.
+  - [ ] Rename namespaces and projects to `GreenHedges.HomeServer.VehicleManager` (`.AppHost`, `.Tests`), including
+        Razor `_ViewImports`, `RootNamespace`, `InternalsVisibleTo` and the EF migrations; keep the `UserSecretsId`.
+  - [ ] Package versions into `Directory.Packages.props`; `dotnet-ef` into the root tool manifest; `aspire.config.json`
+        to the new AppHost path; projects into `GreenHedges.HomeServer.slnx`.
+  - [ ] CI: a SQL Server service container in `build-and-test`, so the database and page tests run on every PR; check
+        the Aspire AppHost builds there.
+  - [ ] Docs: README and TODO to `docs/vehicle-manager/` (README rewritten for SQL Server in Docker and the server);
+        HomeServer README lists services rather than collectors.
+  - [ ] CLAUDE.md: a new short root `CLAUDE.md` for the whole repo (build and test, branch/PR/merge rules, nothing
+        personal in the public repo, never run deploy scripts, read-only SSH, read `notes/server/SERVER.md` first); this
+        one moves to `src/VehicleManager/CLAUDE.md` without its Git section.
+  - [ ] Ignore `*.xlsx`, `*.json.gz` and `*.bak` under `src/VehicleManager/`, so a spreadsheet or backup can't be
+        committed.
+- [ ] **Ready to run on the server:**
+  - [ ] Persist ASP.NET data-protection keys under the data folder (else each restart signs everyone out).
+  - [ ] Forwarded headers from `tailscale serve`, so Auth0 gets `https://vehicles.<tailnet>.ts.net/callback`.
+  - [ ] Kestrel on `127.0.0.1` only, port from configuration.
+  - [ ] `/health` endpoint with a database check (replaces "Health-check endpoint" below).
+  - [ ] Heartbeat (healthchecks.io) and email alerts through `GreenHedges.HomeServer.Common` for failed nightly backups
+        and reminder runs (covers "Alert on failures" below). Decide whether `Common` gets a web-app host variant or the
+        app calls its registrations directly.
+  - [ ] Nightly backups through `Common`: an `IBackupSource` running `BACKUP DATABASE … WITH CHECKSUM, COPY_ONLY` into a
+        folder shared with the container; let a source choose its file extension (`.bak.gz`, not `.db.gz`); off-site
+        copies (a `vehiclemanager/` prefix and write-only IAM user in `deploy/aws/offsite.yaml`) and the Mac's pull
+        (`vehicle-manager` in `deploy/mac/install-backup-pull.sh`). Keep the emailed JSON backups as a user-level copy.
+- [ ] **The server's side** (read and update `notes/server/SERVER.md`):
+  - [ ] `deploy/sqlserver/`: `compose.yaml` (pinned image tag, Express edition, memory limit about 1.5 GB,
+        `127.0.0.1:1433`, data in `/var/lib/sqlserver`, a backups folder shared with the app) and `HOST-SETUP.md`;
+        `sa` only for setup, a `vehiclemanager` login owning only its own database.
+  - [ ] Tailscale Services, one-off: tag the server and re-authenticate it, an access rule for `svc:*` on 443,
+        auto-approval of the server as a host (a server task in the notes).
+  - [ ] `deploy/vehicle-manager/`: `vehiclemanager.service` (systemd, `Type=notify`, hardened, after Docker) and
+        `HOST-SETUP.md` (account, `/opt` and `/var/lib/vehiclemanager`, `/etc/vehiclemanager/env`,
+        `tailscale serve --service=svc:vehicles --https=443 127.0.0.1:<port>`).
+  - [ ] `deploy/deploy.sh vehicle-manager`.
+  - [ ] Auth0: add the `https://vehicles.<tailnet>.ts.net` callback and signed-out URLs (keep localhost for development).
+  - [ ] Personal setup (Auth0 tenant, port, healthchecks check) in `notes/vehicle-manager/NOTES.md` of
+        `GreenHedges.HomeServer.Notes`, never the public repo.
+- [ ] **Switch over:** a `.bacpac` export from Azure SQL imported into the server's container (every table, including
+      `UserSettings` and `SentReminder`); compare with the app's backup and the dashboard figures; then use only the
+      server, and stop running a local copy against real data (Coravel jobs would send twice).
+- [ ] **Tidy up:** after a couple of weeks, keep the `.bacpac` with the Mac's backups and delete the Azure SQL database
+      and server; bundle this repository to `~/Backups/OldRepos` and delete it on GitHub.
+
 ## New features
 
 - [x] **MOT, tax, insurance and service reminders.** Add due dates for each vehicle (MOT, VED, insurance renewal,
@@ -53,7 +115,7 @@ Ideas for future features and improvements, roughly in order of how useful they'
       a year-on-year chart of each year's running total, with a table of yearly totals and the change on the year before
       (this year against last year to the same day). Running costs can join it once they're recorded.
 - [ ] **Installable on a phone (PWA):** a manifest and icons so it opens like an app from the home screen.
-- [ ] **Receipt photo** on a fill-up, stored in Azure Blob Storage. Only if it'd actually be used: it adds storage,
+- [ ] **Receipt photo** on a fill-up, stored on the server's disk (under the data folder, so it's backed up; was Azure Blob Storage before the move to the home server). Only if it'd actually be used: it adds storage,
       backup format changes and some cost.
 
 ## Technical improvements
@@ -63,7 +125,7 @@ Ideas for future features and improvements, roughly in order of how useful they'
 - [x] **One type per file** throughout, now a rule in CLAUDE.md.
 - [x] **Shared DataTables setup:** `data-table.js` and `_DataTableStyles`/`_DataTableScripts` serve both the fuel log
       and the service history, so a new table follows the same pattern.
-- [ ] **Develop against a local database again,** instead of the Azure one. It must stay SQL Server, because the
+- [ ] ~~**Develop against a local database again,**~~ *Moved to Move to the home server (Local SQL Server for development and tests), as SQL Server in Docker.* Was: instead of the Azure one. It must stay SQL Server, because the
       model relies on it (`rowversion` concurrency, the unique index that counts NULLs as equal, `date` columns,
       retry-on-failure). Support all three platforms, with a setup for each:
   - Windows: SQL Server Express LocalDB (`(localdb)\MSSQLLocalDB`), which comes with Visual Studio or as a small
@@ -83,7 +145,7 @@ Ideas for future features and improvements, roughly in order of how useful they'
         `ILogger` calls are kept; traces cover ASP.NET Core, `HttpClient` (Resend, DVLA, DVSA) and SQL Client; each
         nightly job run is a trace with a span per user. Logs no longer carry registrations or emails, and the DVSA's
         request URLs are redacted in traces.
-  - [ ] Grafana Cloud, for telemetry kept beyond a local session: [the free tier](https://grafana.com/products/cloud/free-tier)
+  - [ ] Grafana Cloud, for telemetry kept beyond a local session (or, once on the home server, its own Grafana, planned for the Weather collector's dashboards; decide then): [the free tier](https://grafana.com/products/cloud/free-tier)
         (50 GB each of logs and traces a month, 10k metric series, 14 days' retention, free indefinitely) takes OTLP
         directly. Set the standard `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_EXPORTER_OTLP_HEADERS` (the stack's token) and
         `OTEL_SERVICE_NAME` from user secrets or environment variables, as with the other secrets; the endpoint and
@@ -96,9 +158,9 @@ Ideas for future features and improvements, roughly in order of how useful they'
       exceptions via the `/Error` page with its request id.
 - [ ] **Alert on failures.** Email (via Resend) or alert when the nightly backup job fails for any user, instead of
       only logging it. Optionally a weekly "all OK" summary so silence isn't mistaken for success.
-- [ ] **Health-check endpoint** (`AddHealthChecks` with a database check), if the app is ever hosted somewhere other
+- [ ] ~~**Health-check endpoint**~~ *Moved to Move to the home server (`/health`).* (`AddHealthChecks` with a database check), if the app is ever hosted somewhere other
       than locally.
-- [ ] **CI on GitHub Actions:** build (0 warnings) and run the unit and page tests on each push. Database tests skip
+- [ ] ~~**CI on GitHub Actions:**~~ *Comes with GreenHedges.HomeServer's CI after the import, with a SQL Server service container so the database tests run there too.* build (0 warnings) and run the unit and page tests on each push. Database tests skip
       without a connection string, so they can stay local.
 - [ ] **Dependency checks:** Dependabot for NuGet updates, or run `dotnet list package --vulnerable
       --include-transitive` and check for outdated packages from time to time.
@@ -106,6 +168,6 @@ Ideas for future features and improvements, roughly in order of how useful they'
       Integrity hashes on the CDN scripts and stylesheets), plus `X-Content-Type-Options` and `Referrer-Policy`.
 - [ ] **Rate limiting** on the upload pages (import and restore) and a maximum request size, using ASP.NET's
       built-in rate limiter.
-- [ ] **Deployment**, if it's ever hosted: Azure App Service with settings in Key Vault or app settings, a managed
+- [ ] ~~**Deployment**~~ *Replaced by Move to the home server (the home server, not Azure).* Was: if it's ever hosted: Azure App Service with settings in Key Vault or app settings, a managed
       identity for Azure SQL instead of a SQL password, and applying migrations as a deploy step rather than at
       startup.
