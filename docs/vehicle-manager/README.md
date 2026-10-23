@@ -243,6 +243,8 @@ vehicle with its due dates, 12-month MPG, spend, odometer and last fill-up.
 **Vehicle page** – due dates (coloured by how soon they are), then two tabs: **Fuel** (last-12-months / all-time stats, an MPG and fuel-price chart, and the full log) and
 **Services** (the service history). The address bar follows the tab (`?tab=services`), so a refresh stays on it.
 **Fuel Log page** (`/FuelLog`) – all fill-ups, filterable by vehicle and year.
+**On a phone** – in Safari, **Share → Add to Home Screen** gives a "Vehicles" icon (the car from the menu bar)
+that opens it like an app, without the browser's toolbars. Browser tabs and bookmarks show the same icon.
 **Light / dark mode** – follows your system setting by default; pick Light, Dark or System from the
 account menu (top right) under **Theme**. The choice is remembered per browser.
 
