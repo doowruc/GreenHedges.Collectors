@@ -357,8 +357,9 @@ Offsite__SecretAccessKey=…
 Offsite__AgeRecipient=age1…
 ```
 
-SQL Server writes the file readable by its owner and group only, so the shared folder must give the app's account
-group access to new files (the setgid bit with the app's group); the server's setup covers that. Backups are off by
+SQL Server writes the file readable by its owner and group only, so the shared folder gives new files its group,
+`sqlbackups` (the setgid bit), and the app's account joins that group: see
+[deploy/sqlserver/HOST-SETUP.md](../../deploy/sqlserver/HOST-SETUP.md). Backups are off by
 default (`Backup:Enabled`), so development and the tests don't take them. Locally, `compose.yaml` shares
 `.sqlserver-backups/` (git-ignored) the same way, for the backup test.
 

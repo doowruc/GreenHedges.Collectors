@@ -21,6 +21,7 @@ The **collectors** keep my own copy of data that otherwise only lives in someone
 | `src/VehicleManager/`, `tests/VehicleManager/` | Vehicle Manager (`GreenHedges.HomeServer.VehicleManager`, `.AppHost` for local development, `.Tests`) |
 | `docs/vehicle-manager/` | Its README, backlog and the plan for moving it onto the home server |
 | `compose.yaml`, `.env.example` | SQL Server in Docker for local development and Vehicle Manager's tests |
+| `deploy/sqlserver/` | SQL Server in Docker on the home server, for its web apps: compose file, deploy script, host setup |
 | `deploy/deploy.sh` | Publishes a collector and installs it on the host (`deploy/<collector>/deploy.sh` for short) |
 | `deploy/libre/` | The Libre collector's systemd unit, deploy script, host setup and Nightscout stack |
 | `docs/libre/` | Its README (setup and use) and design notes |
