@@ -444,7 +444,7 @@ sudo install -o librecollector -g librecollector -m 0600 /tmp/libreview.csv /var
 ```
 
 ```bash
-sudo -u librecollector env Serilog__WriteTo__1__Args__path=logs/import-.log sh -c 'cd /var/lib/librecollector && /opt/librecollector/GreenHedges.Collectors.Libre.Worker --import-libreview libreview-import.csv'
+sudo -u librecollector env Serilog__WriteTo__1__Args__path=logs/import-.log sh -c 'cd /var/lib/librecollector && /opt/librecollector/GreenHedges.HomeServer.Collectors.Libre.Worker --import-libreview libreview-import.csv'
 ```
 
 It prints a summary: readings, scans and events imported, already present, skipped. Then delete the export:

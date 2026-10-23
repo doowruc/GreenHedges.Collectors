@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <UserSecretsId>dotnet-LibreCollector.Worker-2c08a2a9-7f3a-4ec6-b493-2882fdbeb680</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="GreenHedges.HomeServer.Collectors.Libre.Worker.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Common\GreenHedges.HomeServer.Common\GreenHedges.HomeServer.Common.csproj" />
+    <ProjectReference Include="..\GreenHedges.HomeServer.Collectors.Libre.LibreLinkUp\GreenHedges.HomeServer.Collectors.Libre.LibreLinkUp.csproj" />
+    <ProjectReference Include="..\GreenHedges.HomeServer.Collectors.Libre.LibreView\GreenHedges.HomeServer.Collectors.Libre.LibreView.csproj" />
+    <ProjectReference Include="..\GreenHedges.HomeServer.Collectors.Libre.Nightscout\GreenHedges.HomeServer.Collectors.Libre.Nightscout.csproj" />
+    <ProjectReference Include="..\GreenHedges.HomeServer.Collectors.Libre.Storage\GreenHedges.HomeServer.Collectors.Libre.Storage.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -74,7 +74,7 @@ Station__DeviceIds__0=<your station's id>
 
 Without it the collector still archives every message, but none counts as the station's; its log names each new device it hears (`New device heard: Bresser-6in1 id …`), so the id can be found there too. After a battery change, if the sensor picks a new id, **add** it as `Station__DeviceIds__1=…` and keep the old one.
 
-Defaults for everything else (frequency, rtl_433 arguments, database path, logging) are in [`appsettings.json`](../../src/Weather/GreenHedges.Collectors.Weather.Worker/appsettings.json); any can be overridden here the same way (e.g. `Rtl433__Arguments=…`).
+Defaults for everything else (frequency, rtl_433 arguments, database path, logging) are in [`appsettings.json`](../../src/Collectors/Weather/GreenHedges.HomeServer.Collectors.Weather.Worker/appsettings.json); any can be overridden here the same way (e.g. `Rtl433__Arguments=…`).
 
 ## 6. Deploy (on the Mac)
 
@@ -143,7 +143,7 @@ deploy/weather/deploy.sh
 **On the server**, send a test email and check the log:
 
 ```bash
-sudo systemd-run --quiet --wait --pipe --uid=weathercollector -p EnvironmentFile=/etc/weathercollector/env -p WorkingDirectory=/var/lib/weathercollector /opt/weathercollector/GreenHedges.Collectors.Weather.Worker --test-alert
+sudo systemd-run --quiet --wait --pipe --uid=weathercollector -p EnvironmentFile=/etc/weathercollector/env -p WorkingDirectory=/var/lib/weathercollector /opt/weathercollector/GreenHedges.HomeServer.Collectors.Weather.Worker --test-alert
 ```
 
 ```bash

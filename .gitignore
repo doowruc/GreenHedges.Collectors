@@ -446,3 +446,6 @@ alert-state.json.tmp
 # Personal, never committed: script defaults and the private notes repo (cloned into notes/)
 deploy/local.env
 notes/
+
+# macOS Finder metadata
+.DS_Store

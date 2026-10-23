@@ -7,7 +7,7 @@ dotnet build
 dotnet test
 ```
 
-.NET 10 SDK (pinned in `global.json`). One solution (`GreenHedges.Collectors.slnx`) holds every collector. Warnings are errors, and a NuGet vulnerability advisory fails the restore.
+.NET 10 SDK (pinned in `global.json`). One solution (`GreenHedges.HomeServer.slnx`) holds every project. Warnings are errors, and a NuGet vulnerability advisory fails the restore.
 
 ## Workflow
 

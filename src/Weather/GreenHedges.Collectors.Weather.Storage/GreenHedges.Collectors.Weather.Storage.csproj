@@ -1,8 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\Common\GreenHedges.Collectors.Common.Sqlite\GreenHedges.Collectors.Common.Sqlite.csproj" />
-    <ProjectReference Include="..\GreenHedges.Collectors.Weather.Rtl433\GreenHedges.Collectors.Weather.Rtl433.csproj" />
-  </ItemGroup>
-
-</Project>
