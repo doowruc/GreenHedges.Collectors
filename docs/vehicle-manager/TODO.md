@@ -60,12 +60,14 @@ reasoning and the decisions: [HOMESERVER-MIGRATION.md](HOMESERVER-MIGRATION.md).
         a source choose its file extension (`.bak.gz`); off-site copies (`<stack>-vehicles`, prefix `vehiclemanager/`, in
         `deploy/aws/offsite.yaml`) and the Mac's pull (`install-backup-pull.sh vehicle-manager`); "Backups failing" and
         "Off-site backup failing" alerts. The emailed JSON backups stay as a user-level copy.
-  - [ ] After merging: update the `greenhedges-offsite` stack (the new IAM user), then create its access key.
+  - [x] After merging: update the `greenhedges-offsite` stack (the new IAM user), then create its access key (done
+        2026-10-23).
 - [ ] **The server's side** (read and update `notes/server/SERVER.md`):
-  - [ ] `deploy/sqlserver/`: `compose.yaml` (pinned image tag, Express edition, memory limit about 1.5 GB,
+  - [ ] `deploy/sqlserver/` (written; to run on the server): `compose.yaml` (pinned image tag, Express edition, memory limit about 1.5 GB,
         `127.0.0.1:1433`, data in `/var/lib/sqlserver`, a backups folder shared with the app) and `HOST-SETUP.md`.
         The backups folder (`/var/lib/sqlserver/backups`, `/var/opt/mssql/backups` in the container): owner uid 10001
-        (`mssql`), group `vehiclemanager`, mode `2770` (setgid), as SQL Server writes files `0660`;
+        (`mssql`), group `sqlbackups` (the app's account joins it), mode `2770` (setgid), as SQL Server writes files
+        `0660`; `deploy-sqlserver.sh` installs and checks it;
         `sa` only for setup, a `vehiclemanager` login owning only its own database.
   - [ ] Tailscale Services, one-off: tag the server and re-authenticate it, an access rule for `svc:*` on 443,
         auto-approval of the server as a host (a server task in the notes).

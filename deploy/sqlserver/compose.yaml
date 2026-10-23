@@ -1,0 +1,39 @@
+# SQL Server for the home server's web apps (so far Vehicle Manager), in Docker.
+# Installed on the host as /opt/sqlserver/compose.yaml; the sa password is in /etc/sqlserver/sqlserver.env.
+# See deploy/sqlserver/HOST-SETUP.md. Install or update with deploy/sqlserver/deploy-sqlserver.sh.
+#
+# Each app backs up its own database (Vehicle Manager: BACKUP DATABASE into the shared backups folder, nightly), so
+# the container itself needs no backup. Logins are recreated from the apps' host setup if it's ever rebuilt.
+
+name: sqlserver
+
+services:
+  sqlserver:
+    # Pinned, and the same version as the repo's compose.yaml for local development. To update: change both, then
+    # re-run deploy-sqlserver.sh (the container restarts on the new image; databases upgrade in place).
+    image: mcr.microsoft.com/mssql/server:2025-CU10-ubuntu-24.04
+    restart: unless-stopped
+    env_file:
+      - /etc/sqlserver/sqlserver.env   # MSSQL_SA_PASSWORD only
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Express               # free for real use (10 GB per database)
+      MSSQL_MEMORY_LIMIT_MB: "1536"    # the host has 8 GB, shared with MongoDB, Nightscout and the collectors
+    mem_limit: 2g                      # a backstop above SQL Server's own limit
+    ports:
+      # Localhost only. Docker-published ports bypass ufw, so never bind 0.0.0.0 here.
+      - "127.0.0.1:1433:1433"
+    volumes:
+      - /var/lib/sqlserver/data:/var/opt/mssql            # owner uid 10001 (mssql in the container), mode 0700
+      - /var/lib/sqlserver/backups:/var/opt/mssql/backups # owner 10001, group sqlbackups, mode 2770: apps read backups here
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q 'SELECT 1' -b -o /dev/null"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
