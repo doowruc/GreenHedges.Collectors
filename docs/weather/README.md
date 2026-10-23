@@ -1,6 +1,6 @@
 # WeatherCollector
 
-*Part of [GreenHedges.Collectors](../../README.md). Code in `src/Weather/`, deployment in `deploy/weather/`.*
+*Part of [GreenHedges.HomeServer](../../README.md). Code in `src/Collectors/Weather/`, deployment in `deploy/weather/`.*
 
 An always-on service that keeps **your own complete, permanent archive** of a weather station's outdoor sensor, received off the air with an RTL-SDR dongle and [rtl_433](https://github.com/merbanan/rtl_433). It only listens: the station's console keeps working and uploading as before.
 
@@ -27,7 +27,7 @@ Subjects start `[WeatherCollector]`. Every PROBLEM email is followed by one RESO
 | **Off-site backup failing** | No off-site copy for 36 hours, or straight away if the off-site settings are wrong | Check the log (`Off-site copy … failed` or `Off-site backup is misconfigured`): AWS key, bucket, or `age` missing. Fix the env file and restart. Collection and local backups are unaffected. |
 | healthchecks.io "down" | No ping for 5 minutes plus grace | The collector pings only while the station is being heard, so: host off or offline, collector stopped, or no reception. |
 
-Thresholds are in the `Alerts` section of [`appsettings.json`](../../src/Weather/GreenHedges.Collectors.Weather.Worker/appsettings.json) (`StationSilentAfter`, `ReceiverEndsPerHour`, `BatteryLowAfter`) and can be overridden in the env file. Without `Station:DeviceIds` the station alerts are off and the heartbeat stays silent.
+Thresholds are in the `Alerts` section of [`appsettings.json`](../../src/Collectors/Weather/GreenHedges.HomeServer.Collectors.Weather.Worker/appsettings.json) (`StationSilentAfter`, `ReceiverEndsPerHour`, `BatteryLowAfter`) and can be overridden in the env file. Without `Station:DeviceIds` the station alerts are off and the heartbeat stays silent.
 
 ### Useful commands (on the host)
 

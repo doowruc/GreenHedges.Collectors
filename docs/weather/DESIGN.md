@@ -1,6 +1,6 @@
 # WeatherCollector: design notes
 
-How the Weather collector (WeatherCollector) works and why: the decisions, what was learned about the sensor and rtl_433, and the phases. Part of [GreenHedges.Collectors](../../README.md); designed in the earlier `doowruc/WeatherCollector` repository and moved here before any code was written.
+How the Weather collector (WeatherCollector) works and why: the decisions, what was learned about the sensor and rtl_433, and the phases. Part of [GreenHedges.HomeServer](../../README.md); designed in the earlier `doowruc/WeatherCollector` repository and moved here before any code was written.
 
 ## Goals and constraints
 
@@ -12,7 +12,7 @@ How the Weather collector (WeatherCollector) works and why: the decisions, what 
 **Constraints:**
 - **Leave the station alone.** The console keeps receiving the sensor and uploading to its cloud services. WeatherCollector only listens.
 - **Raw first.** Store each decoded message exactly as rtl_433 produced it. Every figure shown later (rain per hour, wind roses, daily highs) is derived and can be rebuilt.
-- **Same conventions as the [Libre collector](../libre/DESIGN.md)**, sharing `GreenHedges.Collectors.Common` with it: .NET Worker Service under systemd, SQLite, nightly backups pulled off the host, encrypted off-site copies, email alerts and an external heartbeat, Tailscale only.
+- **Same conventions as the [Libre collector](../libre/DESIGN.md)**, sharing `GreenHedges.HomeServer.Common` with it: .NET Worker Service under systemd, SQLite, nightly backups pulled off the host, encrypted off-site copies, email alerts and an external heartbeat, Tailscale only.
 
 ## Architecture
 
@@ -164,8 +164,8 @@ From the private 2021 WeatherLogger project, both as one-off CLI modes, idempote
 ## Phases
 
 0. **Reception test** ✅: protocol 172 confirmed on the host, strong signal.
-   Then the move into GreenHedges.Collectors ✅: shared host setup, alerts, heartbeat, backups and off-site copies in `Common`.
-1. **Archive:** projects `GreenHedges.Collectors.Weather.Rtl433` (process + parsing), `.Storage` and `.Worker`, with tests; collection and supervision, archive schema, deploy script and host setup, systemd unit (first deploy here, to be running before the sensor's battery change); then backups, off-site copies, alerts and heartbeat from `Common`. Deploy and leave running.
+   Then the move into GreenHedges.Collectors (since renamed GreenHedges.HomeServer) ✅: shared host setup, alerts, heartbeat, backups and off-site copies in `Common`.
+1. **Archive:** projects `GreenHedges.HomeServer.Collectors.Weather.Rtl433` (process + parsing), `.Storage` and `.Worker`, with tests; collection and supervision, archive schema, deploy script and host setup, systemd unit (first deploy here, to be running before the sensor's battery change); then backups, off-site copies, alerts and heartbeat from `Common`. Deploy and leave running.
 2. **Dashboards:** derived tables, the Grafana WAL spike, Grafana compose + provisioning, dashboards, `tailscale serve`.
 3. **History import:** Weather Underground, then Weathercloud.
 

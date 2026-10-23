@@ -1,0 +1,37 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/Common/">
+    <Project Path="src/Common/GreenHedges.HomeServer.Common.Sqlite/GreenHedges.HomeServer.Common.Sqlite.csproj" />
+    <Project Path="src/Common/GreenHedges.HomeServer.Common/GreenHedges.HomeServer.Common.csproj" />
+  </Folder>
+  <Folder Name="/src/Collectors/" />
+  <Folder Name="/src/Collectors/Libre/">
+    <Project Path="src/Collectors/Libre/GreenHedges.HomeServer.Collectors.Libre.LibreLinkUp/GreenHedges.HomeServer.Collectors.Libre.LibreLinkUp.csproj" />
+    <Project Path="src/Collectors/Libre/GreenHedges.HomeServer.Collectors.Libre.LibreView/GreenHedges.HomeServer.Collectors.Libre.LibreView.csproj" />
+    <Project Path="src/Collectors/Libre/GreenHedges.HomeServer.Collectors.Libre.Nightscout/GreenHedges.HomeServer.Collectors.Libre.Nightscout.csproj" />
+    <Project Path="src/Collectors/Libre/GreenHedges.HomeServer.Collectors.Libre.Storage/GreenHedges.HomeServer.Collectors.Libre.Storage.csproj" />
+    <Project Path="src/Collectors/Libre/GreenHedges.HomeServer.Collectors.Libre.Worker/GreenHedges.HomeServer.Collectors.Libre.Worker.csproj" />
+  </Folder>
+  <Folder Name="/src/Collectors/Weather/">
+    <Project Path="src/Collectors/Weather/GreenHedges.HomeServer.Collectors.Weather.Rtl433/GreenHedges.HomeServer.Collectors.Weather.Rtl433.csproj" />
+    <Project Path="src/Collectors/Weather/GreenHedges.HomeServer.Collectors.Weather.Storage/GreenHedges.HomeServer.Collectors.Weather.Storage.csproj" />
+    <Project Path="src/Collectors/Weather/GreenHedges.HomeServer.Collectors.Weather.Worker/GreenHedges.HomeServer.Collectors.Weather.Worker.csproj" />
+  </Folder>
+  <Folder Name="/tests/" />
+  <Folder Name="/tests/Common/">
+    <Project Path="tests/Common/GreenHedges.HomeServer.Common.Tests/GreenHedges.HomeServer.Common.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/Collectors/" />
+  <Folder Name="/tests/Collectors/Libre/">
+    <Project Path="tests/Collectors/Libre/GreenHedges.HomeServer.Collectors.Libre.LibreLinkUp.Tests/GreenHedges.HomeServer.Collectors.Libre.LibreLinkUp.Tests.csproj" />
+    <Project Path="tests/Collectors/Libre/GreenHedges.HomeServer.Collectors.Libre.LibreView.Tests/GreenHedges.HomeServer.Collectors.Libre.LibreView.Tests.csproj" />
+    <Project Path="tests/Collectors/Libre/GreenHedges.HomeServer.Collectors.Libre.Nightscout.Tests/GreenHedges.HomeServer.Collectors.Libre.Nightscout.Tests.csproj" />
+    <Project Path="tests/Collectors/Libre/GreenHedges.HomeServer.Collectors.Libre.Storage.Tests/GreenHedges.HomeServer.Collectors.Libre.Storage.Tests.csproj" />
+    <Project Path="tests/Collectors/Libre/GreenHedges.HomeServer.Collectors.Libre.Worker.Tests/GreenHedges.HomeServer.Collectors.Libre.Worker.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/Collectors/Weather/">
+    <Project Path="tests/Collectors/Weather/GreenHedges.HomeServer.Collectors.Weather.Rtl433.Tests/GreenHedges.HomeServer.Collectors.Weather.Rtl433.Tests.csproj" />
+    <Project Path="tests/Collectors/Weather/GreenHedges.HomeServer.Collectors.Weather.Storage.Tests/GreenHedges.HomeServer.Collectors.Weather.Storage.Tests.csproj" />
+    <Project Path="tests/Collectors/Weather/GreenHedges.HomeServer.Collectors.Weather.Worker.Tests/GreenHedges.HomeServer.Collectors.Weather.Worker.Tests.csproj" />
+  </Folder>
+</Solution>

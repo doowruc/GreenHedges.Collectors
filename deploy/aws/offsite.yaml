@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: >-
-  Off-site backups for GreenHedges.Collectors: one private, versioned S3 bucket shared by every
+  Off-site backups for GreenHedges.HomeServer: one private, versioned S3 bucket shared by every
   collector, each uploading age-encrypted nightly backups under its own prefix with a write-only IAM
   user, so a compromised host can add copies but never read, list or delete them.
 

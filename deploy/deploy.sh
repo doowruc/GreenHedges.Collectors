@@ -13,8 +13,8 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 if [ -f "$ROOT/deploy/local.env" ]; then . "$ROOT/deploy/local.env"; fi
 
 case "${1:-}" in
-  libre)   PROJECT="src/Libre/GreenHedges.Collectors.Libre.Worker";     SERVICE=librecollector ;;
-  weather) PROJECT="src/Weather/GreenHedges.Collectors.Weather.Worker"; SERVICE=weathercollector ;;
+  libre)   PROJECT="src/Collectors/Libre/GreenHedges.HomeServer.Collectors.Libre.Worker";     SERVICE=librecollector ;;
+  weather) PROJECT="src/Collectors/Weather/GreenHedges.HomeServer.Collectors.Weather.Worker"; SERVICE=weathercollector ;;
   *) echo "Usage: deploy/deploy.sh <libre|weather> [user@host]" >&2; exit 2 ;;
 esac
 COLLECTOR="$1"

@@ -1,6 +1,6 @@
 # LibreCollector
 
-*Part of [GreenHedges.Collectors](../../README.md); formerly its own repository, `doowruc/LibreCollector`. Code in `src/Libre/`, deployment in `deploy/libre/`.*
+*Part of [GreenHedges.HomeServer](../../README.md); formerly its own repository, `doowruc/LibreCollector`. Code in `src/Collectors/Libre/`, deployment in `deploy/libre/`.*
 
 An always-on service that keeps **your own complete, permanent archive** of FreeStyle Libre glucose readings, fetched once a minute through LibreLinkUp, with optional **Nightscout** dashboards and **Apple Health** sync built on top.
 
@@ -59,11 +59,11 @@ Libre sensor ──► LibreLink app (phone) ──► Abbott LibreView (unchang
 ### 2. Try it on your computer (optional but recommended)
 
 ```bash
-git clone <this repository> && cd GreenHedges.Collectors
+git clone <this repository> && cd GreenHedges.HomeServer
 dotnet test
-dotnet user-secrets set "LibreLinkUp:Email" "follower@example.com" --project src/Libre/GreenHedges.Collectors.Libre.Worker
-read -s "pw?Follower password: " && dotnet user-secrets set "LibreLinkUp:Password" "$pw" --project src/Libre/GreenHedges.Collectors.Libre.Worker; unset pw
-dotnet run --project src/Libre/GreenHedges.Collectors.Libre.Worker
+dotnet user-secrets set "LibreLinkUp:Email" "follower@example.com" --project src/Collectors/Libre/GreenHedges.HomeServer.Collectors.Libre.Worker
+read -s "pw?Follower password: " && dotnet user-secrets set "LibreLinkUp:Password" "$pw" --project src/Collectors/Libre/GreenHedges.HomeServer.Collectors.Libre.Worker; unset pw
+dotnet run --project src/Collectors/Libre/GreenHedges.HomeServer.Collectors.Libre.Worker
 ```
 
 (The `read -s "pw?…"` prompt is zsh syntax; in bash use `read -s -p "Follower password: " pw`.)
@@ -102,7 +102,7 @@ To avoid typing the host every time, copy [`deploy/local.env.example`](../../dep
 It publishes a self-contained Linux build, installs it to `/opt/librecollector` with the systemd unit, and restarts the service (data lives in `/var/lib/librecollector`). The output ends with the service status and recent log lines. Then send yourself a test email from the host:
 
 ```bash
-sudo systemd-run --quiet --wait --pipe --uid=librecollector -p EnvironmentFile=/etc/librecollector/env -p WorkingDirectory=/var/lib/librecollector /opt/librecollector/GreenHedges.Collectors.Libre.Worker --test-alert
+sudo systemd-run --quiet --wait --pipe --uid=librecollector -p EnvironmentFile=/etc/librecollector/env -p WorkingDirectory=/var/lib/librecollector /opt/librecollector/GreenHedges.HomeServer.Collectors.Libre.Worker --test-alert
 ```
 
 (`systemd-run` reads the root-only env file the same way the service does, then runs the command as the `librecollector` user.)
@@ -225,8 +225,8 @@ Settings come from `appsettings.json` (defaults, shipped with the build), overri
 
 | Command | Does |
 |---|---|
-| `GreenHedges.Collectors.Libre.Worker --test-alert` | Sends a test email and exits. |
-| `GreenHedges.Collectors.Libre.Worker --import-libreview <file.csv> [--time-zone <IANA id>] [--date-format <format>]` | Imports a LibreView export and prints a summary. Defaults: `Europe/London`, `dd-MM-yyyy HH:mm`. |
+| `GreenHedges.HomeServer.Collectors.Libre.Worker --test-alert` | Sends a test email and exits. |
+| `GreenHedges.HomeServer.Collectors.Libre.Worker --import-libreview <file.csv> [--time-zone <IANA id>] [--date-format <format>]` | Imports a LibreView export and prints a summary. Defaults: `Europe/London`, `dd-MM-yyyy HH:mm`. |
 
 ---
 

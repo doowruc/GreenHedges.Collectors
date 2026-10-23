@@ -123,7 +123,7 @@ Nightguard caveats (from `AppleHealthService.swift`): it advances its bookmark *
 
 ## LibreView export import
 
-`GreenHedges.Collectors.Libre.Worker --import-libreview <file.csv> [--time-zone <IANA>] [--date-format <format>]`. Idempotent, batched, safe while the service runs.
+`GreenHedges.HomeServer.Collectors.Libre.Worker --import-libreview <file.csv> [--time-zone <IANA>] [--date-format <format>]`. Idempotent, batched, safe while the service runs.
 
 **Export format (LibreView "Download glucose data"):**
 - Line 1: title/metadata, which includes the account holder's name (never logged or stored). Line 2: 21 headers.

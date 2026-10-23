@@ -11,7 +11,7 @@ Type=notify
 User=librecollector
 Group=librecollector
 WorkingDirectory=/var/lib/librecollector
-ExecStart=/opt/librecollector/GreenHedges.Collectors.Libre.Worker
+ExecStart=/opt/librecollector/GreenHedges.HomeServer.Collectors.Libre.Worker
 EnvironmentFile=/etc/librecollector/env
 Environment=DOTNET_ENVIRONMENT=Production
 Restart=always

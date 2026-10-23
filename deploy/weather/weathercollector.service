@@ -14,7 +14,7 @@ Group=weathercollector
 # The RTL-SDR dongle's USB device is group plugdev (librtlsdr's udev rule).
 SupplementaryGroups=plugdev
 WorkingDirectory=/var/lib/weathercollector
-ExecStart=/opt/weathercollector/GreenHedges.Collectors.Weather.Worker
+ExecStart=/opt/weathercollector/GreenHedges.HomeServer.Collectors.Weather.Worker
 EnvironmentFile=/etc/weathercollector/env
 Environment=DOTNET_ENVIRONMENT=Production
 Restart=always
