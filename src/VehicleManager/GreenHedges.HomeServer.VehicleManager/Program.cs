@@ -22,6 +22,10 @@ using GreenHedges.HomeServer.VehicleManager.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Under systemd (Type=notify) on the server: tells systemd when it's ready and logs plainly to the journal. Does
+// nothing elsewhere.
+builder.Services.AddSystemd();
+
 // Logs, traces and metrics over OTLP when an endpoint is set, e.g. to the Aspire dashboard by `aspire run` (see README).
 builder.AddTelemetry();
 

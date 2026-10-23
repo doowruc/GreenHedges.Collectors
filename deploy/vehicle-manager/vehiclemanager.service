@@ -1,0 +1,40 @@
+# systemd unit for Vehicle Manager. Installed by deploy/vehicle-manager/deploy.sh into /etc/systemd/system/.
+# The self-contained build goes in /opt/vehiclemanager (read-only); data-protection keys, backups and alert state in
+# /var/lib/vehiclemanager. Its database is on the SQL Server container (deploy/sqlserver/). Settings that stay off the
+# repo (connection string, Auth0, Resend, DVSA, alert, heartbeat and off-site keys) go in /etc/vehiclemanager/env
+# (root:root, 0600); see deploy/vehicle-manager/HOST-SETUP.md.
+[Unit]
+Description=Vehicle Manager (vehicles, fuel and MOT web app)
+Wants=network-online.target docker.service
+After=network-online.target docker.service
+
+[Service]
+Type=notify
+User=vehiclemanager
+Group=vehiclemanager
+# SQL Server writes the nightly backup into its shared folder, group sqlbackups (deploy/sqlserver/HOST-SETUP.md).
+SupplementaryGroups=sqlbackups
+WorkingDirectory=/var/lib/vehiclemanager
+ExecStart=/opt/vehiclemanager/GreenHedges.HomeServer.VehicleManager
+EnvironmentFile=/etc/vehiclemanager/env
+Environment=DOTNET_ENVIRONMENT=Production
+Environment=ASPNETCORE_ENVIRONMENT=Production
+# Localhost only: `tailscale serve --service=svc:vehicles` publishes it on the tailnet, with HTTPS.
+Environment=ASPNETCORE_URLS=http://127.0.0.1:5080
+Environment=DataProtection__KeysFolder=keys
+Environment=Backup__Enabled=true
+Environment=Backup__SqlServerFolder=/var/opt/mssql/backups
+Environment=Backup__SqlServerFolderOnHost=/var/lib/sqlserver/backups
+Restart=always
+RestartSec=30
+
+# Hardening. It reads SQL Server's backups folder (read-only under ProtectSystem=strict) and writes only its own.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ReadWritePaths=/var/lib/vehiclemanager
+
+[Install]
+WantedBy=multi-user.target

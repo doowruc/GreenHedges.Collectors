@@ -63,22 +63,24 @@ reasoning and the decisions: [HOMESERVER-MIGRATION.md](HOMESERVER-MIGRATION.md).
   - [x] After merging: update the `greenhedges-offsite` stack (the new IAM user), then create its access key (done
         2026-10-23).
 - [ ] **The server's side** (read and update `notes/server/SERVER.md`):
-  - [ ] `deploy/sqlserver/` (written; to run on the server): `compose.yaml` (pinned image tag, Express edition, memory limit about 1.5 GB,
+  - [x] `deploy/sqlserver/` (deployed 2026-10-23, PR #22): `compose.yaml` (pinned image tag, Express edition, memory limit about 1.5 GB,
         `127.0.0.1:1433`, data in `/var/lib/sqlserver`, a backups folder shared with the app) and `HOST-SETUP.md`.
         The backups folder (`/var/lib/sqlserver/backups`, `/var/opt/mssql/backups` in the container): owner uid 10001
         (`mssql`), group `sqlbackups` (the app's account joins it), mode `2770` (setgid), as SQL Server writes files
         `0660`; `deploy-sqlserver.sh` installs and checks it;
         `sa` only for setup, a `vehiclemanager` login owning only its own database.
-  - [ ] Tailscale Services, one-off: tag the server and re-authenticate it, an access rule for `svc:*` on 443,
-        auto-approval of the server as a host (a server task in the notes).
-  - [ ] `deploy/vehicle-manager/`: `vehiclemanager.service` (systemd, `Type=notify`, hardened, after Docker) and
+  - [ ] Tailscale Services, one-off: tag the server, an access rule for `svc:vehicles` on 443, auto-approval of the
+        server as a host: `deploy/TAILSCALE-SERVICES.md` (written; to do in the admin console).
+  - [ ] `deploy/vehicle-manager/` (written; to run on the server): `vehiclemanager.service` (systemd, `Type=notify`
+        via `AddSystemd`, hardened, after Docker, group `sqlbackups`), `setup-database.sh` (database, login, connection
+        string; the password never leaves the host) and
         `HOST-SETUP.md` (account, `/opt` and `/var/lib/vehiclemanager`, `/etc/vehiclemanager/env`,
         `tailscale serve --service=svc:vehicles --https=443 127.0.0.1:<port>`).
-  - [ ] `deploy/deploy.sh vehicle-manager`.
+  - [x] `deploy/deploy.sh vehicle-manager` (and `deploy/vehicle-manager/deploy.sh`).
   - [ ] Auth0: add the `https://vehicles.<tailnet>.ts.net` callback and signed-out URLs (keep localhost for development).
   - [ ] Personal setup (Auth0 tenant, port, healthchecks check) in `notes/vehicle-manager/NOTES.md` of
         `GreenHedges.HomeServer.Notes`, never the public repo.
-- [ ] **Switch over:** a `.bacpac` export from Azure SQL imported into the server's container (every table, including
+- [ ] **Switch over** (the steps are §3 of `deploy/vehicle-manager/HOST-SETUP.md`, done before the first start): a `.bacpac` export from Azure SQL imported into the server's container (every table, including
       `UserSettings` and `SentReminder`); compare with the app's backup and the dashboard figures; then use only the
       server, and stop running a local copy against real data (Coravel jobs would send twice).
 - [ ] **Tidy up:** after a couple of weeks, keep the `.bacpac` with the Mac's backups and delete the Azure SQL database
