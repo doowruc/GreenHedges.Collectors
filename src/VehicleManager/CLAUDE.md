@@ -223,6 +223,15 @@ GreenHedges.HomeServer.VehicleManager.AppHost/   AppHost.cs: runs the app with t
   which answers only for registrations added with `FakeVehicleApis.Add(FakeVehicleApis.NewRegistration(), …)`.
   Each pass it sends has an advisory, plus a failed test (01/01/2020, as "OLD 1") with `FakeVehicleApis.FailedTestDefect`.
 
+**Hosting behind `tailscale serve`** (`Program.cs`)
+- `UseForwardedHeaders` runs first: `X-Forwarded-Proto` and `-For` are trusted from loopback proxies only (ASP.NET's
+  default `KnownProxies`/`KnownIPNetworks`); never widen that. `tailscale serve` keeps the `Host` header, so
+  `X-Forwarded-Host` isn't used.
+- `DataProtection:KeysFolder` (on the server) persists data-protection keys there, with the application name
+  `VehicleManager`; unset, ASP.NET's default applies (development, tests).
+- `/health` (anonymous, `Services/DatabaseHealthCheck`, 10 s timeout): `Healthy`/`Unhealthy` text only, never details.
+- `HostingTests` cover all three.
+
 **Telemetry and logging** (`Services/Telemetry.cs`)
 - OpenTelemetry logs (through `ILogger`), traces and metrics go over OTLP only when `OTEL_EXPORTER_OTLP_ENDPOINT` is set:
   by `GreenHedges.HomeServer.VehicleManager.AppHost` (the Aspire dashboard) locally, or the standard `OTEL_*` settings for another destination
@@ -237,7 +246,7 @@ GreenHedges.HomeServer.VehicleManager.AppHost/   AppHost.cs: runs the app with t
 - `Auth0:Domain`, `Auth0:ClientId`, `Auth0:ClientSecret`, `AllowedEmails`, `Resend:ApiKey`, `Resend:From` and optional `ExistingDataOwner`, `Dvla:*`, `MotHistory:*` come from user secrets (env vars outside Development). Never put them in `appsettings*.json` or commit them. The app throws at startup if any required ones are missing.
 - Authorization code flow, scopes `openid profile email`.
 - Allow-list: `AllowedEmails` (user secrets, `;`/`,` separated) via `Services/AllowedUsers.cs`. The `AllowedUser` policy (also the fallback policy, so it covers every endpoint) requires a signed-in user whose `email_verified` email is on the list. Signed-in users who fail it are forbidden → `Account/AccessDenied`. The app throws at startup if the list is missing (fail closed).
-- `[AllowAnonymous]` only on `Account/Login`, `Account/Logout`, `Account/SignedOut`, `Account/AccessDenied`, `Error` and static assets. New pages are protected automatically. The layout shows the nav only when the user passes the `AllowedUser` policy.
+- `[AllowAnonymous]` only on `Account/Login`, `Account/Logout`, `Account/SignedOut`, `Account/AccessDenied`, `Error`, `/health` and static assets. New pages are protected automatically. The layout shows the nav only when the user passes the `AllowedUser` policy.
 - `Account/Login` challenges Auth0 and only accepts local return URLs. `Account/Logout` is POST-only and anonymous (so a denied user can switch account). It signs out of both the cookie and Auth0, returning to `Account/SignedOut`.
 - To test locally without real credentials, set `AllowedEmails` and the `Auth0__*` env vars to dummy values (e.g. `samples.auth0.com`). Pages then redirect to Auth0 but you can't get past sign-in. Don't sign in with a real account from automated tests.
 

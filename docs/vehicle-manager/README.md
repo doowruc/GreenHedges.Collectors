@@ -141,6 +141,19 @@ User secrets are only read in Development. Elsewhere, use environment variables
 `AllowedEmails`, `ExistingDataOwner`, `Resend__ApiKey`, `Resend__From`). The app won't start
 without them.
 
+### Running behind a proxy (the home server)
+
+On the server the app listens on localhost only and is published on the tailnet by `tailscale serve`, which handles
+HTTPS:
+
+- **Address:** ASP.NET listens on `localhost` by default; set the port with `ASPNETCORE_URLS=http://127.0.0.1:<port>`.
+- **Forwarded headers:** `X-Forwarded-Proto` and `X-Forwarded-For` are trusted from a proxy on the same machine only,
+  so the app sees the original `https://…` address (which Auth0's callback needs) and the caller's tailnet address.
+- **Keys:** set `DataProtection__KeysFolder` (e.g. `keys`, under the working directory) so the keys protecting the
+  sign-in cookie and forms survive restarts and deploys. Without it, ASP.NET keeps them in the user profile.
+- **Health:** `GET /health` answers `Healthy` (200) when the database is reachable, else `Unhealthy` (503), without
+  signing in.
+
 Auth0 posts the sign-in result back to the app, which needs `Secure` cookies. Chrome, Edge and
 Firefox allow those on `http://localhost`, but Safari doesn't. If you use Safari, run the https
 profile instead: `dotnet watch -lp https`, then open https://localhost:7080.

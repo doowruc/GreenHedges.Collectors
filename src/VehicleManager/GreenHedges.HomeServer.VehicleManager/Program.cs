@@ -3,6 +3,8 @@ using Auth0.AspNetCore.Authentication;
 using Coravel;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
@@ -51,6 +53,26 @@ var allowedUserPolicy = new AuthorizationPolicyBuilder()
 builder.Services.AddAuthorizationBuilder()
     .AddPolicy(AllowedUsers.PolicyName, allowedUserPolicy)
     .SetFallbackPolicy(allowedUserPolicy);
+
+// On the server the app sits behind `tailscale serve`, which terminates HTTPS and passes requests on from 127.0.0.1
+// with X-Forwarded-Proto and X-Forwarded-For (the Host header comes through as it was). Trusting them, from loopback
+// proxies only (ASP.NET's default), gives Auth0 the https://…ts.net callback and keeps HTTPS redirection quiet.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto);
+
+// Data-protection keys protect the sign-in cookie and antiforgery tokens, so they must outlive restarts and deploys.
+// On the server they go in the data folder (DataProtection:KeysFolder; a relative path is under the working
+// directory); otherwise ASP.NET's default (the user profile) applies.
+if (builder.Configuration["DataProtection:KeysFolder"] is { Length: > 0 } keysFolder)
+{
+    builder.Services.AddDataProtection()
+        .PersistKeysToFileSystem(new DirectoryInfo(Path.GetFullPath(keysFolder)))
+        .SetApplicationName("VehicleManager");
+}
+
+// /health: "Healthy" (200) when the database answers, else "Unhealthy" (503). For the heartbeat and for checking by hand.
+builder.Services.AddHealthChecks()
+    .AddCheck<DatabaseHealthCheck>("database", timeout: TimeSpan.FromSeconds(10));
 
 builder.Services.AddRazorPages();
 builder.Services.AddHttpContextAccessor();
@@ -125,6 +147,9 @@ app.Services.UseScheduler(scheduler =>
     })
     .OnError(ex => app.Logger.LogError(ex, "A scheduled task failed"));
 
+// First, so everything after sees the original scheme and client address.
+app.UseForwardedHeaders();
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
@@ -145,6 +170,7 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapStaticAssets().AllowAnonymous();
+app.MapHealthChecks("/health").AllowAnonymous();
 app.MapRazorPages().WithStaticAssets();
 
 app.Run();
