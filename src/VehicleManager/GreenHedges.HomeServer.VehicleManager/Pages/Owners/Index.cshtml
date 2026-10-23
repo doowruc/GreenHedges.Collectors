@@ -1,0 +1,36 @@
+@page
+@model VehicleManager.Pages.Owners.IndexModel
+@{ ViewData["Title"] = "Owners"; }
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Owners</h1>
+    <a asp-page="Create" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Add owner</a>
+</div>
+
+@if (Model.Owners.Count == 0)
+{
+    <div class="alert alert-info">No owners yet. <a asp-page="Create">Add the first owner</a>.</div>
+}
+else
+{
+    <div class="card shadow-sm">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-head">
+                <tr><th>Name</th><th class="text-end">Vehicles</th><th></th></tr>
+            </thead>
+            <tbody>
+            @foreach (var o in Model.Owners)
+            {
+                <tr>
+                    <td>@o.Name</td>
+                    <td class="text-end">@o.Vehicles</td>
+                    <td class="text-end text-nowrap">
+                        <a asp-page="Edit" asp-route-id="@o.Id" class="btn btn-sm btn-outline-secondary" title="Edit"><i class="bi bi-pencil"></i></a>
+                        <a asp-page="Delete" asp-route-id="@o.Id" class="btn btn-sm btn-outline-danger" title="Delete"><i class="bi bi-trash"></i></a>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}

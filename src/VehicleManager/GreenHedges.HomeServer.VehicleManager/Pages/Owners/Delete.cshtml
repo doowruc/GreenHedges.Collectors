@@ -1,0 +1,26 @@
+@page "{id:int}"
+@model VehicleManager.Pages.Owners.DeleteModel
+@{ ViewData["Title"] = "Delete owner"; }
+
+<h1 class="h3 mb-3">Delete owner</h1>
+<div class="card shadow-sm border-danger"><div class="card-body">
+    @if (Model.Vehicles.Count > 0)
+    {
+        <p><strong>@Model.OwnerName</strong> can't be deleted while they own vehicles. Reassign these first:</p>
+        <ul>
+            @foreach (var v in Model.Vehicles)
+            {
+                <li><a asp-page="/Vehicles/Edit" asp-route-id="@v.Id">@v.DisplayName</a> <span class="reg-plate small">@v.RegistrationNumber</span></li>
+            }
+        </ul>
+        <a asp-page="Index" class="btn btn-outline-secondary">Back</a>
+    }
+    else
+    {
+        <p>Are you sure you want to delete <strong>@Model.OwnerName</strong>?</p>
+        <form method="post">
+            <button type="submit" class="btn btn-danger">Delete</button>
+            <a asp-page="Index" class="btn btn-outline-secondary">Cancel</a>
+        </form>
+    }
+</div></div>

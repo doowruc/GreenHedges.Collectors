@@ -1,0 +1,21 @@
+@page "{id:int}"
+@model VehicleManager.Pages.Vehicles.DeleteModel
+@{ ViewData["Title"] = "Delete vehicle"; }
+
+<h1 class="h3 mb-3">Delete vehicle</h1>
+<div class="card shadow-sm border-danger"><div class="card-body">
+    <p>Are you sure you want to delete <strong>@Model.Vehicle.DisplayName</strong>
+       <span class="reg-plate">@Model.Vehicle.RegistrationNumber</span>?</p>
+    @if (Model.FillUps > 0)
+    {
+        <p class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i>This will also delete its @Model.FillUps fuel record(s).</p>
+    }
+    @if (Model.Services > 0)
+    {
+        <p class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i>This will also delete its @Model.Services service record(s).</p>
+    }
+    <form method="post">
+        <button type="submit" class="btn btn-danger">Delete</button>
+        <a asp-page="Details" asp-route-id="@Model.Vehicle.Id" class="btn btn-outline-secondary">Cancel</a>
+    </form>
+</div></div>

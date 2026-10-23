@@ -1,0 +1,48 @@
+@model IEnumerable<ServiceRecordView>
+@{
+    // Rows repeated invisibly in the footer so the columns don't resize as rows come and go (paging, searching),
+    // as in _FuelTable: the longest mileage, and one per distinct garage and set of badges (letters' widths vary).
+    // A page with several of these tables (the period toggle's) passes all their services in "SizeColumnsFrom" so they match.
+    var services = Model.ToList();
+    var sizeFrom = (ViewData["SizeColumnsFrom"] as IEnumerable<ServiceRecordView> ?? services).ToList();
+    var widest = sizeFrom.Count == 0 ? [] : sizeFrom.DistinctBy(s => (s.GarageAndLocation, s.UnderPreviousOwner, s.LateText, s.MilesOverText))
+        .Append(sizeFrom.MaxBy(s => s.Mileage.ToString("N0").Length)!)
+        .Distinct().ToList();
+
+    // Like the fuel log, rows stay on one line; on a phone the table scrolls sideways within its card.
+    async Task Row(ServiceRecordView s)
+    {
+        <tr>
+            <td data-order="@s.Date.ToString("yyyy-MM-dd")">@s.Date.ToString("dd/MM/yyyy")</td>
+            <td class="text-end" data-order="@s.Mileage">@s.Mileage.ToString("N0")</td>
+            <td>@s.GarageAndLocation</td>
+            <td>
+                @if (s.LateText is { } late) { <span class="badge text-bg-danger" title="Due @s.DueDate?.ToString("dd/MM/yyyy"), the service interval after the one before">@late</span> }
+                @if (s.MilesOverText is { } over) { <span class="badge text-bg-danger" title="Due at @s.DueMileage?.ToString("N0") miles, the service interval after the one before">@over</span> }
+                @if (s.UnderPreviousOwner) { <span class="badge text-bg-secondary">Previous owner</span> }
+            </td>
+            <td class="text-end">
+                <a asp-page="/Vehicles/Services/Edit" asp-route-vehicleId="@s.VehicleId" asp-route-id="@s.Id" class="btn btn-sm btn-link p-0 me-2" title="Edit"><i class="bi bi-pencil"></i></a>
+                <a asp-page="/Vehicles/Services/Delete" asp-route-vehicleId="@s.VehicleId" asp-route-id="@s.Id" class="btn btn-sm btn-link p-0 text-danger" title="Delete"><i class="bi bi-trash"></i></a>
+            </td>
+        </tr>
+    }
+}
+@* A DataTable when the page includes _DataTableStyles and _DataTableScripts. dt-pending shows only the
+   first page of rows until DataTables has loaded, so the table doesn't jump. *@
+<div class="data-table dt-pending" data-noun="services">
+<div class="table-responsive">
+<table class="table table-sm table-hover table-data align-middle mb-0">
+    <thead class="table-head">
+        <tr><th>Date</th><th class="text-end">Mileage</th><th class="w-100">Garage</th><th>Notes</th><th data-orderable="false" data-searchable="false"></th></tr>
+    </thead>
+    <tbody>
+    @foreach (var s in services) { await Row(s); }
+    </tbody>
+    @* Invisible and zero height (site.css), but they set the column widths. *@
+    <tfoot class="column-sizer" aria-hidden="true">
+    @foreach (var s in widest) { await Row(s); }
+    </tfoot>
+</table>
+</div>
+</div>

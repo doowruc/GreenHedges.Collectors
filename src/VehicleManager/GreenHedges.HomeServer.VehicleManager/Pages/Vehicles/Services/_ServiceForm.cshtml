@@ -1,0 +1,63 @@
+@model ServiceRecordInput
+@{ var purchased = ViewData["PurchasedDate"] as DateOnly?; }
+<input type="hidden" asp-for="RowVersion" />
+<div class="row g-3" id="service-fields" data-purchased="@purchased?.ToString("yyyy-MM-dd")" data-garages="@ViewData["Garages"]" data-locations-by-garage="@ViewData["LocationsByGarage"]">
+    <div class="col-6 col-md-3">
+        <label asp-for="Date" class="form-label"></label>
+        <input asp-for="Date" class="form-control" />
+        <span asp-validation-for="Date" class="text-danger small"></span>
+    </div>
+    <div class="col-6 col-md-3">
+        <label asp-for="Mileage" class="form-label"></label>
+        <input asp-for="Mileage" class="form-control" inputmode="numeric" />
+        <span asp-validation-for="Mileage" class="text-danger small"></span>
+    </div>
+    <div class="col-md-6"></div>
+    <div class="col-md-6">
+        <label asp-for="Garage" class="form-label"></label>
+        <input asp-for="Garage" class="form-control" autocomplete="off" />
+        <span asp-validation-for="Garage" class="text-danger small"></span>
+    </div>
+    <div class="col-md-6">
+        <label asp-for="GarageLocation" class="form-label"></label>
+        <input asp-for="GarageLocation" class="form-control" autocomplete="off" placeholder="e.g. Leeds" />
+        <span asp-validation-for="GarageLocation" class="text-danger small"></span>
+    </div>
+    <div class="col-12">
+        <div class="form-check">
+            <input asp-for="UnderPreviousOwner" class="form-check-input" />
+            <label asp-for="UnderPreviousOwner" class="form-check-label"></label>
+            <div class="form-text mt-0">
+                Tick for a service from before the vehicle was yours, e.g. from its service book.
+                @if (purchased is { } bought) { <text>It's ticked for you for dates before you bought it (@bought.ToString("dd/MM/yyyy")).</text> }
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="~/js/typeahead.js" asp-append-version="true"></script>
+<script>
+    (() => {
+        // The garage suggests every garage used before; the location, that garage's locations.
+        const fields = document.getElementById('service-fields');
+        const garages = JSON.parse(fields.dataset.garages || '[]');
+        const locationsByGarage = JSON.parse(fields.dataset.locationsByGarage || '{}');
+        const norm = s => s.trim().replace(/\s+/g, ' ').toLowerCase();
+        typeahead(fields, '#Service_Garage', () => garages);
+        // A date before the purchase date ticks "under a previous owner"; moving it back unticks it, if it was ticked that way.
+        const purchased = fields.dataset.purchased, date = document.getElementById('Service_Date'),
+              previousOwner = document.getElementById('Service_UnderPreviousOwner');
+        let autoTicked = false;
+        date.addEventListener('change', () => {
+            if (!purchased || !date.value) return;
+            if (date.value < purchased) {
+                autoTicked ||= !previousOwner.checked;
+                previousOwner.checked = true;
+            } else if (autoTicked) {
+                previousOwner.checked = autoTicked = false;
+            }
+        });
+        previousOwner.addEventListener('change', () => autoTicked = false);
+        typeahead(fields, '#Service_GarageLocation', () => locationsByGarage[norm(document.getElementById('Service_Garage').value)] ?? []);
+    })();
+</script>

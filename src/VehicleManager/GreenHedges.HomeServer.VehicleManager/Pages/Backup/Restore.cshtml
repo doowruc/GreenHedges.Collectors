@@ -1,0 +1,24 @@
+@page
+@model VehicleManager.Pages.Backup.RestoreModel
+@{ ViewData["Title"] = "Restore"; }
+
+<h1 class="h3 mb-3">Restore</h1>
+<div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+<div class="card shadow-sm border-danger"><div class="card-body">
+    <p>Restoring a backup <strong>replaces all your data</strong> with the backup's. Your current @Model.Counts
+       will be deleted. If anything goes wrong, nothing is changed.</p>
+    <p class="text-muted small">Choose a backup from <a asp-page="Index">Backup</a>: the compressed <code>.json.gz</code>
+       file, or the <code>.json</code> inside it. You may want to download a backup of your current data first.</p>
+    <form method="post" enctype="multipart/form-data">
+        <div class="mb-3">
+            <input asp-for="Upload" type="file" accept=".gz,.json,application/gzip,application/json" class="form-control" style="max-width: 28rem" />
+            <span asp-validation-for="Upload" class="text-danger small"></span>
+        </div>
+        <div class="form-check mb-3">
+            <input asp-for="Confirm" class="form-check-input" />
+            <label asp-for="Confirm" class="form-check-label">I understand this replaces all my current data</label>
+            <div><span asp-validation-for="Confirm" class="text-danger small"></span></div>
+        </div>
+        <button type="submit" class="btn btn-danger"><i class="bi bi-upload me-1"></i>Restore</button>
+    </form>
+</div></div>

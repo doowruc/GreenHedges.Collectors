@@ -1,0 +1,46 @@
+@page
+@model VehicleManager.Pages.Vehicles.IndexModel
+@{ ViewData["Title"] = "Vehicles"; }
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Vehicles</h1>
+    <a asp-page="Create" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Add vehicle</a>
+</div>
+
+@if (Model.Vehicles.Count == 0)
+{
+    <div class="alert alert-info">No vehicles yet. <a asp-page="Create">Add your first vehicle</a>.</div>
+}
+else
+{
+    <div class="card shadow-sm"><div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-head">
+                <tr>
+                    <th>Registration</th><th>Vehicle</th><th>Owner</th><th>Type</th><th>Fuel</th>
+                    <th>Registered</th><th>Purchased</th><th class="text-end">Fill-Ups</th><th></th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var v in Model.Vehicles)
+            {
+                <tr>
+                    <td><span class="reg-plate">@v.Vehicle.RegistrationNumber</span></td>
+                    <td><a asp-page="Details" asp-route-id="@v.Vehicle.Id">@v.Vehicle.DisplayName</a></td>
+                    <td>@v.Vehicle.OwnerName</td>
+                    <td>@v.Vehicle.Type</td>
+                    <td>@v.Vehicle.FuelType</td>
+                    <td>@v.Vehicle.RegistrationDate?.ToString("dd/MM/yyyy")</td>
+                    <td>@v.Vehicle.PurchasedDate?.ToString("dd/MM/yyyy")</td>
+                    <td class="text-end">@v.FillUps</td>
+                    <td class="text-end text-nowrap">
+                        <a asp-page="/FuelLog/Create" asp-route-vehicleId="@v.Vehicle.Id" class="btn btn-sm btn-outline-success" title="Add fill-up"><i class="bi bi-fuel-pump"></i></a>
+                        <a asp-page="Edit" asp-route-id="@v.Vehicle.Id" class="btn btn-sm btn-outline-secondary" title="Edit"><i class="bi bi-pencil"></i></a>
+                        <a asp-page="Delete" asp-route-id="@v.Vehicle.Id" class="btn btn-sm btn-outline-danger" title="Delete"><i class="bi bi-trash"></i></a>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div></div>
+}

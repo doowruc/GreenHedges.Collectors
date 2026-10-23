@@ -1,0 +1,23 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.6.1">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <!-- The dashboard and orchestrator come from NuGet rather than the Aspire CLI's bundle, so `aspire run` and
+         `dotnet run` work whichever CLI version is installed. -->
+    <NoWarn>$(NoWarn);ASPIRE010</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Aspire.Hosting brings in 2.5.302, which has a denial-of-service advisory (GHSA-qhrr-8q5h-9q3h); 2.5.303 is fixed.
+         Remove once Aspire depends on a fixed version. -->
+    <PackageReference Include="MessagePack" Version="2.5.303" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\VehicleManager\VehicleManager.csproj" />
+  </ItemGroup>
+
+</Project>

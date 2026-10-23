@@ -1,0 +1,194 @@
+@model VehicleManager.Pages.FuelLog.FuelFormPageModel
+@functions {
+    // Show an empty box rather than "0" for a new fill-up.
+    static string Blank(decimal d) => d == 0 ? "" : d.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
+}
+<div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+<input type="hidden" asp-for="Entry.RowVersion" />
+
+<h2 class="h6 text-muted text-uppercase mb-3">Fill-up</h2>
+<div class="row g-3 mb-4">
+    <div class="col-md-5">
+        <label asp-for="Entry.VehicleId" class="form-label">Vehicle</label>
+        <select asp-for="Entry.VehicleId" asp-items="Model.VehicleOptions" class="form-select">
+            <option value="">— choose —</option>
+        </select>
+        <span asp-validation-for="Entry.VehicleId" class="text-danger small"></span>
+    </div>
+    <div class="col-md-3">
+        <label asp-for="Entry.Date" class="form-label"></label>
+        <input asp-for="Entry.Date" class="form-control" />
+        <span asp-validation-for="Entry.Date" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4"></div>
+    @* One row per stop: a split fill-up (topped up at two stations) has a row for each, in order. *@
+    <div class="col-12" id="fuel-stops" data-brands="@System.Text.Json.JsonSerializer.Serialize(Model.Brands)"
+         data-stations-by-brand="@System.Text.Json.JsonSerializer.Serialize(Model.StationsByBrand)">
+        @for (var i = 0; i < Model.Entry.Stops.Count; i++)
+        {
+            // The station waits for a brand (kept enabled if it already has a value, so it isn't lost).
+            var noBrand = string.IsNullOrWhiteSpace(Model.Entry.Stops[i].Brand) && string.IsNullOrWhiteSpace(Model.Entry.Stops[i].Station);
+            <div class="row g-3 mb-3 fuel-stop">
+                <div class="col-md-4">
+                    <label asp-for="Entry.Stops[i].Brand" class="form-label"></label>
+                    <input asp-for="Entry.Stops[i].Brand" class="form-control stop-brand" autocomplete="off" />
+                    <span asp-validation-for="Entry.Stops[i].Brand" class="text-danger small"></span>
+                </div>
+                <div class="col-md-5">
+                    <label asp-for="Entry.Stops[i].Station" class="form-label"></label>
+                    <div class="d-flex gap-2">
+                        <input asp-for="Entry.Stops[i].Station" class="form-control stop-station" autocomplete="off"
+                               disabled="@(noBrand ? "disabled" : null)" />
+                        <button type="button" class="btn btn-outline-danger remove-stop@(Model.Entry.Stops.Count == 1 ? " invisible" : "")"
+                                title="Remove this station" aria-label="Remove this station"><i class="bi bi-x-lg"></i></button>
+                    </div>
+                    <span asp-validation-for="Entry.Stops[i].Station" class="text-danger small"></span>
+                </div>
+            </div>
+        }
+        <button type="button" class="btn btn-sm btn-link px-0" id="add-stop">
+            <i class="bi bi-plus-lg me-1"></i>Add another station (split fill-up)
+        </button>
+    </div>
+    <div class="col-6 col-md-3">
+        <label asp-for="Entry.Litres" class="form-label"></label>
+        <input asp-for="Entry.Litres" class="form-control" type="number" step="0.001" min="0" value="@Blank(Model.Entry.Litres)" />
+        <span asp-validation-for="Entry.Litres" class="text-danger small"></span>
+    </div>
+    <div class="col-6 col-md-3">
+        <label asp-for="Entry.CostPerLitre" class="form-label"></label>
+        <input asp-for="Entry.CostPerLitre" class="form-control" type="number" step="0.001" min="0" value="@Blank(Model.Entry.CostPerLitre)" />
+        <span asp-validation-for="Entry.CostPerLitre" class="text-danger small"></span>
+    </div>
+    <div class="col-6 col-md-3">
+        <label asp-for="Entry.VoucherPerLitre" class="form-label">Voucher off per litre (£)</label>
+        <input asp-for="Entry.VoucherPerLitre" class="form-control" type="number" step="0.001" min="0" placeholder="optional" />
+        <span asp-validation-for="Entry.VoucherPerLitre" class="text-danger small"></span>
+    </div>
+    <div class="col-6 col-md-3">
+        <label class="form-label">Total cost</label>
+        <div class="form-control-plaintext fw-semibold" id="total-cost">–</div>
+    </div>
+</div>
+
+<h2 class="h6 text-muted text-uppercase mb-3">Trip computer (before resetting)</h2>
+<div class="row g-3">
+    <div class="col-6 col-md-3">
+        <label asp-for="Entry.TripAverageMpg" class="form-label">Average MPG</label>
+        <input asp-for="Entry.TripAverageMpg" class="form-control" type="number" step="0.1" min="0" />
+        <span asp-validation-for="Entry.TripAverageMpg" class="text-danger small"></span>
+    </div>
+    <div class="col-6 col-md-3">
+        <label asp-for="Entry.TripMiles" class="form-label"></label>
+        <input asp-for="Entry.TripMiles" class="form-control" type="number" step="0.1" min="0" />
+        <span asp-validation-for="Entry.TripMiles" class="text-danger small"></span>
+    </div>
+    <div class="col-6 col-md-3">
+        <label asp-for="Entry.Range" class="form-label"></label>
+        <input asp-for="Entry.Range" class="form-control" type="number" step="1" min="0" />
+        <span asp-validation-for="Entry.Range" class="text-danger small"></span>
+    </div>
+    <div class="col-6 col-md-3">
+        <label asp-for="Entry.Odometer" class="form-label"></label>
+        <input asp-for="Entry.Odometer" class="form-control" type="number" step="1" min="0" />
+        <span asp-validation-for="Entry.Odometer" class="text-danger small"></span>
+        @if (Model.PreviousEntry is { } prev)
+        {
+            <div class="form-text" id="odo-hint" data-prev-odo="@prev.Odometer">
+                Previous fill-up @prev.Date.ToString("dd/MM/yyyy")@(prev.Odometer is { } po ? $" at {po:N0} miles" : "")
+            </div>
+        }
+    </div>
+    <div class="col-12">
+        <label asp-for="Entry.Notes" class="form-label"></label>
+        <textarea asp-for="Entry.Notes" class="form-control" rows="2"></textarea>
+    </div>
+    <div class="col-12">
+        <div class="form-text" id="calc-mpg"></div>
+    </div>
+</div>
+
+<script src="~/js/typeahead.js" asp-append-version="true"></script>
+<script>
+    (() => {
+        const $ = id => document.getElementById(id);
+        const num = id => parseFloat($(id)?.value) || 0;
+        function update() {
+            const litres = num('Entry_Litres'), price = num('Entry_CostPerLitre'), voucher = num('Entry_VoucherPerLitre');
+            $('total-cost').textContent = litres && price
+                ? new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(litres * (price - voucher)) : '–';
+            const miles = num('Entry_TripMiles');
+            let msg = '';
+            if (litres && miles) msg = `Real MPG for this tank: ${(miles / (litres / 4.54609)).toFixed(1)}`;
+            const hint = $('odo-hint'), odo = num('Entry_Odometer');
+            const prev = hint ? parseFloat(hint.dataset.prevOdo) : NaN;
+            if (odo && !isNaN(prev)) msg += `${msg ? ' · ' : ''}Odometer change since last fill-up: ${(odo - prev).toLocaleString('en-GB')} miles`;
+            $('calc-mpg').textContent = msg;
+        }
+        document.querySelectorAll('input').forEach(i => i.addEventListener('input', update));
+        update();
+
+        // Brand/station rows. Field names are renumbered after adding or removing a row, so they
+        // stay Entry.Stops[0], [1], ... and model binding sees every row.
+        const stops = $('fuel-stops');
+        function renumber() {
+            const rows = stops.querySelectorAll('.fuel-stop');
+            rows.forEach((row, i) => {
+                row.querySelectorAll('[name], [id], [for], [data-valmsg-for]').forEach(el => {
+                    for (const attr of ['name', 'id', 'for', 'data-valmsg-for']) {
+                        const value = el.getAttribute(attr);
+                        if (value) el.setAttribute(attr, value.replace(/Stops\[\d+\]/, `Stops[${i}]`).replace(/Stops_\d+__/, `Stops_${i}__`));
+                    }
+                });
+                row.querySelector('.remove-stop').classList.toggle('invisible', rows.length === 1);
+            });
+            // Let client-side validation see the new fields (the validation scripts load after this).
+            const jq = window.jQuery;
+            if (jq?.validator?.unobtrusive) {
+                const form = stops.closest('form');
+                jq(form).removeData('validator').removeData('unobtrusiveValidation');
+                jq.validator.unobtrusive.parse(form);
+            }
+        }
+        $('add-stop').addEventListener('click', () => {
+            const rows = stops.querySelectorAll('.fuel-stop');
+            const copy = rows[rows.length - 1].cloneNode(true);
+            copy.querySelectorAll('input').forEach(i => { i.value = i.defaultValue = ''; i.classList.remove('input-validation-error'); });
+            copy.querySelector('.stop-station').disabled = true;
+            copy.querySelectorAll('[data-valmsg-for]').forEach(s => { s.textContent = ''; s.className = 'text-danger small field-validation-valid'; });
+            rows[rows.length - 1].after(copy);
+            renumber();
+            copy.querySelector('input').focus();
+        });
+        // Brands suggest every brand. The station is disabled until its row has a brand, and suggests
+        // only that brand's stations (none for a new brand).
+        const norm = s => s.trim().replace(/\s+/g, ' ').toLowerCase();
+        const brands = JSON.parse(stops.dataset.brands || '[]');
+        const stationsByBrand = JSON.parse(stops.dataset.stationsByBrand || '{}');
+        typeahead(stops, '.stop-brand', () => brands);
+        typeahead(stops, '.stop-station', station => {
+            const brand = station.closest('.fuel-stop').querySelector('.stop-brand').value;
+            return stationsByBrand[norm(brand)] ?? [];
+        });
+        stops.addEventListener('input', e => {
+            if (!e.target.matches('.stop-brand')) return;
+            e.target.closest('.fuel-stop').querySelector('.stop-station').disabled = !e.target.value.trim();
+        });
+        // Changing to a different brand clears the station, which belonged to the old one. Each brand
+        // box remembers the brand it last had (to start with, the one on the page).
+        const lastBrand = new WeakMap();
+        stops.addEventListener('change', e => {
+            if (!e.target.matches('.stop-brand')) return;
+            const before = lastBrand.get(e.target) ?? e.target.defaultValue;
+            lastBrand.set(e.target, e.target.value);
+            if (norm(e.target.value) !== norm(before))
+                e.target.closest('.fuel-stop').querySelector('.stop-station').value = '';
+        });
+        stops.addEventListener('click', e => {
+            const button = e.target.closest('.remove-stop');
+            if (!button) return;
+            button.closest('.fuel-stop').remove();
+            renumber();
+        });
+    })();
+</script>

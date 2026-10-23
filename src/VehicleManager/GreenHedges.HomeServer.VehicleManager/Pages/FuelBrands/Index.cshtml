@@ -1,0 +1,41 @@
+@page
+@model VehicleManager.Pages.FuelBrands.IndexModel
+@{ ViewData["Title"] = "Fuel Brands"; }
+
+<h1 class="h3 mb-3">Fuel Brands</h1>
+<p class="text-muted small">
+    Fuel brands and their stations are added by typing them on a fill-up. Merge duplicates (e.g. a misspelling) into the
+    right one: merging a fuel brand moves its stations too, combining any with the same name. Only fuel brands without
+    stations can be deleted.
+</p>
+
+@if (Model.Rows.Count == 0)
+{
+    <div class="alert alert-info">No fuel brands yet. They're added when you record a fill-up.</div>
+}
+else
+{
+    <div class="card shadow-sm"><div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-head">
+                <tr><th>Name</th><th class="text-end">Stations</th><th class="text-end">Fill-Ups</th><th></th></tr>
+            </thead>
+            <tbody>
+            @foreach (var b in Model.Rows)
+            {
+                <tr>
+                    <td>@b.Name</td>
+                    <td class="text-end"><a asp-page="Stations/Index" asp-route-brandId="@b.Id">@b.Stations</a></td>
+                    <td class="text-end">@b.FillUps</td>
+                    <td class="text-end text-nowrap">
+                        <a asp-page="Stations/Index" asp-route-brandId="@b.Id" class="btn btn-sm btn-outline-secondary" title="Stations"><i class="bi bi-geo-alt"></i></a>
+                        <a asp-page="Edit" asp-route-id="@b.Id" class="btn btn-sm btn-outline-secondary" title="Edit"><i class="bi bi-pencil"></i></a>
+                        <a asp-page="Merge" asp-route-id="@b.Id" class="btn btn-sm btn-outline-secondary" title="Merge into another"><i class="bi bi-sign-merge-left"></i></a>
+                        <a asp-page="Delete" asp-route-id="@b.Id" class="btn btn-sm btn-outline-danger" title="Delete"><i class="bi bi-trash"></i></a>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div></div>
+}

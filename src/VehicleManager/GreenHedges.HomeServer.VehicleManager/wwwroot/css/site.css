@@ -1,0 +1,62 @@
+/* Page background a touch off-white in light mode; Bootstrap's own dark background otherwise. */
+[data-bs-theme="light"] body { background: #f6f7f9; }
+
+.stat-card .value { font-size: 1.5rem; font-weight: 600; line-height: 1.2; }
+.stat-card .label { font-size: .8rem; color: var(--bs-secondary-color); text-transform: uppercase; letter-spacing: .03em; }
+.reg-plate {
+    font-family: "Charles Wright", "Arial Narrow", Arial, sans-serif;
+    background: #ffd500; color: #111; border-radius: 4px;
+    padding: .1rem .5rem; font-weight: 700; letter-spacing: .05em; white-space: nowrap;
+}
+/* DataTables tables (_FuelTable, _ServiceTable). Equal-width digits line the figures up, and let the column
+   sizing go by number of characters. */
+.table-data td, .table-data th { white-space: nowrap; font-size: .9rem; font-variant-numeric: tabular-nums; }
+
+/* Until DataTables has loaded, show only its first page of rows so the table doesn't jump. */
+.dt-pending .table-data tbody tr:nth-child(n+11) { display: none; }   /* 10 = pageLength in data-table.js */
+
+/* The tables' footers repeat the widest rows so the columns don't resize as rows come and go (paging,
+   searching, or switching between tables). They still take up width, but no height and can't be seen. */
+.table-data > tfoot.column-sizer > tr { visibility: hidden; }
+.table-data > tfoot.column-sizer > tr > td { border: 0; }
+.table-data > tfoot.column-sizer td,
+.table-data > tfoot.column-sizer td *,
+.table-data > tfoot.column-sizer td *::before {
+    line-height: 0 !important; padding-top: 0 !important; padding-bottom: 0 !important;
+    border-top-width: 0 !important; border-bottom-width: 0 !important;
+}
+.table-data > tfoot.column-sizer td *,
+.table-data > tfoot.column-sizer td *::before { vertical-align: top !important; }   /* icons sit a little low otherwise */
+
+/* DataTables tables sit in a "card-body py-2", like the stat cards. Drop the extra spacing DataTables'
+   Bootstrap rows add (a margin above the first row, and grid gutters at the sides) so the padding matches. */
+.data-table .dt-container > .row { --bs-gutter-x: 0; }
+.data-table .dt-container > .row:first-child { margin-top: 0 !important; }
+
+/* Tinted table header that works in both themes (Bootstrap's .table-light stays light in dark mode). */
+.table > thead.table-head > tr > th { --bs-table-bg: var(--bs-tertiary-bg); }
+
+/* Small pills, sized like .btn-sm so they sit with small buttons and selects (Bootstrap has no small pills).
+   The transparent border matches a button's, so they're the same height. */
+.nav-pills-sm .nav-link {
+    padding: .25rem .5rem; font-size: .875rem; border: 1px solid transparent; border-radius: var(--bs-border-radius-sm);
+}
+
+/* Period toggle (_PeriodToggle): show only the stats for the selected period. In a .period-toggle-row (with other
+   controls beside it, e.g. the vehicle page's Add fill-up), the row has the margin instead, so they line up. */
+.period-toggle-row > .nav { margin-bottom: 0 !important; }
+:root:not([data-stats-period="all"]) .period-stats[data-period="all"],
+:root[data-stats-period="all"] .period-stats[data-period="12m"] { display: none !important; }
+
+.text-optimistic { color: var(--bs-danger-text-emphasis); }
+.text-pessimistic { color: var(--bs-success-text-emphasis); }
+
+/* Chart container: Chart.js fills it (maintainAspectRatio: false), so the chart stays readable on phones. */
+.chart-box { position: relative; height: clamp(16rem, 35vw, 22rem); }
+/* An item a chart point was clicked for (wwwroot/js/mileage-chart.js): briefly highlighted, fading out. */
+[data-chart-ref] { transition: background-color 1.5s ease-out; scroll-margin: 4rem; }
+[data-chart-ref].chart-ref-highlight { background-color: var(--bs-primary-bg-subtle); transition: none; }
+
+/* Typeahead suggestions (wwwroot/js/typeahead.js): a dropdown menu under the input, scrolling if long. */
+.typeahead-menu { position: absolute; margin-top: .125rem; max-height: 16rem; overflow-y: auto; }
+.typeahead-menu .dropdown-item { white-space: normal; }

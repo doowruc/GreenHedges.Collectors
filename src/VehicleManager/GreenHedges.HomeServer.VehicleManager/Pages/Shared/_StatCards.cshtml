@@ -1,0 +1,25 @@
+@model FuelSummary
+@{
+    var items = new (string Label, string Value)[]
+    {
+        ("Average MPG", Model.AverageMpg?.ToString("0.0") ?? "–"),
+        ("Dash MPG (avg)", Model.AverageTripComputerMpg?.ToString("0.0") ?? "–"),
+        ("Total spent", Model.TotalCost.ToString("C0")),
+        ("Avg £ / litre", Model.AverageCostPerLitre is { } p ? $"£{p:0.000}" : "–"),
+        ("Pence / mile", Model.CostPerMile is { } c ? $"{c * 100:0.0}p" : "–"),
+        ("Miles logged", Model.TotalMiles?.ToString("N0") ?? "–"),
+        ("Litres", Model.TotalLitres.ToString("N0")),
+        ("Fill-ups", Model.FillUps.ToString("N0")),
+    };
+}
+<div class="row g-2">
+    @foreach (var (label, value) in items)
+    {
+        <div class="col-6 col-md-3">
+            <div class="card stat-card h-100"><div class="card-body py-2">
+                <div class="label">@label</div>
+                <div class="value">@value</div>
+            </div></div>
+        </div>
+    }
+</div>
