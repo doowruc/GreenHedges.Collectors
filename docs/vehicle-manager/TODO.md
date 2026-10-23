@@ -37,19 +37,25 @@ reasoning and the decisions: [HOMESERVER-MIGRATION.md](HOMESERVER-MIGRATION.md).
   - [x] Ignore `*.xlsx`, `*.json.gz` and `*.bak` under `src/VehicleManager/`, so a spreadsheet or backup can't be
         committed.
 - [ ] **Ready to run on the server:**
-  - [ ] Persist ASP.NET data-protection keys under the data folder (else each restart signs everyone out).
-  - [ ] Forwarded headers from `tailscale serve`, so Auth0 gets `https://vehicles.<tailnet>.ts.net/callback`.
-  - [ ] Kestrel on `127.0.0.1` only, port from configuration.
-  - [ ] `/health` endpoint with a database check (replaces "Health-check endpoint" below).
+  - [x] Persist ASP.NET data-protection keys under the data folder (else each restart signs everyone out):
+        `DataProtection:KeysFolder`.
+  - [x] Forwarded headers from `tailscale serve`, so Auth0 gets `https://vehicles.<tailnet>.ts.net/callback` (from
+        loopback only; checked against Tailscale's source: it sets `X-Forwarded-Proto`/`-For` and keeps `Host`).
+  - [x] Kestrel on `127.0.0.1` only, port from configuration: ASP.NET's default is localhost only; the port comes from
+        `ASPNETCORE_URLS` in the env file (README: Running behind a proxy).
+  - [x] `/health` endpoint with a database check (replaces "Health-check endpoint" below): anonymous,
+        `Healthy`/`Unhealthy`, 10 s timeout.
   - [ ] Heartbeat (healthchecks.io) and email alerts through `GreenHedges.HomeServer.Common` for failed nightly backups
         and reminder runs (covers "Alert on failures" below). Decide whether `Common` gets a web-app host variant or the
-        app calls its registrations directly.
-  - [ ] **Decide how Resend is used across the repo.** `Common`'s `ResendAlertSender` calls Resend's REST API directly
+        app calls its registrations directly. **Decided 2026-10-23:** widen `Common`'s `AddAlerting`/`AddHeartbeat`/
+        `AddBackups` to `IHostApplicationBuilder`, so this app calls them as the collectors do and keeps its own
+        OpenTelemetry logging.
+  - [x] **Decide how Resend is used across the repo.** **Decided 2026-10-23: keep both.** `Common`'s `ResendAlertSender` calls Resend's REST API directly
         (plain-text alerts, no package); this app uses Resend's .NET SDK (`IResend`: backup attachments, reminder
         emails, `FakeResend` in tests). Either keep both (each the simpler tool for its job) or move `Common` onto the
         SDK so there's one client. Decide when the alerts above go through `Common`.
   - [ ] Nightly backups through `Common`: an `IBackupSource` running `BACKUP DATABASE … WITH CHECKSUM, COPY_ONLY` into a
-        folder shared with the container; let a source choose its file extension (`.bak.gz`, not `.db.gz`); off-site
+        folder shared with the container (**decided 2026-10-23**: `.bak`, not a `.bacpac`); let a source choose its file extension (`.bak.gz`, not `.db.gz`); off-site
         copies (a `vehiclemanager/` prefix and write-only IAM user in `deploy/aws/offsite.yaml`) and the Mac's pull
         (`vehicle-manager` in `deploy/mac/install-backup-pull.sh`). Keep the emailed JSON backups as a user-level copy.
 - [ ] **The server's side** (read and update `notes/server/SERVER.md`):
@@ -165,7 +171,7 @@ reasoning and the decisions: [HOMESERVER-MIGRATION.md](HOMESERVER-MIGRATION.md).
       exceptions via the `/Error` page with its request id.
 - [ ] **Alert on failures.** Email (via Resend) or alert when the nightly backup job fails for any user, instead of
       only logging it. Optionally a weekly "all OK" summary so silence isn't mistaken for success.
-- [ ] ~~**Health-check endpoint**~~ *Moved to Move to the home server (`/health`).* (`AddHealthChecks` with a database check), if the app is ever hosted somewhere other
+- [x] ~~**Health-check endpoint**~~ *Moved to Move to the home server (`/health`).* (`AddHealthChecks` with a database check), if the app is ever hosted somewhere other
       than locally.
 - [ ] ~~**CI on GitHub Actions:**~~ *Comes with GreenHedges.HomeServer's CI after the import, with a SQL Server service container so the database tests run there too.* build (0 warnings) and run the unit and page tests on each push. Database tests skip
       without a connection string, so they can stay local.
