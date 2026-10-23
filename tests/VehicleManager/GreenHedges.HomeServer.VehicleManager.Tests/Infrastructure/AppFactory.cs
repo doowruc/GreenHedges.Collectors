@@ -17,11 +17,11 @@ using VehicleManager.Services;
 namespace VehicleManager.Tests.Infrastructure;
 
 /// <summary>
-/// Runs the app in memory against the test database. Auth0 is replaced by a test sign-in: a
+/// Runs the app in memory against the tests' throwaway database (<see cref="TestDatabase"/>). Auth0 is replaced by a test sign-in: a
 /// request is signed in as the user named in its <see cref="UserHeader"/> (see <see cref="ClientFor"/>),
 /// with an allowed, verified email; a request without it isn't signed in. Email goes to
 /// <see cref="FakeResend"/>, the DVLA and DVSA are <see cref="FakeVehicleApis"/>, the scheduler
-/// doesn't run, and pending migrations aren't applied (the tests refuse to run until they are).
+/// doesn't run, and the app doesn't migrate at startup (<see cref="TestDatabase"/> already has).
 /// </summary>
 public sealed class AppFactory : WebApplicationFactory<Program>
 {
@@ -44,7 +44,10 @@ public sealed class AppFactory : WebApplicationFactory<Program>
         Environment.SetEnvironmentVariable("MotHistory__ApiKey", FakeVehicleApis.ApiKey);
         Environment.SetEnvironmentVariable("MotHistory__TokenUrl", FakeVehicleApis.TokenUrl);
 
-        // Never apply migrations to the real database from tests: run the app and ask first.
+        // The app uses the tests' throwaway database (created and migrated by TestDatabase), never its own from user
+        // secrets. Without a test SQL Server it gets a name that can't connect, so it can't reach real data either.
+        Environment.SetEnvironmentVariable("ConnectionStrings__VehicleManager",
+            TestDatabase.IsConfigured ? TestDatabase.ConnectionString : "Server=tests.invalid;Database=none;Connect Timeout=1");
         Environment.SetEnvironmentVariable("MigrateOnStartup", "false");
     }
 
@@ -70,17 +73,6 @@ public sealed class AppFactory : WebApplicationFactory<Program>
                                                           d.ImplementationType?.Namespace?.StartsWith("Coravel") == true).ToList())
                 services.Remove(scheduler);
         });
-    }
-
-    protected override IHost CreateHost(IHostBuilder builder)
-    {
-        var host = base.CreateHost(builder);
-        using var scope = host.Services.CreateScope();
-        var pending = scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.GetPendingMigrations().ToList();
-        if (pending.Count > 0)
-            throw new InvalidOperationException(
-                $"The database has pending migrations ({string.Join(", ", pending)}). Tests don't apply them: run the app to apply them first.");
-        return host;
     }
 
     /// <summary>A client signed in as <paramref name="userId"/>, or not signed in if null. Doesn't follow redirects.</summary>
