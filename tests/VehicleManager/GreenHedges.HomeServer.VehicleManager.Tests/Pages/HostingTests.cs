@@ -2,11 +2,15 @@ using System.Net;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using GreenHedges.HomeServer.Common.Alerts;
+using GreenHedges.HomeServer.Common.Heartbeat;
+using GreenHedges.HomeServer.VehicleManager.Monitoring;
 using GreenHedges.HomeServer.VehicleManager.Tests.Infrastructure;
 
 namespace GreenHedges.HomeServer.VehicleManager.Tests.Pages;
 
-/// <summary>What running behind <c>tailscale serve</c> on the server needs: health, forwarded headers, lasting keys.</summary>
+/// <summary>What running on the server needs: health, forwarded headers, lasting keys, alerts and the heartbeat.</summary>
 public class HostingTests(AppFactory app) : IClassFixture<AppFactory>
 {
     [DatabaseFact]
@@ -51,5 +55,14 @@ public class HostingTests(AppFactory app) : IClassFixture<AppFactory>
         {
             if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
         }
+    }
+
+    [Fact]
+    public void Alerts_and_the_heartbeat_are_wired_up()
+    {
+        Assert.IsType<AppHealth>(app.Services.GetRequiredService<IHeartbeatSource>());
+        Assert.Contains(app.Services.GetServices<IHostedService>(), s => s is VehicleManagerAlertMonitor);
+        Assert.IsType<LoggingAlertSender>(app.Services.GetRequiredService<IAlertSender>()); // no Resend key in tests
+        Assert.NotNull(app.Services.GetRequiredService<AlertBook>());
     }
 }

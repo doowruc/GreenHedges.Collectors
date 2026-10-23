@@ -154,6 +154,32 @@ HTTPS:
 - **Health:** `GET /health` answers `Healthy` (200) when the database is reachable, else `Unhealthy` (503), without
   signing in.
 
+### Alerts and heartbeat
+
+Shared with the home server's collectors. Each is off until configured (environment variables on the server, user
+secrets locally):
+
+```
+Alerts__ResendApiKey=re_...
+Alerts__From=VehicleManager <alerts@example.com>
+Alerts__To__0=you@example.com
+Heartbeat__PingUrl=https://hc-ping.com/<uuid>
+```
+
+| Email subject | Meaning |
+|---|---|
+| **Database unreachable** | The database hasn't answered for 5 minutes. Pages and the scheduled jobs fail until it's back. |
+| **Nightly backups failing** | The latest nightly emailed backup run failed for some users, or none has completed for 26 hours. |
+| **Morning reminders failing** | The same, for the morning MOT/tax check and reminder emails. |
+
+Each PROBLEM email is followed by one RESOLVED email, including across restarts (open alerts are kept in
+`alert-state.json` in the working directory). Job alerts wait while the database is failing. The heartbeat pings
+healthchecks.io every 5 minutes while the database answers, so a stopped app, server or database shows there.
+`--test-alert` (e.g. `dotnet run -- --test-alert`) sends a test email and exits. The checks run outside Development
+only (set `Alerts:Monitor` to `true` to try them locally): they ask the database every minute, which would keep a
+pausing Azure database awake. Thresholds:
+`Alerts:DatabaseDownAfter`, `Alerts:JobOverdueAfter` in `appsettings.json`.
+
 Auth0 posts the sign-in result back to the app, which needs `Secure` cookies. Chrome, Edge and
 Firefox allow those on `http://localhost`, but Safari doesn't. If you use Safari, run the https
 profile instead: `dotnet watch -lp https`, then open https://localhost:7080.
@@ -318,6 +344,7 @@ src/VehicleManager/GreenHedges.HomeServer.VehicleManager/
                  Reminders + ReminderEmailer + ScheduledReminders (due-date reminders), VehicleLookup + DvlaClient +
                  MotHistoryClient (MOT and tax dates from the DVLA and DVSA), MotTests (stored MOT history),
                  Telemetry (OpenTelemetry setup)
+  Monitoring/    AppHealth + VehicleManagerAlertMonitor: database probes, scheduled jobs' runs, alerts and the heartbeat
   Pages/         Dashboard, Owners/*, Vehicles/* (and each vehicle's Services/*), FuelLog/* (log + fill-up pages), Import/*, Backup/* (backup + restore), Settings/*, FuelBrands/* (and each brand's Stations/*),
                  Account/* (sign in/out)
 src/VehicleManager/GreenHedges.HomeServer.VehicleManager.AppHost/   Aspire AppHost: runs the app with the Aspire dashboard (logs, traces, metrics) locally

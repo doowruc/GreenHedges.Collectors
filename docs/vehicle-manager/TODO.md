@@ -45,8 +45,9 @@ reasoning and the decisions: [HOMESERVER-MIGRATION.md](HOMESERVER-MIGRATION.md).
         `ASPNETCORE_URLS` in the env file (README: Running behind a proxy).
   - [x] `/health` endpoint with a database check (replaces "Health-check endpoint" below): anonymous,
         `Healthy`/`Unhealthy`, 10 s timeout.
-  - [ ] Heartbeat (healthchecks.io) and email alerts through `GreenHedges.HomeServer.Common` for failed nightly backups
-        and reminder runs (covers "Alert on failures" below). Decide whether `Common` gets a web-app host variant or the
+  - [x] Heartbeat (healthchecks.io) and email alerts through `GreenHedges.HomeServer.Common` for failed nightly backups
+        and reminder runs (covers "Alert on failures" below). Done: `Monitoring/` (database unreachable 5 min; nightly
+        backups or morning reminders failing, or not run for 26 h); heartbeat while the database answers; `--test-alert`. Decide whether `Common` gets a web-app host variant or the
         app calls its registrations directly. **Decided 2026-10-23:** widen `Common`'s `AddAlerting`/`AddHeartbeat`/
         `AddBackups` to `IHostApplicationBuilder`, so this app calls them as the collectors do and keeps its own
         OpenTelemetry logging.
@@ -169,7 +170,7 @@ reasoning and the decisions: [HOMESERVER-MIGRATION.md](HOMESERVER-MIGRATION.md).
 - [ ] **Log more of what matters.** Sign-ins and access-denied attempts (`AllowedUsers`), restores and imports
       (counts of rows), merges of brands/stations, concurrency conflicts in `TrySaveEditAsync`, and unhandled
       exceptions via the `/Error` page with its request id.
-- [ ] **Alert on failures.** Email (via Resend) or alert when the nightly backup job fails for any user, instead of
+- [x] **Alert on failures.** *Done with the move to the home server (Monitoring/): failed or missing nightly backup and reminder runs alert by email; there's no weekly "all OK", as the heartbeat covers silence.* Email (via Resend) or alert when the nightly backup job fails for any user, instead of
       only logging it. Optionally a weekly "all OK" summary so silence isn't mistaken for success.
 - [x] ~~**Health-check endpoint**~~ *Moved to Move to the home server (`/health`).* (`AddHealthChecks` with a database check), if the app is ever hosted somewhere other
       than locally.

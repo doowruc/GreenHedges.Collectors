@@ -6,6 +6,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Alerts, the heartbeat and (later) backups, shared with the collectors. -->
+    <ProjectReference Include="..\..\Common\GreenHedges.HomeServer.Common\GreenHedges.HomeServer.Common.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Auth0.AspNetCore.Authentication" />
     <PackageReference Include="ClosedXML" />
     <PackageReference Include="Coravel" />
