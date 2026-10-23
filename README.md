@@ -22,7 +22,9 @@ The **collectors** keep my own copy of data that otherwise only lives in someone
 | `docs/vehicle-manager/` | Its README, backlog and the plan for moving it onto the home server |
 | `compose.yaml`, `.env.example` | SQL Server in Docker for local development and Vehicle Manager's tests |
 | `deploy/sqlserver/` | SQL Server in Docker on the home server, for its web apps: compose file, deploy script, host setup |
-| `deploy/deploy.sh` | Publishes a collector and installs it on the host (`deploy/<collector>/deploy.sh` for short) |
+| `deploy/vehicle-manager/` | Vehicle Manager's systemd unit, deploy script, database setup and host setup |
+| `deploy/TAILSCALE-SERVICES.md` | One-off Tailscale setup that gives each web app its own `https://<name>.<tailnet>.ts.net` |
+| `deploy/deploy.sh` | Publishes a service and installs it on the host (`deploy/<service>/deploy.sh` for short) |
 | `deploy/libre/` | The Libre collector's systemd unit, deploy script, host setup and Nightscout stack |
 | `docs/libre/` | Its README (setup and use) and design notes |
 | `deploy/weather/` | The Weather collector's systemd unit, deploy script and host setup |

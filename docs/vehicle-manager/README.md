@@ -143,6 +143,9 @@ without them.
 
 ### Running behind a proxy (the home server)
 
+Setting it up on the server, step by step: [deploy/vehicle-manager/HOST-SETUP.md](../../deploy/vehicle-manager/HOST-SETUP.md).
+The systemd unit sets the address (`127.0.0.1:5080`), the keys folder and the backup folders; the env file holds the rest.
+
 On the server the app listens on localhost only and is published on the tailnet by `tailscale serve`, which handles
 HTTPS:
 

@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Publish a collector for Linux and install or update it on the host, then restart its service.
-# Run on the dev machine from anywhere in the repo:  deploy/deploy.sh <libre|weather> [user@host]
-# (deploy/libre/deploy.sh and deploy/weather/deploy.sh do the same for their collector.)
+# Publish a service for Linux and install or update it on the host, then restart it.
+# Run on the dev machine from anywhere in the repo:  deploy/deploy.sh <libre|weather|vehicle-manager> [user@host]
+# (deploy/<service>/deploy.sh does the same for its service.)
 # The host defaults to COLLECTORS_SSH (or LIBRECOLLECTOR_SSH) from deploy/local.env (see local.env.example).
-# The host must be prepared first (deploy/<collector>/HOST-SETUP.md). You'll be asked for your sudo password on the host.
+# The host must be prepared first (deploy/<service>/HOST-SETUP.md). You'll be asked for your sudo password on the host.
 set -euo pipefail
 
 # Braces make bash read the whole script before running it, so editing the file mid-run can't break a run.
@@ -15,7 +15,8 @@ if [ -f "$ROOT/deploy/local.env" ]; then . "$ROOT/deploy/local.env"; fi
 case "${1:-}" in
   libre)   PROJECT="src/Collectors/Libre/GreenHedges.HomeServer.Collectors.Libre.Worker";     SERVICE=librecollector ;;
   weather) PROJECT="src/Collectors/Weather/GreenHedges.HomeServer.Collectors.Weather.Worker"; SERVICE=weathercollector ;;
-  *) echo "Usage: deploy/deploy.sh <libre|weather> [user@host]" >&2; exit 2 ;;
+  vehicle-manager) PROJECT="src/VehicleManager/GreenHedges.HomeServer.VehicleManager";     SERVICE=vehiclemanager ;;
+  *) echo "Usage: deploy/deploy.sh <libre|weather|vehicle-manager> [user@host]" >&2; exit 2 ;;
 esac
 COLLECTOR="$1"
 UNIT="$ROOT/deploy/$COLLECTOR/$SERVICE.service"
