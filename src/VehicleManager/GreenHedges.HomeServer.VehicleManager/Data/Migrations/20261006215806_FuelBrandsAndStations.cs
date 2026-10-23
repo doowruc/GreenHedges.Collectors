@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace VehicleManager.Data.Migrations
+namespace GreenHedges.HomeServer.VehicleManager.Data.Migrations
 {
     /// <inheritdoc />
     public partial class FuelBrandsAndStations : Migration

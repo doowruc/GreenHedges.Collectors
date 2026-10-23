@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace VehicleManager.Models;
+namespace GreenHedges.HomeServer.VehicleManager.Models;
 
 /// <summary>A stored fill-up. Pages use <c>FuelEntryView</c> / <c>FuelEntryInput</c> rather than this entity.</summary>
 public class FuelEntry : AuditedEntity

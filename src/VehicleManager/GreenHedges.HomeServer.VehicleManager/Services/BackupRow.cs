@@ -1,4 +1,4 @@
-namespace VehicleManager.Services;
+namespace GreenHedges.HomeServer.VehicleManager.Services;
 
 /// <summary>The audit columns every table has. Restoring keeps them; missing ones are filled in as for new rows.</summary>
 public abstract record BackupRow

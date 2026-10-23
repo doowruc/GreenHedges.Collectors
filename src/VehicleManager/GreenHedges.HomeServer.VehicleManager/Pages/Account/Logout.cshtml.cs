@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
-namespace VehicleManager.Pages.Account;
+namespace GreenHedges.HomeServer.VehicleManager.Pages.Account;
 
 /// <summary>
 /// Signs out of the app and Auth0. POST only, so a link elsewhere can't sign you out. Anonymous so

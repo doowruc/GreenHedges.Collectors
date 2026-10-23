@@ -1,7 +1,7 @@
 using System.Net;
 using System.Text.RegularExpressions;
 
-namespace VehicleManager.Tests.Infrastructure;
+namespace GreenHedges.HomeServer.VehicleManager.Tests.Infrastructure;
 
 /// <summary>Loads pages and submits their forms, like a browser would.</summary>
 public sealed class PageClient(HttpClient client)

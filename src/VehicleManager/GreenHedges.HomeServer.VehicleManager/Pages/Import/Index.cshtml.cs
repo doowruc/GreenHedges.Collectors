@@ -3,11 +3,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using VehicleManager.Data;
-using VehicleManager.Services;
-using VehicleManager.ViewModels;
+using GreenHedges.HomeServer.VehicleManager.Data;
+using GreenHedges.HomeServer.VehicleManager.Services;
+using GreenHedges.HomeServer.VehicleManager.ViewModels;
 
-namespace VehicleManager.Pages.Import;
+namespace GreenHedges.HomeServer.VehicleManager.Pages.Import;
 
 /// <summary>
 /// Two-step import: (1) upload the workbook and preview each sheet, (2) map each sheet to a

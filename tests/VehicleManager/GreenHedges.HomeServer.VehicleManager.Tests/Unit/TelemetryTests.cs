@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Configuration;
-using VehicleManager.Services;
+using GreenHedges.HomeServer.VehicleManager.Services;
 
-namespace VehicleManager.Tests.Unit;
+namespace GreenHedges.HomeServer.VehicleManager.Tests.Unit;
 
 public class TelemetryTests
 {

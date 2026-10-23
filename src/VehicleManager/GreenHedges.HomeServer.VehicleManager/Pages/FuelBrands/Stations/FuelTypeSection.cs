@@ -1,9 +1,9 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
-using VehicleManager.Models;
-using VehicleManager.ViewModels;
+using GreenHedges.HomeServer.VehicleManager.Models;
+using GreenHedges.HomeServer.VehicleManager.ViewModels;
 
-namespace VehicleManager.Pages.FuelBrands.Stations;
+namespace GreenHedges.HomeServer.VehicleManager.Pages.FuelBrands.Stations;
 
 /// <param name="Entries">Newest first.</param>
 public record FuelTypeSection(FuelType FuelType, List<FuelEntryView> Entries)

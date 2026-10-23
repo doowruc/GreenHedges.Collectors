@@ -2,9 +2,9 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
-using VehicleManager.Data;
+using GreenHedges.HomeServer.VehicleManager.Data;
 
-namespace VehicleManager.Pages.Vehicles.Services;
+namespace GreenHedges.HomeServer.VehicleManager.Pages.Vehicles.Services;
 
 /// <summary>
 /// Base for a vehicle's service history pages, routed under <c>/Vehicles/{vehicleId}/Services</c>.

@@ -3,7 +3,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 
-namespace VehicleManager.Tests.Infrastructure;
+namespace GreenHedges.HomeServer.VehicleManager.Tests.Infrastructure;
 
 /// <summary>
 /// Stands in for the DVLA Vehicle Enquiry and DVSA MOT History APIs (and the DVSA's token endpoint),

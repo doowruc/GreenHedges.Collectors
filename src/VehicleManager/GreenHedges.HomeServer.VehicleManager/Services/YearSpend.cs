@@ -1,4 +1,4 @@
-namespace VehicleManager.Services;
+namespace GreenHedges.HomeServer.VehicleManager.Services;
 
 /// <summary>
 /// A calendar year's fuel spend, all vehicles together. <see cref="Cumulative"/> is the running total at the end of

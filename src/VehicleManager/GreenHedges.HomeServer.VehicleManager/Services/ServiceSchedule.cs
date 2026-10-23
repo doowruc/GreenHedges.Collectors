@@ -1,9 +1,9 @@
 using Microsoft.EntityFrameworkCore;
-using VehicleManager.Data;
-using VehicleManager.Models;
-using VehicleManager.ViewModels;
+using GreenHedges.HomeServer.VehicleManager.Data;
+using GreenHedges.HomeServer.VehicleManager.Models;
+using GreenHedges.HomeServer.VehicleManager.ViewModels;
 
-namespace VehicleManager.Services;
+namespace GreenHedges.HomeServer.VehicleManager.Services;
 
 /// <summary>
 /// Works out when a vehicle's next service is due from its latest one and its service interval

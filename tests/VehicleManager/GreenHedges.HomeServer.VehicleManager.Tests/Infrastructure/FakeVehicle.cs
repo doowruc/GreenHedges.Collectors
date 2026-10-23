@@ -1,4 +1,4 @@
-namespace VehicleManager.Tests.Infrastructure;
+namespace GreenHedges.HomeServer.VehicleManager.Tests.Infrastructure;
 
 /// <summary>What the fake DVLA and DVSA know about a vehicle. Null dates are left out of the responses.</summary>
 public sealed record FakeVehicle

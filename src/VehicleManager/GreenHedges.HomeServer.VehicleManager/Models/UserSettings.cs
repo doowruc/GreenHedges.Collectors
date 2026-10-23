@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace VehicleManager.Models;
+namespace GreenHedges.HomeServer.VehicleManager.Models;
 
 /// <summary>
 /// A user's settings (where backups and reminders go), and their last scheduled backup. At most one row per user, added the

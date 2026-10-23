@@ -1,10 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using Resend;
-using VehicleManager.Data;
-using VehicleManager.Models;
-using VehicleManager.ViewModels;
+using GreenHedges.HomeServer.VehicleManager.Data;
+using GreenHedges.HomeServer.VehicleManager.Models;
+using GreenHedges.HomeServer.VehicleManager.ViewModels;
 
-namespace VehicleManager.Services;
+namespace GreenHedges.HomeServer.VehicleManager.Services;
 
 /// <summary>Emails the signed-in user any reminders of their vehicles' due dates that haven't been sent yet (see <see cref="Reminders"/>).</summary>
 public class ReminderEmailer(AppDbContext db, IResend resend, EmailOptions options, VehicleLookup lookup)

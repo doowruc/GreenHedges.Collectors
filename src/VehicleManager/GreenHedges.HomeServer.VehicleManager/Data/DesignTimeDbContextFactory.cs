@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
-namespace VehicleManager.Data;
+namespace GreenHedges.HomeServer.VehicleManager.Data;
 
 /// <summary>
 /// Lets <c>dotnet ef</c> create the context without running <c>Program.cs</c>, which needs the

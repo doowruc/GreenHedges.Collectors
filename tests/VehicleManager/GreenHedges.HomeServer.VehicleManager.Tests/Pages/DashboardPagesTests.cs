@@ -1,10 +1,10 @@
 using System.Net;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using VehicleManager.Services;
-using VehicleManager.Tests.Infrastructure;
+using GreenHedges.HomeServer.VehicleManager.Services;
+using GreenHedges.HomeServer.VehicleManager.Tests.Infrastructure;
 
-namespace VehicleManager.Tests.Pages;
+namespace GreenHedges.HomeServer.VehicleManager.Tests.Pages;
 
 public class DashboardPagesTests(AppFactory app) : DatabaseTest, IClassFixture<AppFactory>
 {

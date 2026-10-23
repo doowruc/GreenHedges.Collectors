@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace VehicleManager.Models;
+namespace GreenHedges.HomeServer.VehicleManager.Models;
 
 /// <summary>
 /// Audit columns shared by every table. <c>AppDbContext</c> sets the Added/Modified values when rows

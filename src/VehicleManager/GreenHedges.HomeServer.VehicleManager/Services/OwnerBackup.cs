@@ -1,4 +1,4 @@
-namespace VehicleManager.Services;
+namespace GreenHedges.HomeServer.VehicleManager.Services;
 
 public sealed record OwnerBackup : BackupRow
 {

@@ -1,10 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using VehicleManager.Data;
-using VehicleManager.Models;
-using VehicleManager.ViewModels;
+using GreenHedges.HomeServer.VehicleManager.Data;
+using GreenHedges.HomeServer.VehicleManager.Models;
+using GreenHedges.HomeServer.VehicleManager.ViewModels;
 
-namespace VehicleManager.Pages.Owners;
+namespace GreenHedges.HomeServer.VehicleManager.Pages.Owners;
 
 public class CreateModel(AppDbContext db) : PageModel
 {

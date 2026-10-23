@@ -1,4 +1,4 @@
-namespace VehicleManager.Services;
+namespace GreenHedges.HomeServer.VehicleManager.Services;
 
 /// <summary>A vehicle's MOT history. A vehicle too new for an MOT has no tests, but a first-MOT due date.</summary>
 public sealed record MotHistoryVehicle(string? Registration, DateOnly? MotTestDueDate, List<MotHistoryTest>? MotTests)

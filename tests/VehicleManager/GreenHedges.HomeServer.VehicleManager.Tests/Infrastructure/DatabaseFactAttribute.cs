@@ -1,4 +1,4 @@
-namespace VehicleManager.Tests.Infrastructure;
+namespace GreenHedges.HomeServer.VehicleManager.Tests.Infrastructure;
 
 /// <summary>A test that needs the database; skipped when no SQL Server for the tests is configured.</summary>
 public sealed class DatabaseFactAttribute : FactAttribute

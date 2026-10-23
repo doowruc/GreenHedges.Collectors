@@ -1,7 +1,7 @@
-using VehicleManager.Models;
-using VehicleManager.ViewModels;
+using GreenHedges.HomeServer.VehicleManager.Models;
+using GreenHedges.HomeServer.VehicleManager.ViewModels;
 
-namespace VehicleManager.Services;
+namespace GreenHedges.HomeServer.VehicleManager.Services;
 
 /// <summary>
 /// When to remind about a vehicle's due dates: <see cref="DaysBefore"/> days before each one (and once,

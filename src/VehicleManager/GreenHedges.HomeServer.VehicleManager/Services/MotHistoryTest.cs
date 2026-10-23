@@ -1,4 +1,4 @@
-namespace VehicleManager.Services;
+namespace GreenHedges.HomeServer.VehicleManager.Services;
 
 /// <summary>
 /// A test as the DVSA sends it. <see cref="OdometerResultType"/> is READ, UNREADABLE or NO_ODOMETER; Northern

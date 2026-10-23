@@ -1,4 +1,4 @@
-namespace VehicleManager.Pages.FuelBrands;
+namespace GreenHedges.HomeServer.VehicleManager.Pages.FuelBrands;
 
 /// <param name="BrandId">A station's brand; null for brands.</param>
 /// <param name="Brand">A station's brand name; null for brands.</param>

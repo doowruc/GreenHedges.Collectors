@@ -1,10 +1,10 @@
 using Microsoft.EntityFrameworkCore;
-using VehicleManager.Data;
-using VehicleManager.Models;
-using VehicleManager.Services;
-using VehicleManager.ViewModels;
+using GreenHedges.HomeServer.VehicleManager.Data;
+using GreenHedges.HomeServer.VehicleManager.Models;
+using GreenHedges.HomeServer.VehicleManager.Services;
+using GreenHedges.HomeServer.VehicleManager.ViewModels;
 
-namespace VehicleManager.Tests.Unit;
+namespace GreenHedges.HomeServer.VehicleManager.Tests.Unit;
 
 /// <summary>How the DVSA's tests are copied to a vehicle. With a vehicle that isn't saved, nothing touches the database.</summary>
 public class MotTestsTests

@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using VehicleManager.Data;
+using GreenHedges.HomeServer.VehicleManager.Data;
 
-namespace VehicleManager.Services;
+namespace GreenHedges.HomeServer.VehicleManager.Services;
 
 /// <summary>
 /// How fast a vehicle is adding miles, from its odometer readings (its fill-ups' and its MOT tests'): the latest

@@ -1,4 +1,4 @@
-namespace VehicleManager.Models;
+namespace GreenHedges.HomeServer.VehicleManager.Models;
 
 /// <summary>
 /// A reminder email already sent: <see cref="DaysBefore"/> days before <see cref="DueDate"/>, for one of a

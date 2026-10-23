@@ -1,7 +1,7 @@
-using VehicleManager.Models;
-using VehicleManager.Services;
+using GreenHedges.HomeServer.VehicleManager.Models;
+using GreenHedges.HomeServer.VehicleManager.Services;
 
-namespace VehicleManager.ViewModels;
+namespace GreenHedges.HomeServer.VehicleManager.ViewModels;
 
 /// <summary>
 /// One of a vehicle's due dates (MOT, tax, insurance, service), and how soon it is. A service due by

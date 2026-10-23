@@ -1,9 +1,9 @@
 using System.Net;
 using Microsoft.EntityFrameworkCore;
-using VehicleManager.Models;
-using VehicleManager.Tests.Infrastructure;
+using GreenHedges.HomeServer.VehicleManager.Models;
+using GreenHedges.HomeServer.VehicleManager.Tests.Infrastructure;
 
-namespace VehicleManager.Tests.Pages;
+namespace GreenHedges.HomeServer.VehicleManager.Tests.Pages;
 
 public class VehiclePagesTests(AppFactory app) : DatabaseTest, IClassFixture<AppFactory>
 {

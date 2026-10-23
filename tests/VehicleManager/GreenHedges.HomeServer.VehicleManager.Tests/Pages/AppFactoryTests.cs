@@ -2,10 +2,10 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using VehicleManager.Data;
-using VehicleManager.Tests.Infrastructure;
+using GreenHedges.HomeServer.VehicleManager.Data;
+using GreenHedges.HomeServer.VehicleManager.Tests.Infrastructure;
 
-namespace VehicleManager.Tests.Pages;
+namespace GreenHedges.HomeServer.VehicleManager.Tests.Pages;
 
 public class AppFactoryTests(AppFactory app) : IClassFixture<AppFactory>
 {

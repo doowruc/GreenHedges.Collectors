@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace VehicleManager.Models;
+namespace GreenHedges.HomeServer.VehicleManager.Models;
 
 /// <summary>A defect or advisory noted at an MOT test, in the DVSA's order (<see cref="Sequence"/>).</summary>
 public class MotDefect : AuditedEntity

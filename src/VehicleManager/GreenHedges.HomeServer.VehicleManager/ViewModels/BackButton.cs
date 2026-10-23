@@ -1,4 +1,4 @@
-namespace VehicleManager.ViewModels;
+namespace GreenHedges.HomeServer.VehicleManager.ViewModels;
 
 /// <summary>
 /// A page header's Back button (<c>Pages/Shared/_BackButton</c>), linking to <paramref name="Href"/>. With

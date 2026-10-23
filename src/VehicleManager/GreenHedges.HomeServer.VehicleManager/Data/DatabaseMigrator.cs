@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace VehicleManager.Data;
+namespace GreenHedges.HomeServer.VehicleManager.Data;
 
 public static class DatabaseMigrator
 {

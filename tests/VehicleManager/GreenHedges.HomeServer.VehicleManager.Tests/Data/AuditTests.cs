@@ -1,9 +1,9 @@
 using Microsoft.EntityFrameworkCore;
-using VehicleManager.Data;
-using VehicleManager.Models;
-using VehicleManager.Tests.Infrastructure;
+using GreenHedges.HomeServer.VehicleManager.Data;
+using GreenHedges.HomeServer.VehicleManager.Models;
+using GreenHedges.HomeServer.VehicleManager.Tests.Infrastructure;
 
-namespace VehicleManager.Tests.Data;
+namespace GreenHedges.HomeServer.VehicleManager.Tests.Data;
 
 public class AuditTests : DatabaseTest
 {

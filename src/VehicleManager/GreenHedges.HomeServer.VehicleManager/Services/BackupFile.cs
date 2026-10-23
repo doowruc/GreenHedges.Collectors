@@ -2,10 +2,10 @@ using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using VehicleManager.Models;
-using VehicleManager.Pages.Vehicles;
+using GreenHedges.HomeServer.VehicleManager.Models;
+using GreenHedges.HomeServer.VehicleManager.Pages.Vehicles;
 
-namespace VehicleManager.Services;
+namespace GreenHedges.HomeServer.VehicleManager.Services;
 
 /// <summary>
 /// A backup of one user's data: a JSON document with a list per table, written gzip-compressed

@@ -1,4 +1,4 @@
-namespace VehicleManager.Services;
+namespace GreenHedges.HomeServer.VehicleManager.Services;
 
 /// <summary>
 /// Fuel spend per period (a month or a year, named by <see cref="Labels"/>), split by vehicle: each of

@@ -5,11 +5,11 @@ using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 
-namespace VehicleManager.Services;
+namespace GreenHedges.HomeServer.VehicleManager.Services;
 
 /// <summary>
 /// OpenTelemetry logs, traces and metrics, sent over OTLP when <c>OTEL_EXPORTER_OTLP_ENDPOINT</c> is set: by
-/// <c>aspire run</c> (VehicleManager.AppHost) for its dashboard, or by hand for another destination. The standard
+/// <c>aspire run</c> (GreenHedges.HomeServer.VehicleManager.AppHost) for its dashboard, or by hand for another destination. The standard
 /// <c>OTEL_*</c> settings (endpoint, headers, protocol, service name) configure it, so the destination can change
 /// without code. Without an endpoint (plain <c>dotnet watch</c>, the tests) nothing is set up and logs go only to the
 /// console. Nothing personal goes out: logs carry Auth0 user ids, never emails or registrations, and the DVSA's

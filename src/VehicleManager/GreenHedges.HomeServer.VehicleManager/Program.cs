@@ -7,9 +7,9 @@ using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Resend;
-using VehicleManager.Data;
-using VehicleManager.Pages.FuelBrands;
-using VehicleManager.Services;
+using GreenHedges.HomeServer.VehicleManager.Data;
+using GreenHedges.HomeServer.VehicleManager.Pages.FuelBrands;
+using GreenHedges.HomeServer.VehicleManager.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 

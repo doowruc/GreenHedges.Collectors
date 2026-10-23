@@ -1,8 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 using System.Linq.Expressions;
-using VehicleManager.Models;
+using GreenHedges.HomeServer.VehicleManager.Models;
 
-namespace VehicleManager.ViewModels;
+namespace GreenHedges.HomeServer.VehicleManager.ViewModels;
 
 public class OwnerInput
 {

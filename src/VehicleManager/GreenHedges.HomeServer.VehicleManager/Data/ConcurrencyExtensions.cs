@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using VehicleManager.Models;
+using GreenHedges.HomeServer.VehicleManager.Models;
 
-namespace VehicleManager.Data;
+namespace GreenHedges.HomeServer.VehicleManager.Data;
 
 public static class ConcurrencyExtensions
 {

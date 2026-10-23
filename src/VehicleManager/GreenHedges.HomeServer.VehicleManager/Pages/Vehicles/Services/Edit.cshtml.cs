@@ -1,10 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using VehicleManager.Data;
-using VehicleManager.Services;
-using VehicleManager.ViewModels;
+using GreenHedges.HomeServer.VehicleManager.Data;
+using GreenHedges.HomeServer.VehicleManager.Services;
+using GreenHedges.HomeServer.VehicleManager.ViewModels;
 
-namespace VehicleManager.Pages.Vehicles.Services;
+namespace GreenHedges.HomeServer.VehicleManager.Pages.Vehicles.Services;
 
 public class EditModel(AppDbContext db) : ServicePageModel(db)
 {

@@ -1,11 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using VehicleManager.Data;
-using VehicleManager.Models;
-using VehicleManager.Services;
-using VehicleManager.ViewModels;
+using GreenHedges.HomeServer.VehicleManager.Data;
+using GreenHedges.HomeServer.VehicleManager.Models;
+using GreenHedges.HomeServer.VehicleManager.Services;
+using GreenHedges.HomeServer.VehicleManager.ViewModels;
 
-namespace VehicleManager.Pages.FuelLog;
+namespace GreenHedges.HomeServer.VehicleManager.Pages.FuelLog;
 
 public class CreateModel(AppDbContext db, FuelStops stops) : FuelFormPageModel(db, stops)
 {

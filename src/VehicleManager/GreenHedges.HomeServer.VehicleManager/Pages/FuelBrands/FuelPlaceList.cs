@@ -1,11 +1,11 @@
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
-using VehicleManager.Data;
-using VehicleManager.Models;
-using VehicleManager.Services;
-using VehicleManager.ViewModels;
+using GreenHedges.HomeServer.VehicleManager.Data;
+using GreenHedges.HomeServer.VehicleManager.Models;
+using GreenHedges.HomeServer.VehicleManager.Services;
+using GreenHedges.HomeServer.VehicleManager.ViewModels;
 
-namespace VehicleManager.Pages.FuelBrands;
+namespace GreenHedges.HomeServer.VehicleManager.Pages.FuelBrands;
 
 /// <summary>Database work shared by the Fuel Brands pages and their Stations pages.</summary>
 public abstract class FuelPlaceList<T>(AppDbContext db, CurrentUser user)

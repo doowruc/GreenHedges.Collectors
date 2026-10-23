@@ -1,8 +1,8 @@
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
-using VehicleManager.Data;
+using GreenHedges.HomeServer.VehicleManager.Data;
 
-namespace VehicleManager.Services;
+namespace GreenHedges.HomeServer.VehicleManager.Services;
 
 /// <summary>
 /// Hands data from before per-user data existed (owners, vehicles, brands and stations with no

@@ -2,7 +2,7 @@
 
 #nullable disable
 
-namespace VehicleManager.Data.Migrations
+namespace GreenHedges.HomeServer.VehicleManager.Data.Migrations
 {
     /// <inheritdoc />
     public partial class ServiceDueMileage : Migration

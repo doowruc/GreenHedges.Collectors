@@ -5,11 +5,11 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using VehicleManager.Data;
+using GreenHedges.HomeServer.VehicleManager.Data;
 
 #nullable disable
 
-namespace VehicleManager.Data.Migrations
+namespace GreenHedges.HomeServer.VehicleManager.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
     [Migration("20261006215806_FuelBrandsAndStations")]
@@ -25,7 +25,7 @@ namespace VehicleManager.Data.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("VehicleManager.Models.FuelBrand", b =>
+            modelBuilder.Entity("GreenHedges.HomeServer.VehicleManager.Models.FuelBrand", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -73,7 +73,7 @@ namespace VehicleManager.Data.Migrations
                     b.ToTable("FuelBrands");
                 });
 
-            modelBuilder.Entity("VehicleManager.Models.FuelEntry", b =>
+            modelBuilder.Entity("GreenHedges.HomeServer.VehicleManager.Models.FuelEntry", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -146,7 +146,7 @@ namespace VehicleManager.Data.Migrations
                     b.ToTable("FuelEntries");
                 });
 
-            modelBuilder.Entity("VehicleManager.Models.FuelEntryStop", b =>
+            modelBuilder.Entity("GreenHedges.HomeServer.VehicleManager.Models.FuelEntryStop", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -200,7 +200,7 @@ namespace VehicleManager.Data.Migrations
                     b.ToTable("FuelEntryStops");
                 });
 
-            modelBuilder.Entity("VehicleManager.Models.FuelStation", b =>
+            modelBuilder.Entity("GreenHedges.HomeServer.VehicleManager.Models.FuelStation", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -248,7 +248,7 @@ namespace VehicleManager.Data.Migrations
                     b.ToTable("FuelStations");
                 });
 
-            modelBuilder.Entity("VehicleManager.Models.Owner", b =>
+            modelBuilder.Entity("GreenHedges.HomeServer.VehicleManager.Models.Owner", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -296,7 +296,7 @@ namespace VehicleManager.Data.Migrations
                     b.ToTable("Owners");
                 });
 
-            modelBuilder.Entity("VehicleManager.Models.Vehicle", b =>
+            modelBuilder.Entity("GreenHedges.HomeServer.VehicleManager.Models.Vehicle", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -370,9 +370,9 @@ namespace VehicleManager.Data.Migrations
                     b.ToTable("Vehicles");
                 });
 
-            modelBuilder.Entity("VehicleManager.Models.FuelEntry", b =>
+            modelBuilder.Entity("GreenHedges.HomeServer.VehicleManager.Models.FuelEntry", b =>
                 {
-                    b.HasOne("VehicleManager.Models.Vehicle", "Vehicle")
+                    b.HasOne("GreenHedges.HomeServer.VehicleManager.Models.Vehicle", "Vehicle")
                         .WithMany("FuelEntries")
                         .HasForeignKey("VehicleId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -381,20 +381,20 @@ namespace VehicleManager.Data.Migrations
                     b.Navigation("Vehicle");
                 });
 
-            modelBuilder.Entity("VehicleManager.Models.FuelEntryStop", b =>
+            modelBuilder.Entity("GreenHedges.HomeServer.VehicleManager.Models.FuelEntryStop", b =>
                 {
-                    b.HasOne("VehicleManager.Models.FuelBrand", "FuelBrand")
+                    b.HasOne("GreenHedges.HomeServer.VehicleManager.Models.FuelBrand", "FuelBrand")
                         .WithMany("Stops")
                         .HasForeignKey("FuelBrandId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("VehicleManager.Models.FuelEntry", "FuelEntry")
+                    b.HasOne("GreenHedges.HomeServer.VehicleManager.Models.FuelEntry", "FuelEntry")
                         .WithMany("Stops")
                         .HasForeignKey("FuelEntryId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("VehicleManager.Models.FuelStation", "FuelStation")
+                    b.HasOne("GreenHedges.HomeServer.VehicleManager.Models.FuelStation", "FuelStation")
                         .WithMany("Stops")
                         .HasForeignKey("FuelStationId")
                         .OnDelete(DeleteBehavior.Restrict);
@@ -406,9 +406,9 @@ namespace VehicleManager.Data.Migrations
                     b.Navigation("FuelStation");
                 });
 
-            modelBuilder.Entity("VehicleManager.Models.Vehicle", b =>
+            modelBuilder.Entity("GreenHedges.HomeServer.VehicleManager.Models.Vehicle", b =>
                 {
-                    b.HasOne("VehicleManager.Models.Owner", "Owner")
+                    b.HasOne("GreenHedges.HomeServer.VehicleManager.Models.Owner", "Owner")
                         .WithMany("Vehicles")
                         .HasForeignKey("OwnerId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -417,27 +417,27 @@ namespace VehicleManager.Data.Migrations
                     b.Navigation("Owner");
                 });
 
-            modelBuilder.Entity("VehicleManager.Models.FuelBrand", b =>
+            modelBuilder.Entity("GreenHedges.HomeServer.VehicleManager.Models.FuelBrand", b =>
                 {
                     b.Navigation("Stops");
                 });
 
-            modelBuilder.Entity("VehicleManager.Models.FuelEntry", b =>
+            modelBuilder.Entity("GreenHedges.HomeServer.VehicleManager.Models.FuelEntry", b =>
                 {
                     b.Navigation("Stops");
                 });
 
-            modelBuilder.Entity("VehicleManager.Models.FuelStation", b =>
+            modelBuilder.Entity("GreenHedges.HomeServer.VehicleManager.Models.FuelStation", b =>
                 {
                     b.Navigation("Stops");
                 });
 
-            modelBuilder.Entity("VehicleManager.Models.Owner", b =>
+            modelBuilder.Entity("GreenHedges.HomeServer.VehicleManager.Models.Owner", b =>
                 {
                     b.Navigation("Vehicles");
                 });
 
-            modelBuilder.Entity("VehicleManager.Models.Vehicle", b =>
+            modelBuilder.Entity("GreenHedges.HomeServer.VehicleManager.Models.Vehicle", b =>
                 {
                     b.Navigation("FuelEntries");
                 });

@@ -1,8 +1,8 @@
 using System.Linq.Expressions;
-using VehicleManager.Models;
-using VehicleManager.Services;
+using GreenHedges.HomeServer.VehicleManager.Models;
+using GreenHedges.HomeServer.VehicleManager.Services;
 
-namespace VehicleManager.ViewModels;
+namespace GreenHedges.HomeServer.VehicleManager.ViewModels;
 
 /// <summary>A fill-up for display, with the figures calculated from its raw data.</summary>
 public class FuelEntryView

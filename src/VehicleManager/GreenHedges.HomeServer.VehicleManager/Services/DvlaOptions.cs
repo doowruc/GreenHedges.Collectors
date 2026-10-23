@@ -1,4 +1,4 @@
-namespace VehicleManager.Services;
+namespace GreenHedges.HomeServer.VehicleManager.Services;
 
 /// <summary>
 /// The DVLA Vehicle Enquiry Service key (<c>Dvla:ApiKey</c>, optional: without it there are no DVLA

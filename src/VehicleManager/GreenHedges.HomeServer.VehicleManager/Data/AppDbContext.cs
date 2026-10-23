@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
-using VehicleManager.Models;
-using VehicleManager.Services;
+using GreenHedges.HomeServer.VehicleManager.Models;
+using GreenHedges.HomeServer.VehicleManager.Services;
 
-namespace VehicleManager.Data;
+namespace GreenHedges.HomeServer.VehicleManager.Data;
 
 /// <remarks>
 /// Each signed-in user has their own data. Query filters limit every query to the current user's

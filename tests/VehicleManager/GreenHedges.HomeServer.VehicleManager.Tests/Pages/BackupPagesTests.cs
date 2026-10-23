@@ -1,9 +1,9 @@
 using System.IO.Compression;
 using System.Net;
 using Microsoft.EntityFrameworkCore;
-using VehicleManager.Tests.Infrastructure;
+using GreenHedges.HomeServer.VehicleManager.Tests.Infrastructure;
 
-namespace VehicleManager.Tests.Pages;
+namespace GreenHedges.HomeServer.VehicleManager.Tests.Pages;
 
 public class BackupPagesTests(AppFactory app) : DatabaseTest, IClassFixture<AppFactory>
 {

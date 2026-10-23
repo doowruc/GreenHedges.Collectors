@@ -1,8 +1,8 @@
 using System.Text.Json;
-using VehicleManager.Data;
-using VehicleManager.Models;
+using GreenHedges.HomeServer.VehicleManager.Data;
+using GreenHedges.HomeServer.VehicleManager.Models;
 
-namespace VehicleManager.Services;
+namespace GreenHedges.HomeServer.VehicleManager.Services;
 
 /// <summary>
 /// Looks up when a vehicle's MOT and tax are due: tax (and MOT, as a fallback) from the DVLA, MOT from

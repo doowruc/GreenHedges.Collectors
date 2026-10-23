@@ -1,7 +1,7 @@
 using System.Net;
 using System.Text.RegularExpressions;
 
-namespace VehicleManager.Tests.Infrastructure;
+namespace GreenHedges.HomeServer.VehicleManager.Tests.Infrastructure;
 
 public sealed record PageResponse(HttpStatusCode Status, string Html, string? Location)
 {

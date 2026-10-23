@@ -1,4 +1,4 @@
-namespace VehicleManager.Services;
+namespace GreenHedges.HomeServer.VehicleManager.Services;
 
 public sealed record BackupCounts(int Owners, int Vehicles, int FuelBrands, int FuelStations, int FillUps, int Services)
 {

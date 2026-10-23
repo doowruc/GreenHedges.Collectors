@@ -1,6 +1,6 @@
-using VehicleManager.ViewModels;
+using GreenHedges.HomeServer.VehicleManager.ViewModels;
 
-namespace VehicleManager.Services;
+namespace GreenHedges.HomeServer.VehicleManager.Services;
 
 /// <summary>
 /// Fuel spend over time for the dashboard's spending chart: by month or year and vehicle, and year on year.

@@ -1,9 +1,9 @@
 using System.Diagnostics;
 using Coravel.Invocable;
 using Microsoft.EntityFrameworkCore;
-using VehicleManager.Data;
+using GreenHedges.HomeServer.VehicleManager.Data;
 
-namespace VehicleManager.Services;
+namespace GreenHedges.HomeServer.VehicleManager.Services;
 
 /// <summary>
 /// The nightly backup (scheduled in <c>Program.cs</c>): emails each user with a backup email address

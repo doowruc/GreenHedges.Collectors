@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
-using VehicleManager.Services;
+using GreenHedges.HomeServer.VehicleManager.Services;
 
-namespace VehicleManager.Pages.Backup;
+namespace GreenHedges.HomeServer.VehicleManager.Pages.Backup;
 
 /// <summary>Replaces all the user's data with a backup's (compressed or plain JSON).</summary>
 public class RestoreModel(BackupService backups, ILogger<RestoreModel> logger) : PageModel

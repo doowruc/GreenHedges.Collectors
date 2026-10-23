@@ -1,8 +1,8 @@
 using System.Linq.Expressions;
-using VehicleManager.Models;
-using VehicleManager.Services;
+using GreenHedges.HomeServer.VehicleManager.Models;
+using GreenHedges.HomeServer.VehicleManager.Services;
 
-namespace VehicleManager.ViewModels;
+namespace GreenHedges.HomeServer.VehicleManager.ViewModels;
 
 public class VehicleView
 {

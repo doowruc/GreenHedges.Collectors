@@ -1,10 +1,10 @@
 using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
-using VehicleManager.Models;
-using VehicleManager.Services;
+using GreenHedges.HomeServer.VehicleManager.Models;
+using GreenHedges.HomeServer.VehicleManager.Services;
 
-namespace VehicleManager.Tests.Unit;
+namespace GreenHedges.HomeServer.VehicleManager.Tests.Unit;
 
 public class BackupFileTests
 {

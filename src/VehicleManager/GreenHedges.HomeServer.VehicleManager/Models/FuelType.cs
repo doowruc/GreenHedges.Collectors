@@ -1,4 +1,4 @@
-namespace VehicleManager.Models;
+namespace GreenHedges.HomeServer.VehicleManager.Models;
 
 public enum FuelType
 {

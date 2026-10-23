@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
-using VehicleManager.Data;
+using GreenHedges.HomeServer.VehicleManager.Data;
 
-namespace VehicleManager.Pages.Owners;
+namespace GreenHedges.HomeServer.VehicleManager.Pages.Owners;
 
 public class IndexModel(AppDbContext db) : PageModel
 {

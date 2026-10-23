@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
 
-namespace VehicleManager.Tests.Infrastructure;
+namespace GreenHedges.HomeServer.VehicleManager.Tests.Infrastructure;
 
 /// <summary>Keeps every formatted log message (and its exception's message), so tests can check what's logged.</summary>
 public sealed class ListLogger<T> : ILogger<T>

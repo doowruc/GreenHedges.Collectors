@@ -1,11 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using VehicleManager.Data;
-using VehicleManager.Models;
-using VehicleManager.Services;
-using VehicleManager.ViewModels;
+using GreenHedges.HomeServer.VehicleManager.Data;
+using GreenHedges.HomeServer.VehicleManager.Models;
+using GreenHedges.HomeServer.VehicleManager.Services;
+using GreenHedges.HomeServer.VehicleManager.ViewModels;
 
-namespace VehicleManager.Pages.Vehicles;
+namespace GreenHedges.HomeServer.VehicleManager.Pages.Vehicles;
 
 public class CreateModel(AppDbContext db, VehicleLookup lookup) : PageModel
 {

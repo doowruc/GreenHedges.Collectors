@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 using System.Reflection;
 using Resend;
 
-namespace VehicleManager.Tests.Infrastructure;
+namespace GreenHedges.HomeServer.VehicleManager.Tests.Infrastructure;
 
 /// <summary>
 /// Stands in for Resend, so tests never send real email: records the emails it's asked to send,

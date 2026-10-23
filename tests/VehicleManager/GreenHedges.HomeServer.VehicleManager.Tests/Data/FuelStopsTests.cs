@@ -1,11 +1,11 @@
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
-using VehicleManager.Data;
-using VehicleManager.Services;
-using VehicleManager.Tests.Infrastructure;
-using VehicleManager.ViewModels;
+using GreenHedges.HomeServer.VehicleManager.Data;
+using GreenHedges.HomeServer.VehicleManager.Services;
+using GreenHedges.HomeServer.VehicleManager.Tests.Infrastructure;
+using GreenHedges.HomeServer.VehicleManager.ViewModels;
 
-namespace VehicleManager.Tests.Data;
+namespace GreenHedges.HomeServer.VehicleManager.Tests.Data;
 
 public class FuelStopsTests : DatabaseTest
 {

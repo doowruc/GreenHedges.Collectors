@@ -1,4 +1,4 @@
-namespace VehicleManager.Models;
+namespace GreenHedges.HomeServer.VehicleManager.Models;
 
 /// <summary>
 /// Where a fill-up's fuel came from: a station (and through it, a brand). Most fill-ups have one

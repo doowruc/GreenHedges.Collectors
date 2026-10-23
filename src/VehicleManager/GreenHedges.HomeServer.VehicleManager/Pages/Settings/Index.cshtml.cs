@@ -2,12 +2,12 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using Resend;
-using VehicleManager.Data;
-using VehicleManager.Models;
-using VehicleManager.Services;
-using VehicleManager.ViewModels;
+using GreenHedges.HomeServer.VehicleManager.Data;
+using GreenHedges.HomeServer.VehicleManager.Models;
+using GreenHedges.HomeServer.VehicleManager.Services;
+using GreenHedges.HomeServer.VehicleManager.ViewModels;
 
-namespace VehicleManager.Pages.Settings;
+namespace GreenHedges.HomeServer.VehicleManager.Pages.Settings;
 
 /// <summary>The user's settings: where reminders and scheduled backups are emailed. Their settings row is added on first save.</summary>
 public class IndexModel(AppDbContext db, BackupEmailer emailer, ILogger<IndexModel> logger) : PageModel

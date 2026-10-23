@@ -1,4 +1,4 @@
-namespace VehicleManager.Models;
+namespace GreenHedges.HomeServer.VehicleManager.Models;
 
 /// <summary>
 /// Data that belongs to one signed-in user. <c>AppDbContext</c> only returns the current user's

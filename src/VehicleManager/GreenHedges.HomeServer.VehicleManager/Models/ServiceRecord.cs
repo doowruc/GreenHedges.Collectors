@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace VehicleManager.Models;
+namespace GreenHedges.HomeServer.VehicleManager.Models;
 
 /// <summary>A service a vehicle has had. Pages use <c>ServiceRecordView</c> / <c>ServiceRecordInput</c> rather than this entity.</summary>
 public class ServiceRecord : AuditedEntity

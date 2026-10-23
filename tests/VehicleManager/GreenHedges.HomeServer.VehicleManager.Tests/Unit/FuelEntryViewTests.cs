@@ -1,6 +1,6 @@
-using VehicleManager.ViewModels;
+using GreenHedges.HomeServer.VehicleManager.ViewModels;
 
-namespace VehicleManager.Tests.Unit;
+namespace GreenHedges.HomeServer.VehicleManager.Tests.Unit;
 
 public class FuelEntryViewTests
 {

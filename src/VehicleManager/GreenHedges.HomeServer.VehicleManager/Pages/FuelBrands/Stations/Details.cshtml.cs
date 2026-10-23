@@ -1,10 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using VehicleManager.Data;
-using VehicleManager.Models;
-using VehicleManager.ViewModels;
+using GreenHedges.HomeServer.VehicleManager.Data;
+using GreenHedges.HomeServer.VehicleManager.Models;
+using GreenHedges.HomeServer.VehicleManager.ViewModels;
 
-namespace VehicleManager.Pages.FuelBrands.Stations;
+namespace GreenHedges.HomeServer.VehicleManager.Pages.FuelBrands.Stations;
 
 /// <summary>A station's fill-ups and pump prices, split by fuel type.</summary>
 public class DetailsModel(AppDbContext db, FuelBrandList brands, FuelStationList stations) : StationPageModel(brands, stations)

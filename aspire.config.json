@@ -1,5 +1,5 @@
 {
   "appHost": {
-    "path": "VehicleManager.AppHost/VehicleManager.AppHost.csproj"
+    "path": "src/VehicleManager/GreenHedges.HomeServer.VehicleManager.AppHost/GreenHedges.HomeServer.VehicleManager.AppHost.csproj"
   }
 }

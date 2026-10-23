@@ -1,6 +1,6 @@
-using VehicleManager.Models;
+using GreenHedges.HomeServer.VehicleManager.Models;
 
-namespace VehicleManager.Services;
+namespace GreenHedges.HomeServer.VehicleManager.Services;
 
 /// <summary>An MOT test from the DVSA's history (see <see cref="MotTest"/>).</summary>
 public sealed record MotTestBackup : BackupRow

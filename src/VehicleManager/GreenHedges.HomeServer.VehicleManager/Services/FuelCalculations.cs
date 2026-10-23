@@ -1,4 +1,4 @@
-namespace VehicleManager.Services;
+namespace GreenHedges.HomeServer.VehicleManager.Services;
 
 /// <summary>Cost figures worked out from a fill-up's raw data (never stored).</summary>
 public static class FuelCalculations

@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
-namespace VehicleManager.Pages.FuelBrands.Stations;
+namespace GreenHedges.HomeServer.VehicleManager.Pages.FuelBrands.Stations;
 
 public class MergeModel(FuelBrandList brands, FuelStationList stations) : StationPageModel(brands, stations)
 {

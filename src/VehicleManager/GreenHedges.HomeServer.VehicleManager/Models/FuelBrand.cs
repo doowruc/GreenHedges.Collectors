@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace VehicleManager.Models;
+namespace GreenHedges.HomeServer.VehicleManager.Models;
 
 /// <summary>A fuel brand, e.g. Shell. Each user has their own list.</summary>
 /// <remarks>Fill-ups link to a <see cref="FuelStation"/>, and get their brand through it.</remarks>

@@ -1,6 +1,6 @@
-using VehicleManager.Data;
+using GreenHedges.HomeServer.VehicleManager.Data;
 
-namespace VehicleManager.Tests.Infrastructure;
+namespace GreenHedges.HomeServer.VehicleManager.Tests.Infrastructure;
 
 /// <summary>
 /// Base for tests that use the database. Each test gets its own test user (<see cref="UserId"/>),

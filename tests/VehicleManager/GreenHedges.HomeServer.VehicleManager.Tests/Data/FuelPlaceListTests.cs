@@ -1,10 +1,10 @@
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
-using VehicleManager.Pages.FuelBrands;
-using VehicleManager.Tests.Infrastructure;
-using VehicleManager.ViewModels;
+using GreenHedges.HomeServer.VehicleManager.Pages.FuelBrands;
+using GreenHedges.HomeServer.VehicleManager.Tests.Infrastructure;
+using GreenHedges.HomeServer.VehicleManager.ViewModels;
 
-namespace VehicleManager.Tests.Data;
+namespace GreenHedges.HomeServer.VehicleManager.Tests.Data;
 
 public class FuelPlaceListTests : DatabaseTest
 {
@@ -20,8 +20,8 @@ public class FuelPlaceListTests : DatabaseTest
         await db.SaveChangesAsync();
     }
 
-    private FuelBrandList Brands(VehicleManager.Data.AppDbContext db) => new(db, new TestCurrentUser(UserId));
-    private FuelStationList Stations(VehicleManager.Data.AppDbContext db) => new(db, new TestCurrentUser(UserId));
+    private FuelBrandList Brands(GreenHedges.HomeServer.VehicleManager.Data.AppDbContext db) => new(db, new TestCurrentUser(UserId));
+    private FuelStationList Stations(GreenHedges.HomeServer.VehicleManager.Data.AppDbContext db) => new(db, new TestCurrentUser(UserId));
 
     [DatabaseFact]
     public async Task Lists_count_stations_and_fill_ups()

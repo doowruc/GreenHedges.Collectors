@@ -1,9 +1,9 @@
 using System.ComponentModel.DataAnnotations;
 using System.Linq.Expressions;
-using VehicleManager.Models;
-using VehicleManager.Services;
+using GreenHedges.HomeServer.VehicleManager.Models;
+using GreenHedges.HomeServer.VehicleManager.Services;
 
-namespace VehicleManager.ViewModels;
+namespace GreenHedges.HomeServer.VehicleManager.ViewModels;
 
 /// <summary>The editable fields of a fill-up, used by the fill-up form and the spreadsheet import.</summary>
 public class FuelEntryInput

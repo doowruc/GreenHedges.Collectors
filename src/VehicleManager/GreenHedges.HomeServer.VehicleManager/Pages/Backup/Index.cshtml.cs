@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using VehicleManager.Services;
+using GreenHedges.HomeServer.VehicleManager.Services;
 
-namespace VehicleManager.Pages.Backup;
+namespace GreenHedges.HomeServer.VehicleManager.Pages.Backup;
 
 /// <summary>Downloads a backup of everything the user owns, as a compressed JSON file.</summary>
 public class IndexModel(BackupService backups) : PageModel

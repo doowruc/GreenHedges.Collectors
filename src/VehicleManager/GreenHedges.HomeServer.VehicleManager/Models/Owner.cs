@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace VehicleManager.Models;
+namespace GreenHedges.HomeServer.VehicleManager.Models;
 
 /// <summary>A stored owner. Pages use <c>OwnerInput</c> or their own projections rather than this entity.</summary>
 public class Owner : AuditedEntity, IUserOwned

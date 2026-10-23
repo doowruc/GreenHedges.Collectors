@@ -1,8 +1,8 @@
 using System.Net;
 using System.Text.RegularExpressions;
-using VehicleManager.Tests.Infrastructure;
+using GreenHedges.HomeServer.VehicleManager.Tests.Infrastructure;
 
-namespace VehicleManager.Tests.Pages;
+namespace GreenHedges.HomeServer.VehicleManager.Tests.Pages;
 
 public class FuelPagesTests(AppFactory app) : DatabaseTest, IClassFixture<AppFactory>
 {
@@ -202,7 +202,7 @@ public class FuelPagesTests(AppFactory app) : DatabaseTest, IClassFixture<AppFac
         await using (var db = Db())
         {
             // Added second but sorts first by name, on the same date.
-            var alpha = new VehicleManager.Models.Vehicle { OwnerId = db.Vehicles.Single().OwnerId, Make = "Alpha", Model = "Van", RegistrationNumber = "ALPHA 1" };
+            var alpha = new GreenHedges.HomeServer.VehicleManager.Models.Vehicle { OwnerId = db.Vehicles.Single().OwnerId, Make = "Alpha", Model = "Van", RegistrationNumber = "ALPHA 1" };
             db.Vehicles.Add(alpha);
             await db.SaveChangesAsync();
             await TestData.AddFillUpAsync(db, alpha.Id, new DateOnly(2026, 1, 1), ("Beta", "Village"));

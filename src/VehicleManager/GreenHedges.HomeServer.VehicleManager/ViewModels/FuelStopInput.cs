@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
-using VehicleManager.Models;
+using GreenHedges.HomeServer.VehicleManager.Models;
 
-namespace VehicleManager.ViewModels;
+namespace GreenHedges.HomeServer.VehicleManager.ViewModels;
 
 /// <summary>
 /// One brand/station pair on the fill-up form, typed as names. Both are needed (see

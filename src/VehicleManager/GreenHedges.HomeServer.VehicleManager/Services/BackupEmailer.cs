@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Resend;
-using VehicleManager.Data;
+using GreenHedges.HomeServer.VehicleManager.Data;
 
-namespace VehicleManager.Services;
+namespace GreenHedges.HomeServer.VehicleManager.Services;
 
 /// <summary>Emails the signed-in user a backup of their data, through Resend, to their backup email address.</summary>
 public class BackupEmailer(AppDbContext db, BackupService backups, IResend resend, EmailOptions options)

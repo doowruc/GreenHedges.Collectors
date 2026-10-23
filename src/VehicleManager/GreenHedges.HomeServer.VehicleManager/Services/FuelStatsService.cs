@@ -1,6 +1,6 @@
-using VehicleManager.ViewModels;
+using GreenHedges.HomeServer.VehicleManager.ViewModels;
 
-namespace VehicleManager.Services;
+namespace GreenHedges.HomeServer.VehicleManager.Services;
 
 public class FuelStatsService
 {

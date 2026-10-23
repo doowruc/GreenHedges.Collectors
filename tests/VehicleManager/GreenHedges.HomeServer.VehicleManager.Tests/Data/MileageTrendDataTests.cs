@@ -1,8 +1,8 @@
-using VehicleManager.Models;
-using VehicleManager.Services;
-using VehicleManager.Tests.Infrastructure;
+using GreenHedges.HomeServer.VehicleManager.Models;
+using GreenHedges.HomeServer.VehicleManager.Services;
+using GreenHedges.HomeServer.VehicleManager.Tests.Infrastructure;
 
-namespace VehicleManager.Tests.Data;
+namespace GreenHedges.HomeServer.VehicleManager.Tests.Data;
 
 public class MileageTrendDataTests : DatabaseTest
 {

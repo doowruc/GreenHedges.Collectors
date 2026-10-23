@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
-namespace VehicleManager.Pages.FuelBrands.Stations;
+namespace GreenHedges.HomeServer.VehicleManager.Pages.FuelBrands.Stations;
 
 /// <summary>
 /// Base for a fuel brand's Stations pages, routed under <c>/FuelBrands/{brandId}/Stations</c>.

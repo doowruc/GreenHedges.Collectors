@@ -3,6 +3,6 @@
 // launch profile (port 5080) and user secrets as with `dotnet watch`. Nothing here is used outside local development.
 var builder = DistributedApplication.CreateBuilder(args);
 
-builder.AddProject<Projects.VehicleManager>("vehiclemanager");
+builder.AddProject<Projects.GreenHedges_HomeServer_VehicleManager>("vehiclemanager");
 
 builder.Build().Run();

@@ -2,7 +2,7 @@ using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace VehicleManager.Services;
+namespace GreenHedges.HomeServer.VehicleManager.Services;
 
 /// <summary>The DVSA MOT History API: a vehicle's MOT tests (and when its MOT runs out), by registration.</summary>
 public class MotHistoryClient(HttpClient http, MotHistoryOptions options, MotHistoryTokenCache tokens)

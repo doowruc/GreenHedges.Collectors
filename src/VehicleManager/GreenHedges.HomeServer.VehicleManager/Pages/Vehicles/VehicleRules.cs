@@ -1,10 +1,10 @@
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using VehicleManager.Data;
-using VehicleManager.ViewModels;
+using GreenHedges.HomeServer.VehicleManager.Data;
+using GreenHedges.HomeServer.VehicleManager.ViewModels;
 
-namespace VehicleManager.Pages.Vehicles;
+namespace GreenHedges.HomeServer.VehicleManager.Pages.Vehicles;
 
 internal static class VehicleRules
 {

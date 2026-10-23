@@ -1,7 +1,7 @@
 using System.Net;
 using System.Text.Json;
 
-namespace VehicleManager.Services;
+namespace GreenHedges.HomeServer.VehicleManager.Services;
 
 /// <summary>The DVLA Vehicle Enquiry Service: tax status and due date, and MOT expiry, by registration.</summary>
 public class DvlaClient(HttpClient http, DvlaOptions options)

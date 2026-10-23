@@ -1,8 +1,8 @@
 using System.Net;
 using System.Text.RegularExpressions;
-using VehicleManager.Tests.Infrastructure;
+using GreenHedges.HomeServer.VehicleManager.Tests.Infrastructure;
 
-namespace VehicleManager.Tests.Pages;
+namespace GreenHedges.HomeServer.VehicleManager.Tests.Pages;
 
 public class SettingsPagesTests(AppFactory app) : DatabaseTest, IClassFixture<AppFactory>
 {

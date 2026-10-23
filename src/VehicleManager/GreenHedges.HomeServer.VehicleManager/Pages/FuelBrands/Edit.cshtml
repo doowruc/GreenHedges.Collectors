@@ -1,5 +1,5 @@
 @page "{id:int}"
-@model VehicleManager.Pages.FuelBrands.EditModel
+@model GreenHedges.HomeServer.VehicleManager.Pages.FuelBrands.EditModel
 @{ ViewData["Title"] = "Edit fuel brand"; }
 
 <h1 class="h3 mb-3">Edit fuel brand</h1>
@@ -10,7 +10,7 @@
         <div class="row g-3">
             <div class="col-md-6">
                 <label asp-for="Place.Name" class="form-label"></label>
-                <input asp-for="Place.Name" class="form-control" maxlength="@VehicleManager.Models.FuelBrand.MaxNameLength" autofocus />
+                <input asp-for="Place.Name" class="form-control" maxlength="@GreenHedges.HomeServer.VehicleManager.Models.FuelBrand.MaxNameLength" autofocus />
                 <span asp-validation-for="Place.Name" class="text-danger small"></span>
             </div>
         </div>

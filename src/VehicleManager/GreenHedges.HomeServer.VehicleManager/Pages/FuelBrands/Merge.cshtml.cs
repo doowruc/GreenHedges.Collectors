@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
-namespace VehicleManager.Pages.FuelBrands;
+namespace GreenHedges.HomeServer.VehicleManager.Pages.FuelBrands;
 
 public class MergeModel(FuelBrandList brands) : PageModel
 {

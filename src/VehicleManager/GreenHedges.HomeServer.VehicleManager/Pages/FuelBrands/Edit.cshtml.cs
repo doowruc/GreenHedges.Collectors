@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using VehicleManager.ViewModels;
+using GreenHedges.HomeServer.VehicleManager.ViewModels;
 
-namespace VehicleManager.Pages.FuelBrands;
+namespace GreenHedges.HomeServer.VehicleManager.Pages.FuelBrands;
 
 public class EditModel(FuelBrandList brands) : PageModel
 {

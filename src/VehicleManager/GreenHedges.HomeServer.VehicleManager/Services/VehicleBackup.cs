@@ -1,6 +1,6 @@
-using VehicleManager.Models;
+using GreenHedges.HomeServer.VehicleManager.Models;
 
-namespace VehicleManager.Services;
+namespace GreenHedges.HomeServer.VehicleManager.Services;
 
 public sealed record VehicleBackup : BackupRow
 {

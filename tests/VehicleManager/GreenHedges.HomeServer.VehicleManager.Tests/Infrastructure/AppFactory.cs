@@ -11,10 +11,10 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Resend;
-using VehicleManager.Data;
-using VehicleManager.Services;
+using GreenHedges.HomeServer.VehicleManager.Data;
+using GreenHedges.HomeServer.VehicleManager.Services;
 
-namespace VehicleManager.Tests.Infrastructure;
+namespace GreenHedges.HomeServer.VehicleManager.Tests.Infrastructure;
 
 /// <summary>
 /// Runs the app in memory against the tests' throwaway database (<see cref="TestDatabase"/>). Auth0 is replaced by a test sign-in: a

@@ -1,6 +1,6 @@
-using VehicleManager.Services;
+using GreenHedges.HomeServer.VehicleManager.Services;
 
-namespace VehicleManager.Tests.Infrastructure;
+namespace GreenHedges.HomeServer.VehicleManager.Tests.Infrastructure;
 
 /// <summary>Acts as a fixed user instead of reading the signed-in user from the request.</summary>
 public class TestCurrentUser(string? id) : CurrentUser(new Microsoft.AspNetCore.Http.HttpContextAccessor())

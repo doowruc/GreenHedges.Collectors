@@ -1,4 +1,4 @@
-namespace VehicleManager.Services;
+namespace GreenHedges.HomeServer.VehicleManager.Services;
 
 /// <summary>
 /// DVSA MOT History API credentials (<c>MotHistory:ClientId</c>, <c>ClientSecret</c>, <c>ApiKey</c> and

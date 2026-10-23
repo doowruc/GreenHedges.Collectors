@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
-namespace VehicleManager.Pages.Account;
+namespace GreenHedges.HomeServer.VehicleManager.Pages.Account;
 
 /// <summary>Where unauthenticated requests are sent; hands over to Auth0's sign-in page.</summary>
 [AllowAnonymous]

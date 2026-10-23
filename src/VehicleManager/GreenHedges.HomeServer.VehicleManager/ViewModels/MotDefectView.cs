@@ -1,4 +1,4 @@
-namespace VehicleManager.ViewModels;
+namespace GreenHedges.HomeServer.VehicleManager.ViewModels;
 
 public class MotDefectView
 {

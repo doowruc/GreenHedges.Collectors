@@ -1,4 +1,4 @@
-namespace VehicleManager.Services;
+namespace GreenHedges.HomeServer.VehicleManager.Services;
 
 /// <summary>
 /// What a lookup found. Dates it didn't find (or wasn't asked for) are null; <see cref="Problems"/> says why, for showing to the user.

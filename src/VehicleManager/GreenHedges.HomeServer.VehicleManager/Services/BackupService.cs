@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
-using VehicleManager.Data;
-using VehicleManager.Models;
+using GreenHedges.HomeServer.VehicleManager.Data;
+using GreenHedges.HomeServer.VehicleManager.Models;
 
-namespace VehicleManager.Services;
+namespace GreenHedges.HomeServer.VehicleManager.Services;
 
 /// <summary>Backs up and restores everything the signed-in user owns (see <see cref="BackupFile"/>).</summary>
 public class BackupService(AppDbContext db)

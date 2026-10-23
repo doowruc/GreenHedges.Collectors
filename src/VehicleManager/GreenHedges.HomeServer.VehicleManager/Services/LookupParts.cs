@@ -1,4 +1,4 @@
-namespace VehicleManager.Services;
+namespace GreenHedges.HomeServer.VehicleManager.Services;
 
 /// <summary>What a lookup checks: the MOT, the tax, or both.</summary>
 [Flags]

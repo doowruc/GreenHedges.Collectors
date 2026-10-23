@@ -1,4 +1,4 @@
-namespace VehicleManager.Services;
+namespace GreenHedges.HomeServer.VehicleManager.Services;
 
 /// <summary>Holds the DVSA access token between requests (they last an hour), so each lookup doesn't fetch a new one.</summary>
 public sealed class MotHistoryTokenCache

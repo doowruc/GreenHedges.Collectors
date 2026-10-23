@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace VehicleManager.Models;
+namespace GreenHedges.HomeServer.VehicleManager.Models;
 
 /// <summary>
 /// One of a vehicle's MOT tests, as the DVSA's MOT history has it. Kept in step with the DVSA by each lookup

@@ -1,8 +1,8 @@
 using System.Net;
 using System.Text.RegularExpressions;
-using VehicleManager.Tests.Infrastructure;
+using GreenHedges.HomeServer.VehicleManager.Tests.Infrastructure;
 
-namespace VehicleManager.Tests.Pages;
+namespace GreenHedges.HomeServer.VehicleManager.Tests.Pages;
 
 public class FuelBrandsPagesTests(AppFactory app) : DatabaseTest, IClassFixture<AppFactory>
 {
@@ -92,7 +92,7 @@ public class FuelBrandsPagesTests(AppFactory app) : DatabaseTest, IClassFixture<
         {
             var car = db.Vehicles.Single();
             var van = await TestData.AddVehicleAsync(db, "VAN 1");
-            van.FuelType = VehicleManager.Models.FuelType.Diesel;
+            van.FuelType = GreenHedges.HomeServer.VehicleManager.Models.FuelType.Diesel;
             await db.SaveChangesAsync();
             await TestData.AddFillUpAsync(db, van.Id, new DateOnly(2026, 1, 5), ("Alpha", "Town"));
             var split = await TestData.AddFillUpAsync(db, car.Id, new DateOnly(2026, 1, 6), ("Beta", "Village"), ("Alpha", "Town"));
@@ -143,7 +143,7 @@ public class FuelBrandsPagesTests(AppFactory app) : DatabaseTest, IClassFixture<
         await using (var db = Db())
         {
             var van = await TestData.AddVehicleAsync(db, "VAN 1");
-            van.FuelType = VehicleManager.Models.FuelType.Diesel;
+            van.FuelType = GreenHedges.HomeServer.VehicleManager.Models.FuelType.Diesel;
             await db.SaveChangesAsync();
             await TestData.AddFillUpAsync(db, van.Id, new DateOnly(2025, 12, 1), ("Alpha", "Town"));   // earlier
         }
@@ -177,7 +177,7 @@ public class FuelBrandsPagesTests(AppFactory app) : DatabaseTest, IClassFixture<
         await using (var db = Db())
         {
             var van = await TestData.AddVehicleAsync(db, "VAN 1");
-            (van.Make, van.Model, van.FuelType) = ("Volkswagen", "Transporter Kombi", VehicleManager.Models.FuelType.Diesel);
+            (van.Make, van.Model, van.FuelType) = ("Volkswagen", "Transporter Kombi", GreenHedges.HomeServer.VehicleManager.Models.FuelType.Diesel);
             await db.SaveChangesAsync();
             await TestData.AddFillUpAsync(db, van.Id, new DateOnly(2026, 1, 5), ("Alpha", "Town"));
         }
